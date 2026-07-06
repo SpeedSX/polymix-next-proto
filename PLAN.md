@@ -74,7 +74,7 @@ Rules for the implementing agent:
 
 ### Language & currency switching
 
-- **Language:** i18next with ICU messages, `en` + `de` (typical print-market pair) to prove the mechanism; locale persisted per user (localStorage for the prototype); all dates/numbers via `Intl` with the active locale.
+- **Language:** i18next with ICU messages, `ua` + `en` (typical print-market pair) to prove the mechanism; locale persisted per user (localStorage for the prototype); all dates/numbers via `Intl` with the active locale. Make 'ua' default choice.
 - **Currency:** every money field is `{amount_minor: int, currency: string}`. Tenant has a default currency; invoices carry their own currency plus an exchange rate snapshot at issue time (rates table in the tenant DB, seeded statically for the prototype). Display formatting via `Intl.NumberFormat`.
 
 ## Repository layout
@@ -434,8 +434,8 @@ Each milestone ends runnable and demoable, with explicit acceptance criteria.
    **Done when:** two browsers on one tenant — an edit in one appears in the other within 1 s without user action, on both list and detail views; a browser on a second tenant sees nothing (integration test: WS client of tenant B receives no event for tenant A's mutation — mandatory); killing and restarting SurrealDB recovers live updates without a page reload.
 
 6. **M5 — i18n + currency.**
-   `de` locale files for every namespace; language switcher; all dates/numbers locale-formatted; invoice in a non-default currency with rate snapshot from the seeded `exchange_rate` table; display-only converted amount ("≈ €1,234.56") on the invoice detail.
-   **Done when:** switching to `de` translates every screen (no raw keys, no leftover English in the main flows) and reformats dates/numbers; an invoice created in USD on a EUR tenant stores the rate snapshot and renders both amounts; money round-trips through forms without losing cents (unit tests on the minor-units conversion).
+   `ua` locale files for every namespace; language switcher; all dates/numbers locale-formatted; invoice in a non-default currency with rate snapshot from the seeded `exchange_rate` table; display-only converted amount ("≈ UAH 1,234.56") on the invoice detail.
+   **Done when:** switching to `ua` translates every screen (no raw keys, no leftover English in the main flows) and reformats dates/numbers; an invoice created in USD on a EUR tenant stores the rate snapshot and renders both amounts; money round-trips through forms without losing cents (unit tests on the minor-units conversion).
 
 7. **M6 — Cloud + perf pass.**
    Dockerfiles (multi-stage; frontend served by nginx); fly.toml for api + SurrealDB (volume-backed) + static frontend; the three items in **Operational hardening (M6)** — startup retry, CORS from config, readiness endpoint; k6 scripts for search, list pagination, and mutation fan-out with 100 concurrent WS clients; numbers recorded in `/docs/perf.md` against the NFR targets.

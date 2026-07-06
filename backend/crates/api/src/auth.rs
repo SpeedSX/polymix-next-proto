@@ -19,7 +19,7 @@ async fn authenticate(
     headers: &HeaderMap,
     jwks: &JwksCache,
     config: &AppConfig,
-) -> Result<(String, String), ApiError> {
+) -> Result<(String, String, String), ApiError> {
     let header = headers
         .get(AUTHORIZATION)
         .and_then(|v| v.to_str().ok())
@@ -57,8 +57,16 @@ async fn authenticate(
         .and_then(|v| v.as_str())
         .ok_or_else(|| ApiError::forbidden("no active organization"))?
         .to_string();
+    // Clerk's default session token has no org display name; a custom "org_name"
+    // claim (added via the Clerk dashboard's session token template) supplies it.
+    // Falls back to org_id for the dev issuer and any Clerk instance without it.
+    let display_name = claims
+        .get("org_name")
+        .and_then(|v| v.as_str())
+        .unwrap_or(&org_id)
+        .to_string();
 
-    Ok((user_id, org_id))
+    Ok((user_id, org_id, display_name))
 }
 
 pub async fn require_auth(
@@ -66,9 +74,13 @@ pub async fn require_auth(
     mut req: Request<Body>,
     next: Next,
 ) -> Result<Response, ApiError> {
-    let (user_id, org_id) = authenticate(req.headers(), &state.jwks, &state.config).await?;
+    let (user_id, org_id, display_name) =
+        authenticate(req.headers(), &state.jwks, &state.config).await?;
 
-    let tenant = state.provisioner.ensure_tenant(&org_id, &org_id).await?;
+    let tenant = state
+        .provisioner
+        .ensure_tenant(&org_id, &display_name)
+        .await?;
 
     let auth_ctx = AuthContext {
         user_id,
@@ -197,9 +209,36 @@ mod tests {
             HeaderValue::from_str(&format!("Bearer {token}")).unwrap(),
         );
 
-        let (user_id, org_id) = authenticate(&headers, &jwks, &config).await.unwrap();
+        let (user_id, org_id, display_name) = authenticate(&headers, &jwks, &config).await.unwrap();
 
         assert_eq!(user_id, "user-1");
         assert_eq!(org_id, "org-1");
+        assert_eq!(display_name, "org-1");
+    }
+
+    #[tokio::test]
+    async fn org_name_claim_is_used_as_display_name() {
+        let issuer = DevIssuer::generate().unwrap();
+        let jwks_url = serve_jwks(issuer.jwks_json.clone()).await;
+        let jwks = JwksCache::new(jwks_url.clone());
+        let config = test_config("test-issuer", &jwks_url);
+        let token = issuer
+            .issue_token_with_claims(serde_json::json!({
+                "iss": "test-issuer",
+                "sub": "user-1",
+                "exp": (chrono::Utc::now() + chrono::Duration::hours(1)).timestamp(),
+                "org_id": "org-1",
+                "org_name": "Adamant Print GmbH",
+            }))
+            .unwrap();
+        let mut headers = HeaderMap::new();
+        headers.insert(
+            AUTHORIZATION,
+            HeaderValue::from_str(&format!("Bearer {token}")).unwrap(),
+        );
+
+        let (_, _, display_name) = authenticate(&headers, &jwks, &config).await.unwrap();
+
+        assert_eq!(display_name, "Adamant Print GmbH");
     }
 }

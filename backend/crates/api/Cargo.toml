@@ -31,4 +31,5 @@ rand = "0.8"
 base64 = "0.22"
 
 [dev-dependencies]
+testcontainers = "0.27"
 tower = { version = "0.5", features = ["util"] }

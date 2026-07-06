@@ -1,8 +1,10 @@
+pub mod customer_repo;
 pub mod migrations;
 pub mod provision;
 pub mod store;
 pub mod tenant_repo;
 
+pub use customer_repo::SurrealCustomerRepo;
 pub use provision::TenantProvisioner;
 pub use store::{DbConfig, Store};
 pub use tenant_repo::SurrealTenantRepo;

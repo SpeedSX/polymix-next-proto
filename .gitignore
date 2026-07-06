@@ -1,4 +1,5 @@
 /backend/target/
 .env
 .env.local
+.env.*.local
 .claude/

@@ -2,5 +2,12 @@
   "app.title": "PolyMix Next",
   "nav.customers": "Customers",
   "nav.orders": "Orders",
-  "nav.invoices": "Invoices"
+  "nav.invoices": "Invoices",
+  "auth.devSignInTitle": "Dev sign-in",
+  "auth.userId": "User ID",
+  "auth.orgId": "Organization ID",
+  "auth.signIn": "Sign in",
+  "auth.signOut": "Sign out",
+  "auth.devSignInFailed": "Sign-in failed. Check the API is running and try again.",
+  "auth.selectOrganization": "Select an organization to continue"
 }

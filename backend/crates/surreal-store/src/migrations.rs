@@ -4,7 +4,13 @@ use surrealdb::types::SurrealValue;
 
 /// Ordered migrations, applied in this order. Add new entries at the end as
 /// milestones introduce them — see PLAN.md's migration numbering rule.
-const MIGRATIONS: &[(&str, &str)] = &[("0001_init", include_str!("../migrations/0001_init.surql"))];
+const MIGRATIONS: &[(&str, &str)] = &[
+    ("0001_init", include_str!("../migrations/0001_init.surql")),
+    (
+        "0002_customers",
+        include_str!("../migrations/0002_customers.surql"),
+    ),
+];
 
 #[derive(Debug, SurrealValue)]
 #[surreal(crate = "surrealdb::types")]

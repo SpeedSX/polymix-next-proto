@@ -1,0 +1,23 @@
+{
+  "list.title": "Customers",
+  "list.new": "New customer",
+  "list.loadError": "Failed to load customers.",
+  "list.empty": "No customers yet.",
+  "create.title": "New customer",
+  "detail.loadError": "Failed to load customer.",
+  "detail.delete": "Delete",
+  "detail.deleteError": "Failed to delete customer.",
+  "form.cancel": "Cancel",
+  "form.save": "Save",
+  "form.unexpectedError": "Something went wrong. Please try again.",
+  "fields.name": "Name",
+  "fields.contactName": "Contact name",
+  "fields.email": "Email",
+  "fields.phone": "Phone",
+  "fields.street": "Street",
+  "fields.zip": "ZIP",
+  "fields.city": "City",
+  "fields.country": "Country",
+  "fields.notes": "Notes",
+  "fields.createdAt": "Created"
+}

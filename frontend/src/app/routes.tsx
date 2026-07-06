@@ -1,7 +1,9 @@
-import { createRootRoute, createRoute, createRouter } from '@tanstack/react-router'
+import { createRootRoute, createRoute, createRouter, Navigate } from '@tanstack/react-router'
 
+import { CustomerDetail } from '../features/customers/Detail'
+import { CustomerList } from '../features/customers/List'
+import { CustomerNew } from '../features/customers/New'
 import { AppShell } from './AppShell'
-import { HomePage } from './HomePage'
 
 const rootRoute = createRootRoute({
   component: AppShell,
@@ -10,10 +12,33 @@ const rootRoute = createRootRoute({
 const indexRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/',
-  component: HomePage,
+  component: () => <Navigate to="/customers" />,
 })
 
-const routeTree = rootRoute.addChildren([indexRoute])
+const customersListRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/customers',
+  component: CustomerList,
+})
+
+const customersNewRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/customers/new',
+  component: CustomerNew,
+})
+
+const customerDetailRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/customers/$id',
+  component: CustomerDetail,
+})
+
+const routeTree = rootRoute.addChildren([
+  indexRoute,
+  customersListRoute,
+  customersNewRoute,
+  customerDetailRoute,
+])
 
 export const router = createRouter({ routeTree })
 

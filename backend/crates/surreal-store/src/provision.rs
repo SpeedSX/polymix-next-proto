@@ -48,7 +48,10 @@ impl TenantProvisioner {
         display_name: &str,
     ) -> Result<Tenant, DomainError> {
         self.cache
-            .try_get_with(org_id.to_string(), self.find_or_provision(org_id, display_name))
+            .try_get_with(
+                org_id.to_string(),
+                self.find_or_provision(org_id, display_name),
+            )
             .await
             .map_err(|err| (*err).clone())
     }

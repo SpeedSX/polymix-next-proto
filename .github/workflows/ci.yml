@@ -5,6 +5,10 @@ on:
     branches: [main]
   pull_request:
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   check:
     runs-on: ubuntu-latest
@@ -32,9 +36,25 @@ jobs:
 
       - run: just check
 
+  test-int:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: backend
+
+      - uses: extractions/setup-just@v2
+
+      - run: just test-int
+
   build:
     runs-on: ubuntu-latest
-    needs: check
+    needs: [check, test-int]
     steps:
       - uses: actions/checkout@v4
       - uses: extractions/setup-just@v2
