@@ -10,6 +10,10 @@ const MIGRATIONS: &[(&str, &str)] = &[
         "0002_customers",
         include_str!("../migrations/0002_customers.surql"),
     ),
+    (
+        "0003_orders_invoices",
+        include_str!("../migrations/0003_orders_invoices.surql"),
+    ),
 ];
 
 #[derive(Debug, SurrealValue)]

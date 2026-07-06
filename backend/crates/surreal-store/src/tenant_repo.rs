@@ -94,6 +94,17 @@ impl TenantRepo for SurrealTenantRepo {
         Ok(rows.into_iter().next().map(Tenant::from))
     }
 
+    async fn list_all(&self) -> Result<Vec<Tenant>, DomainError> {
+        let mut response = self
+            .session
+            .query("SELECT * FROM type::table($table)")
+            .bind(("table", TABLE))
+            .await
+            .map_err(map_err)?;
+        let rows: Vec<TenantRow> = response.take(0).map_err(map_err)?;
+        Ok(rows.into_iter().map(Tenant::from).collect())
+    }
+
     async fn create(&self, data: NewTenant) -> Result<Tenant, DomainError> {
         let now = chrono::Utc::now().to_rfc3339();
         let id = Ulid::new().to_string();

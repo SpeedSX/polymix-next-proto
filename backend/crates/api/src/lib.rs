@@ -8,16 +8,18 @@ pub mod state;
 
 use std::sync::Arc;
 
-use axum::http::{header, Method};
+use axum::http::{Method, header};
 use axum::{Router, middleware, routing::get, routing::post};
 use tower_http::cors::{Any, CorsLayer};
 use tower_http::trace::TraceLayer;
+
+use domain::TenantRepo;
 
 use config::AppConfig;
 use dev_issuer::DevIssuer;
 use jwks::JwksCache;
 use state::AppState;
-use surreal_store::{DbConfig, Store, TenantProvisioner};
+use surreal_store::{DbConfig, Store, SurrealTenantRepo, TenantProvisioner, migrations};
 
 pub async fn build_state(config: AppConfig) -> anyhow::Result<AppState> {
     let store = Store::connect(&DbConfig {
@@ -28,6 +30,17 @@ pub async fn build_state(config: AppConfig) -> anyhow::Result<AppState> {
     })
     .await?;
     let store = Arc::new(store);
+    // Provisioning only runs migrations once, at tenant creation — re-apply
+    // them here so a tenant db created before the latest migration was added
+    // (e.g. before M2 added order/invoice tables) still gets it, per
+    // PLAN.md's "applied per tenant database at provisioning and at
+    // startup". `apply_migrations` is idempotent (tracks its own version in
+    // `meta:migrations`), so this is a no-op for already-current tenants.
+    let tenants = SurrealTenantRepo::new(store.system()).list_all().await?;
+    for tenant in tenants {
+        let session = store.for_tenant(&tenant.db_name).await?;
+        migrations::apply_migrations(&session).await?;
+    }
     let provisioner = Arc::new(TenantProvisioner::new(store.clone()));
     let jwks = Arc::new(JwksCache::new(config.auth_jwks_url.clone()));
     let dev_issuer = if config.auth_dev_mode {
@@ -64,6 +77,35 @@ pub fn build_router(state: AppState) -> Router {
             get(routes::customers::get)
                 .put(routes::customers::update)
                 .delete(routes::customers::delete),
+        )
+        .route(
+            "/api/orders",
+            get(routes::orders::list).post(routes::orders::create),
+        )
+        .route(
+            "/api/orders/{id}",
+            get(routes::orders::get)
+                .put(routes::orders::update)
+                .delete(routes::orders::delete),
+        )
+        .route("/api/orders/{id}/status", post(routes::orders::set_status))
+        .route(
+            "/api/orders/{id}/invoice",
+            post(routes::invoices::create_from_order),
+        )
+        .route(
+            "/api/invoices",
+            get(routes::invoices::list).post(routes::invoices::create),
+        )
+        .route(
+            "/api/invoices/{id}",
+            get(routes::invoices::get)
+                .put(routes::invoices::update)
+                .delete(routes::invoices::delete),
+        )
+        .route(
+            "/api/invoices/{id}/status",
+            post(routes::invoices::set_status),
         )
         .layer(middleware::from_fn_with_state(
             state.clone(),

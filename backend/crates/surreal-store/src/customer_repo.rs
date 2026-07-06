@@ -7,6 +7,7 @@ use surrealdb::types::{RecordId, RecordIdKey, SurrealValue};
 use ulid::Ulid;
 
 const TABLE: &str = "customer";
+const ORDER_TABLE: &str = "order";
 
 // Whitelisted, not bound as a query parameter: SurrealQL identifiers (unlike
 // values) can't be passed as bind parameters, so the sort field is validated
@@ -84,6 +85,13 @@ struct CountRow {
     count: i64,
 }
 
+#[derive(Debug, SurrealValue)]
+#[surreal(crate = "surrealdb::types")]
+struct IdOnly {
+    #[allow(dead_code)]
+    id: RecordId,
+}
+
 fn record_key(id: &RecordId) -> String {
     match &id.key {
         RecordIdKey::String(key) => key.clone(),
@@ -144,6 +152,18 @@ pub struct SurrealCustomerRepo {
 impl SurrealCustomerRepo {
     pub fn new(session: Surreal<Any>) -> Self {
         Self { session }
+    }
+
+    async fn has_orders(&self, customer_id: &str) -> Result<bool, DomainError> {
+        let mut response = self
+            .session
+            .query("SELECT id FROM type::table($table) WHERE customer_id = $customer_id LIMIT 1")
+            .bind(("table", ORDER_TABLE))
+            .bind(("customer_id", customer_id.to_string()))
+            .await
+            .map_err(map_err)?;
+        let rows: Vec<IdOnly> = response.take(0).map_err(map_err)?;
+        Ok(!rows.is_empty())
     }
 }
 
@@ -219,6 +239,11 @@ impl CustomerRepo for SurrealCustomerRepo {
     }
 
     async fn delete(&self, id: &str) -> Result<(), DomainError> {
+        if self.has_orders(id).await? {
+            return Err(DomainError::Conflict(
+                "customer has orders and cannot be deleted".to_string(),
+            ));
+        }
         let row: Option<CustomerRow> = self.session.delete((TABLE, id)).await.map_err(map_err)?;
         row.map(|_| ()).ok_or(DomainError::NotFound)
     }

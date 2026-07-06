@@ -1,0 +1,406 @@
+use std::collections::HashMap;
+
+use async_trait::async_trait;
+use domain::Paged;
+use domain::error::DomainError;
+use domain::money::Money;
+use domain::order::{
+    LineItem, NewOrder, Order, OrderListQuery, OrderRepo, OrderStatus, line_items_total,
+    validate_transition,
+};
+use surrealdb::Surreal;
+use surrealdb::engine::any::Any;
+use surrealdb::types::{RecordId, RecordIdKey, SurrealValue};
+use ulid::Ulid;
+
+use crate::counter::next_number;
+
+const TABLE: &str = "order";
+const CUSTOMER_TABLE: &str = "customer";
+const INVOICE_TABLE: &str = "invoice";
+
+// Whitelisted, not bound as a query parameter — see customer_repo's
+// ALLOWED_SORT_FIELDS for why.
+const ALLOWED_SORT_FIELDS: &[&str] = &[
+    "number",
+    "customer_id",
+    "status",
+    "currency",
+    "created_at",
+    "updated_at",
+];
+
+// Shared with `invoice_repo`, which has its own money/line-item fields
+// (net/tax/gross totals, invoice line items copied from the order).
+#[derive(Debug, Clone, SurrealValue)]
+#[surreal(crate = "surrealdb::types")]
+pub(crate) struct MoneyRow {
+    amount_minor: i64,
+    currency: String,
+}
+
+impl From<Money> for MoneyRow {
+    fn from(m: Money) -> Self {
+        MoneyRow {
+            amount_minor: m.amount_minor,
+            currency: m.currency,
+        }
+    }
+}
+
+impl From<MoneyRow> for Money {
+    fn from(m: MoneyRow) -> Self {
+        Money {
+            amount_minor: m.amount_minor,
+            currency: m.currency,
+        }
+    }
+}
+
+#[derive(Debug, Clone, SurrealValue)]
+#[surreal(crate = "surrealdb::types")]
+pub(crate) struct LineItemRow {
+    description: String,
+    quantity: u32,
+    unit_price: MoneyRow,
+}
+
+impl From<LineItem> for LineItemRow {
+    fn from(item: LineItem) -> Self {
+        LineItemRow {
+            description: item.description,
+            quantity: item.quantity,
+            unit_price: item.unit_price.into(),
+        }
+    }
+}
+
+impl From<LineItemRow> for LineItem {
+    fn from(row: LineItemRow) -> Self {
+        LineItem {
+            description: row.description,
+            quantity: row.quantity,
+            unit_price: row.unit_price.into(),
+        }
+    }
+}
+
+fn status_to_str(status: OrderStatus) -> &'static str {
+    match status {
+        OrderStatus::Draft => "draft",
+        OrderStatus::Confirmed => "confirmed",
+        OrderStatus::InProduction => "in_production",
+        OrderStatus::Completed => "completed",
+        OrderStatus::Cancelled => "cancelled",
+    }
+}
+
+fn status_from_str(value: &str) -> Result<OrderStatus, DomainError> {
+    match value {
+        "draft" => Ok(OrderStatus::Draft),
+        "confirmed" => Ok(OrderStatus::Confirmed),
+        "in_production" => Ok(OrderStatus::InProduction),
+        "completed" => Ok(OrderStatus::Completed),
+        "cancelled" => Ok(OrderStatus::Cancelled),
+        other => Err(DomainError::Store(format!("unknown order status: {other}"))),
+    }
+}
+
+#[derive(Debug, SurrealValue)]
+#[surreal(crate = "surrealdb::types")]
+struct OrderRow {
+    id: RecordId,
+    number: String,
+    customer_id: String,
+    status: String,
+    currency: String,
+    line_items: Vec<LineItemRow>,
+    total: MoneyRow,
+    notes: Option<String>,
+    created_at: String,
+    updated_at: String,
+}
+
+#[derive(Debug, SurrealValue)]
+#[surreal(crate = "surrealdb::types")]
+struct OrderContent {
+    number: String,
+    customer_id: String,
+    status: String,
+    currency: String,
+    line_items: Vec<LineItemRow>,
+    total: MoneyRow,
+    notes: Option<String>,
+    created_at: String,
+    updated_at: String,
+}
+
+#[derive(Debug, SurrealValue)]
+#[surreal(crate = "surrealdb::types")]
+struct StatusPatch {
+    status: String,
+    updated_at: String,
+}
+
+#[derive(Debug, SurrealValue)]
+#[surreal(crate = "surrealdb::types")]
+struct IdOnly {
+    id: RecordId,
+}
+
+#[derive(Debug, SurrealValue)]
+#[surreal(crate = "surrealdb::types")]
+struct CountRow {
+    count: i64,
+}
+
+fn record_key(id: &RecordId) -> String {
+    match &id.key {
+        RecordIdKey::String(key) => key.clone(),
+        other => format!("{other:?}"),
+    }
+}
+
+fn map_err(err: surrealdb::Error) -> DomainError {
+    DomainError::Store(err.to_string())
+}
+
+fn customer_not_found_error() -> DomainError {
+    let mut details = HashMap::new();
+    details.insert("customer_id".to_string(), "customer not found".to_string());
+    DomainError::Validation(details)
+}
+
+impl TryFrom<OrderRow> for Order {
+    type Error = DomainError;
+
+    fn try_from(row: OrderRow) -> Result<Self, DomainError> {
+        Ok(Order {
+            id: record_key(&row.id),
+            number: row.number,
+            customer_id: row.customer_id,
+            status: status_from_str(&row.status)?,
+            currency: row.currency,
+            line_items: row.line_items.into_iter().map(LineItem::from).collect(),
+            total: row.total.into(),
+            notes: row.notes,
+            created_at: row.created_at,
+            updated_at: row.updated_at,
+        })
+    }
+}
+
+fn sort_clause(sort: &str) -> Result<String, DomainError> {
+    let (field, dir) = match sort.strip_prefix('-') {
+        Some(field) => (field, "DESC"),
+        None => (sort, "ASC"),
+    };
+    if !ALLOWED_SORT_FIELDS.contains(&field) {
+        let mut details = HashMap::new();
+        details.insert("sort".to_string(), format!("unknown sort field: {field}"));
+        return Err(DomainError::Validation(details));
+    }
+    Ok(format!("{field} {dir}"))
+}
+
+/// Builds the `WHERE` clause shared by the list and count queries. Returns
+/// an empty string when no filters apply.
+fn where_clause(query: &OrderListQuery) -> String {
+    let mut conditions = Vec::new();
+    if query.customer_id.is_some() {
+        conditions.push("customer_id = $customer_id");
+    }
+    if query.status.is_some() {
+        conditions.push("status = $status");
+    }
+    if conditions.is_empty() {
+        String::new()
+    } else {
+        format!("WHERE {}", conditions.join(" AND "))
+    }
+}
+
+pub struct SurrealOrderRepo {
+    session: Surreal<Any>,
+}
+
+impl SurrealOrderRepo {
+    pub fn new(session: Surreal<Any>) -> Self {
+        Self { session }
+    }
+
+    async fn customer_exists(&self, customer_id: &str) -> Result<bool, DomainError> {
+        let row: Option<IdOnly> = self
+            .session
+            .select((CUSTOMER_TABLE, customer_id))
+            .await
+            .map_err(map_err)?;
+        Ok(row.is_some())
+    }
+
+    async fn has_invoice(&self, order_id: &str) -> Result<bool, DomainError> {
+        let mut response = self
+            .session
+            .query("SELECT id FROM type::table($table) WHERE order_id = $order_id LIMIT 1")
+            .bind(("table", INVOICE_TABLE))
+            .bind(("order_id", order_id.to_string()))
+            .await
+            .map_err(map_err)?;
+        let rows: Vec<IdOnly> = response.take(0).map_err(map_err)?;
+        Ok(!rows.is_empty())
+    }
+}
+
+#[async_trait]
+impl OrderRepo for SurrealOrderRepo {
+    async fn list(&self, query: OrderListQuery) -> Result<Paged<Order>, DomainError> {
+        let order = sort_clause(&query.sort)?;
+        let start = (query.page.saturating_sub(1) as i64) * query.limit as i64;
+        let filters = where_clause(&query);
+
+        let mut list_query = self
+            .session
+            .query(format!(
+                "SELECT * FROM type::table($table) {filters} ORDER BY {order} LIMIT $limit START $start"
+            ))
+            .bind(("table", TABLE))
+            .bind(("limit", query.limit as i64))
+            .bind(("start", start));
+        if let Some(customer_id) = &query.customer_id {
+            list_query = list_query.bind(("customer_id", customer_id.clone()));
+        }
+        if let Some(status) = query.status {
+            list_query = list_query.bind(("status", status_to_str(status)));
+        }
+        let mut response = list_query.await.map_err(map_err)?;
+        let rows: Vec<OrderRow> = response.take(0).map_err(map_err)?;
+
+        let mut count_query = self
+            .session
+            .query(format!(
+                "SELECT count() FROM type::table($table) {filters} GROUP ALL"
+            ))
+            .bind(("table", TABLE));
+        if let Some(customer_id) = &query.customer_id {
+            count_query = count_query.bind(("customer_id", customer_id.clone()));
+        }
+        if let Some(status) = query.status {
+            count_query = count_query.bind(("status", status_to_str(status)));
+        }
+        let mut count_response = count_query.await.map_err(map_err)?;
+        let count_rows: Vec<CountRow> = count_response.take(0).map_err(map_err)?;
+        let total = count_rows.first().map(|r| r.count as u64).unwrap_or(0);
+
+        let items = rows
+            .into_iter()
+            .map(Order::try_from)
+            .collect::<Result<Vec<_>, _>>()?;
+
+        Ok(Paged {
+            items,
+            total,
+            page: query.page,
+            limit: query.limit,
+        })
+    }
+
+    async fn get(&self, id: &str) -> Result<Option<Order>, DomainError> {
+        let row: Option<OrderRow> = self.session.select((TABLE, id)).await.map_err(map_err)?;
+        row.map(Order::try_from).transpose()
+    }
+
+    async fn create(&self, data: NewOrder) -> Result<Order, DomainError> {
+        if !self.customer_exists(&data.customer_id).await? {
+            return Err(customer_not_found_error());
+        }
+        let currency = data.currency.clone().unwrap_or_else(|| "EUR".to_string());
+        let total = line_items_total(&data.line_items, &currency);
+        let number = next_number(&self.session, "order", "ORD").await?;
+        let now = chrono::Utc::now().to_rfc3339();
+        let id = Ulid::new().to_string();
+        let content = OrderContent {
+            number,
+            customer_id: data.customer_id,
+            status: status_to_str(OrderStatus::Draft).to_string(),
+            currency,
+            line_items: data.line_items.into_iter().map(LineItemRow::from).collect(),
+            total: total.into(),
+            notes: data.notes,
+            created_at: now.clone(),
+            updated_at: now,
+        };
+
+        let row: Option<OrderRow> = self
+            .session
+            .create((TABLE, id))
+            .content(content)
+            .await
+            .map_err(map_err)?;
+
+        row.map(Order::try_from)
+            .transpose()?
+            .ok_or_else(|| DomainError::Store("order create returned no row".to_string()))
+    }
+
+    async fn update(&self, id: &str, data: NewOrder) -> Result<Order, DomainError> {
+        let existing = self.get(id).await?.ok_or(DomainError::NotFound)?;
+        if !self.customer_exists(&data.customer_id).await? {
+            return Err(customer_not_found_error());
+        }
+        let currency = data.currency.clone().unwrap_or_else(|| "EUR".to_string());
+        let total = line_items_total(&data.line_items, &currency);
+        let now = chrono::Utc::now().to_rfc3339();
+        let content = OrderContent {
+            number: existing.number,
+            customer_id: data.customer_id,
+            status: status_to_str(existing.status).to_string(),
+            currency,
+            line_items: data.line_items.into_iter().map(LineItemRow::from).collect(),
+            total: total.into(),
+            notes: data.notes,
+            created_at: existing.created_at,
+            updated_at: now,
+        };
+
+        let row: Option<OrderRow> = self
+            .session
+            .update((TABLE, id))
+            .content(content)
+            .await
+            .map_err(map_err)?;
+
+        row.map(Order::try_from)
+            .transpose()?
+            .ok_or(DomainError::NotFound)
+    }
+
+    async fn delete(&self, id: &str) -> Result<(), DomainError> {
+        if self.has_invoice(id).await? {
+            return Err(DomainError::Conflict(
+                "order has an invoice and cannot be deleted".to_string(),
+            ));
+        }
+        let row: Option<OrderRow> = self.session.delete((TABLE, id)).await.map_err(map_err)?;
+        row.map(|_| ()).ok_or(DomainError::NotFound)
+    }
+
+    async fn set_status(&self, id: &str, status: OrderStatus) -> Result<Order, DomainError> {
+        let existing = self.get(id).await?.ok_or(DomainError::NotFound)?;
+        validate_transition(existing.status, status)?;
+
+        let patch = StatusPatch {
+            status: status_to_str(status).to_string(),
+            updated_at: chrono::Utc::now().to_rfc3339(),
+        };
+        let row: Option<OrderRow> = self
+            .session
+            .update((TABLE, id))
+            .merge(patch)
+            .await
+            .map_err(map_err)?;
+
+        row.map(Order::try_from)
+            .transpose()?
+            .ok_or(DomainError::NotFound)
+    }
+}
