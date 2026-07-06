@@ -3,7 +3,7 @@ use std::time::{Duration, Instant};
 
 use jsonwebtoken::DecodingKey;
 use serde::Deserialize;
-use tokio::sync::RwLock;
+use tokio::sync::{Mutex, RwLock};
 
 const REFRESH_INTERVAL: Duration = Duration::from_secs(300);
 const FETCH_TIMEOUT: Duration = Duration::from_secs(3);
@@ -42,15 +42,16 @@ pub struct JwksCache {
     url: String,
     client: reqwest::Client,
     state: RwLock<CacheState>,
+    // Serializes the HTTP fetch itself (held across the .await), so
+    // concurrent unknown-kid lookups share one in-flight refresh instead of
+    // each firing their own request.
+    fetch_lock: Mutex<()>,
 }
 
 impl JwksCache {
     pub fn new(url: String) -> Self {
         Self {
             url,
-            // Without a timeout, a hung JWKS endpoint blocks the refresh
-            // indefinitely — and every other request waits on it too, since
-            // refresh holds the cache's write lock for its duration.
             client: reqwest::Client::builder()
                 .timeout(FETCH_TIMEOUT)
                 .build()
@@ -59,6 +60,7 @@ impl JwksCache {
                 keys: HashMap::new(),
                 last_refresh: None,
             }),
+            fetch_lock: Mutex::new(()),
         }
     }
 
@@ -79,10 +81,14 @@ impl JwksCache {
     }
 
     async fn refresh_if_due(&self) -> Result<(), JwksError> {
-        let mut state = self.state.write().await;
-        if let Some(last) = state.last_refresh
-            && last.elapsed() < REFRESH_INTERVAL
-        {
+        if self.is_fresh().await {
+            return Ok(());
+        }
+
+        // Only one task fetches at a time; the rest wait here instead of
+        // each firing their own request, then find the cache already fresh.
+        let _fetch_guard = self.fetch_lock.lock().await;
+        if self.is_fresh().await {
             return Ok(());
         }
 
@@ -101,8 +107,18 @@ impl JwksCache {
                 .map_err(|e| JwksError::FetchFailed(e.to_string()))?;
             keys.insert(jwk.kid, key);
         }
+
+        let mut state = self.state.write().await;
         state.keys = keys;
         state.last_refresh = Some(Instant::now());
         Ok(())
+    }
+
+    async fn is_fresh(&self) -> bool {
+        self.state
+            .read()
+            .await
+            .last_refresh
+            .is_some_and(|last| last.elapsed() < REFRESH_INTERVAL)
     }
 }
