@@ -4,7 +4,7 @@ container_runtime := `command -v docker >/dev/null 2>&1 && echo docker || echo p
 
 # Bring up SurrealDB + the API (dev auth mode) + the Vite dev server.
 dev:
-    {{container_runtime}} compose -f deploy/compose.yaml up -d
+    {{container_runtime}} compose -f deploy/compose.yaml up -d --wait
     trap 'kill 0' EXIT INT TERM; \
     (cd backend && AUTH_DEV_MODE=true PORT=8080 cargo run -p api) & \
     (cd frontend && npm run dev) & \
