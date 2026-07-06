@@ -1,0 +1,3 @@
+-- Baseline migration: establishes the tenant database.
+-- Entity schemas (customer, order, invoice, ...) are added by the
+-- milestone that introduces them (see PLAN.md).

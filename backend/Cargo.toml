@@ -1,0 +1,35 @@
+[workspace]
+resolver = "3"
+members = [
+    "crates/api",
+    "crates/domain",
+    "crates/surreal-store",
+]
+
+[workspace.package]
+edition = "2024"
+version = "0.1.0"
+publish = false
+
+[workspace.dependencies]
+domain = { path = "crates/domain" }
+surreal-store = { path = "crates/surreal-store" }
+
+axum = "0.8"
+tokio = { version = "1", features = ["full"] }
+tower-http = { version = "0.6", features = ["cors", "trace"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+surrealdb = "3"
+jsonwebtoken = "9"
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+thiserror = "2"
+anyhow = "1"
+ulid = { version = "1", features = ["serde"] }
+validator = { version = "0.20", features = ["derive"] }
+async-trait = "0.1"
+chrono = { version = "0.4", features = ["serde"] }
+
+[profile.release]
+lto = true

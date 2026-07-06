@@ -1,0 +1,28 @@
+services:
+  surrealdb:
+    image: surrealdb/surrealdb:v3.2
+    # The image's default "nonroot" user can't write to a freshly created
+    # named volume (root-owned by the container runtime) — run as root here
+    # since this is a local/prototype datastore, not a hardened deployment.
+    user: "0:0"
+    command:
+      - start
+      - --user
+      - root
+      - --pass
+      - root
+      - --bind
+      - 0.0.0.0:8000
+      - surrealkv:/data/polymix.db
+    ports:
+      - "8000:8000"
+    volumes:
+      - surrealdb_data:/data
+    healthcheck:
+      test: ["CMD", "/surreal", "is-ready", "--endpoint", "ws://localhost:8000"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+volumes:
+  surrealdb_data:

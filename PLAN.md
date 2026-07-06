@@ -280,7 +280,7 @@ Frontend (Vite env): `VITE_API_URL`, `VITE_WS_URL`, `VITE_AUTH_MODE` (`clerk` | 
 
 ## Backend conventions
 
-- Rust edition 2024. Key crates (pin at these majors): `axum` 0.8, `tokio` 1, `surrealdb` 2, `serde`/`serde_json` 1, `jsonwebtoken` 9, `tower-http` 0.6 (CORS, trace), `tracing` + `tracing-subscriber`, `thiserror` (domain), `anyhow` (binaries only), `ulid` 1, `validator` 0.20, `testcontainers` for integration tests, `fake` + `rand` in the seeder.
+- Rust edition 2024. Key crates (pin at these majors): `axum` 0.8, `tokio` 1, `surrealdb` 3 (**not 2 — see the tenant-session section below**), `serde`/`serde_json` 1, `jsonwebtoken` 9, `tower-http` 0.6 (CORS, trace), `tracing` + `tracing-subscriber`, `thiserror` (domain), `anyhow` (binaries only), `ulid` 1, `validator` 0.20, `testcontainers` for integration tests, `fake` + `rand` in the seeder.
 - Layering: handler (extract, call service, map error) → service in `domain` (validation, numbering, transitions, totals) → repository trait in `domain`, implemented in `surreal-store`. Handlers contain no business logic; `domain` has no SurrealDB types.
 - Repository trait shape (one per entity):
 
@@ -296,6 +296,58 @@ pub trait CustomerRepo: Send + Sync {
 ```
 
 - Repos are constructed per request for the request's tenant db (a `Store` factory holds the SurrealDB client; `store.for_tenant(&auth.tenant_db)` yields the repos). All SurrealDB queries use bound parameters — never format user input into query strings.
+
+### SurrealDB connections & tenant sessions
+
+This is version-sensitive; get it wrong and requests leak across tenants.
+
+- **SDK 2.x behavior (the trap):** `Surreal<C>::clone()` is a cheap clone of the *same session* — `use_ns()`/`use_db()` on any clone switches every clone. A shared client with per-request `use_db` is a cross-tenant data race. Do not use SDK 2.
+- **SDK 3.x behavior (what we use):** since 3.0, `clone()` creates a **new session with independent state** (namespace/database selection, auth, session variables, transactions) on the same underlying connection. The clone inherits the current session state and diverges from there. This is the SDK's documented multi-tenancy mechanism: <https://surrealdb.com/docs/languages/rust/concepts/multi-tenancy>. SDK 3.1+ supports SurrealDB servers v2.0–v3.2.
+
+The `Store` in `surreal-store`:
+
+```rust
+use surrealdb::engine::remote::ws::{Client, Ws};
+use surrealdb::opt::auth::Root;
+use surrealdb::Surreal;
+
+pub struct Store {
+    // Root-authenticated session pinned to the `system` db. Never handed out
+    // directly — tenant sessions are cloned from it.
+    root: Surreal<Client>,
+    ns: String,
+}
+
+impl Store {
+    pub async fn connect(cfg: &DbConfig) -> surrealdb::Result<Self> {
+        let db = Surreal::new::<Ws>(cfg.url.as_str()).await?;
+        db.signin(Root { username: &cfg.user, password: &cfg.pass }).await?;
+        db.use_ns(&cfg.ns).use_db("system").await?;
+        Ok(Self { root: db, ns: cfg.ns.clone() })
+    }
+
+    /// Session for the shared `system` db (tenant registry).
+    pub fn system(&self) -> Surreal<Client> {
+        self.root.clone()
+    }
+
+    /// Independent session for one tenant db, per request. SDK >= 3.0 only:
+    /// the clone gets its own session, so this use_db cannot affect any
+    /// other in-flight request.
+    pub async fn for_tenant(&self, tenant_db: &str) -> surrealdb::Result<Surreal<Client>> {
+        let session = self.root.clone();
+        session.use_ns(&self.ns).use_db(tenant_db).await?;
+        Ok(session)
+    }
+}
+```
+
+Rules that follow from this:
+
+- One `Store::connect` at startup; `Store` lives in Axum state. Handlers call `store.for_tenant(&auth.tenant_db)` and pass the returned session to the repos for that request. Sessions are cheap; do not cache them per tenant.
+- The WS hub takes its own long-lived session per tenant the same way (`for_tenant` at live-query setup), so live queries and request traffic never share a session.
+- Never call `use_ns`/`use_db` anywhere except inside `Store` — grep-able invariant, enforce in review.
+- If the SDK must ever be downgraded to 2.x (it shouldn't), the entire pattern changes: clones share sessions there, so it becomes one *connection* per tenant cached in a `RwLock<HashMap<String, Surreal<Client>>>`. Record such a change as an ADR.
 - Domain errors: `NotFound`, `Validation(map)`, `Conflict(msg)`, `Store(source)` — mapped to the API error envelope in one `IntoResponse` impl.
 
 ## Frontend conventions
@@ -327,7 +379,7 @@ just build        # docker build all images
 Each milestone ends runnable and demoable, with explicit acceptance criteria.
 
 1. **M0 — Skeleton (walking skeleton).**
-   Compose file with SurrealDB v2; Cargo workspace with the three crates; Axum app with `/api/health`, config loading, tracing, JWT middleware (JWKS-based) and the dev issuer; Vite/Mantine shell with router, app frame (header, nav, content), i18next initialized with `en` only; `justfile`; CI running `just check` + docker builds.
+   Compose file with SurrealDB v3; Cargo workspace with the three crates; Axum app with `/api/health`, config loading, tracing, JWT middleware (JWKS-based) and the dev issuer; Vite/Mantine shell with router, app frame (header, nav, content), i18next initialized with `en` only; `justfile`; CI running `just check` + docker builds.
    **Done when:** `just dev` serves frontend + API; `curl /api/health` → ok; a request without a token → 401 envelope; `POST /dev/token` then `GET /api/me` → 200 with the dev org auto-provisioned as a tenant (registry record + tenant db exist); `just check` green in CI.
 
 2. **M1 — Tenancy + Customers CRUD.**
