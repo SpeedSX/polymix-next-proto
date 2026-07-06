@@ -11,7 +11,7 @@ export interface FetchJsonOptions {
 }
 
 function buildUrl(path: string, params: FetchJsonOptions['params']): string {
-  const url = new URL(`${API_URL}${path}`)
+  const url = new URL(`${API_URL}${path}`, window.location.origin)
   for (const [key, value] of Object.entries(params ?? {})) {
     if (value !== undefined) {
       url.searchParams.set(key, String(value))

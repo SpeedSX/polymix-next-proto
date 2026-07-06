@@ -1247,6 +1247,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "fake"
+version = "2.10.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2d391ba4af7f1d93f01fcf7b2f29e2bc9348e109dfdbf4dcbdc51dfa38dab0b6"
+dependencies = [
+ "deunicode",
+ "rand 0.8.6",
+]
+
+[[package]]
 name = "fastnum"
 version = "0.7.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3924,6 +3934,23 @@ checksum = "6ce2691df843ecc5d231c0b14ece2acc3efb62c0a398c7e1d875f3983ce020e3"
 dependencies = [
  "core-foundation-sys",
  "libc",
+]
+
+[[package]]
+name = "seeder"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "chrono",
+ "domain",
+ "fake",
+ "rand 0.8.6",
+ "surreal-store",
+ "surrealdb",
+ "tokio",
+ "tracing",
+ "tracing-subscriber",
+ "ulid",
 ]
 
 [[package]]
