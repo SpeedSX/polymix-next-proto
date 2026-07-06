@@ -7,6 +7,7 @@ use serde_json::Value;
 
 use crate::jwks::JwksError;
 
+#[derive(Debug)]
 pub struct ApiError {
     pub status: StatusCode,
     pub code: &'static str,

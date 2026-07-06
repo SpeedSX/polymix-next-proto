@@ -273,6 +273,7 @@ Backend (env vars, read once at startup, fail fast if required ones are missing)
 | `AUTH_ISSUER` | — | required |
 | `AUTH_JWKS_URL` | — | required |
 | `AUTH_ORG_CLAIM` | `org_id` | |
+| `AUTH_AUDIENCE` | — | optional; unset disables `aud` validation |
 | `AUTH_DEV_MODE` | `false` | enables dev issuer |
 | `RUST_LOG` | `info,api=debug` | tracing-subscriber env filter |
 

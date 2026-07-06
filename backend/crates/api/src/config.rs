@@ -10,6 +10,7 @@ pub struct AppConfig {
     pub auth_issuer: String,
     pub auth_jwks_url: String,
     pub auth_org_claim: String,
+    pub auth_audience: Option<String>,
     pub auth_dev_mode: bool,
 }
 
@@ -47,6 +48,7 @@ impl AppConfig {
             auth_issuer,
             auth_jwks_url,
             auth_org_claim: env_or("AUTH_ORG_CLAIM", "org_id"),
+            auth_audience: env::var("AUTH_AUDIENCE").ok(),
             auth_dev_mode,
         })
     }

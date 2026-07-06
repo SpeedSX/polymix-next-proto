@@ -61,14 +61,14 @@ impl DevIssuer {
             serde_json::Value::String(org_id.to_string()),
         );
 
+        self.issue_token_with_claims(serde_json::Value::Object(claims))
+    }
+
+    pub fn issue_token_with_claims(&self, claims: serde_json::Value) -> anyhow::Result<String> {
         let mut header = jsonwebtoken::Header::new(jsonwebtoken::Algorithm::RS256);
         header.kid = Some(self.kid.clone());
 
-        let token = jsonwebtoken::encode(
-            &header,
-            &serde_json::Value::Object(claims),
-            &self.encoding_key,
-        )?;
+        let token = jsonwebtoken::encode(&header, &claims, &self.encoding_key)?;
         Ok(token)
     }
 }
