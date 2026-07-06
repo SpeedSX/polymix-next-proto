@@ -114,8 +114,9 @@ impl TenantRepo for SurrealTenantRepo {
             Ok(row) => row,
             // Lost a race with another process (or another instance) also
             // provisioning this org id — the unique index is what actually
-            // caught it, since TenantProvisioner's mutex only guards this
-            // one process. Whoever won is the source of truth; fetch it.
+            // caught it, since TenantProvisioner's cache only coalesces
+            // lookups within this one process. Whoever won is the source of
+            // truth; fetch it.
             Err(err) if is_org_id_conflict(&err) => {
                 return self
                     .find_by_org_id(&org_id)

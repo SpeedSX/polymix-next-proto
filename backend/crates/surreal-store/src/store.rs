@@ -49,12 +49,12 @@ impl Store {
         db.query("DEFINE TABLE IF NOT EXISTS tenant SCHEMALESS")
             .await?
             .check()?;
-        // Belt-and-suspenders alongside TenantProvisioner's per-org-id
-        // mutex: that mutex only guards a single process, so it can't stop
-        // two instances (or a restart racing a still-in-flight request)
-        // from both provisioning the same org id. This index is the actual
-        // guarantee; tenant_repo::create() treats a violation of it as
-        // "someone else already won, fetch their row".
+        // Belt-and-suspenders alongside TenantProvisioner's cache: its
+        // single-flight coalescing only guards a single process, so it
+        // can't stop two instances (or a restart racing a still-in-flight
+        // request) from both provisioning the same org id. This index is
+        // the actual guarantee; tenant_repo::create() treats a violation of
+        // it as "someone else already won, fetch their row".
         db.query(format!(
             "DEFINE INDEX IF NOT EXISTS {TENANT_ORG_ID_INDEX} ON tenant FIELDS org_id UNIQUE"
         ))
