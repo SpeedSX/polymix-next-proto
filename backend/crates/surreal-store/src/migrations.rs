@@ -18,7 +18,8 @@ pub async fn apply_migrations(session: &Surreal<Any>) -> surrealdb::Result<()> {
     // brand-new tenant db where `meta` has never been touched.
     session
         .query("DEFINE TABLE IF NOT EXISTS meta SCHEMALESS")
-        .await?;
+        .await?
+        .check()?;
     let current: Option<MigrationsMeta> = session.select(("meta", "migrations")).await?;
     let applied = current.map(|m| m.version).unwrap_or(0);
 

@@ -42,8 +42,13 @@ impl Store {
         // auto-vivify one. The tenant registry's first-ever read (a lookup
         // for an org id that isn't registered yet) would hit exactly that
         // on a brand-new `system` db, so define it eagerly, idempotently.
+        // `.check()` is required — statement errors live inside the
+        // Response, not the outer Result, so a bare `.await?` here would
+        // silently swallow a failed DEFINE and surface as a confusing
+        // "table does not exist" much later at the first real query.
         db.query("DEFINE TABLE IF NOT EXISTS tenant SCHEMALESS")
-            .await?;
+            .await?
+            .check()?;
         // Belt-and-suspenders alongside TenantProvisioner's per-org-id
         // mutex: that mutex only guards a single process, so it can't stop
         // two instances (or a restart racing a still-in-flight request)
@@ -53,7 +58,8 @@ impl Store {
         db.query(format!(
             "DEFINE INDEX IF NOT EXISTS {TENANT_ORG_ID_INDEX} ON tenant FIELDS org_id UNIQUE"
         ))
-        .await?;
+        .await?
+        .check()?;
         Ok(Self {
             root: db,
             ns: cfg.ns.clone(),
