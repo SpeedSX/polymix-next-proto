@@ -2,6 +2,8 @@ use surrealdb::Surreal;
 use surrealdb::engine::any::Any;
 use surrealdb::opt::auth::Root;
 
+use crate::TENANT_ORG_ID_INDEX;
+
 pub struct DbConfig {
     pub url: String,
     pub user: String,
@@ -42,6 +44,16 @@ impl Store {
         // on a brand-new `system` db, so define it eagerly, idempotently.
         db.query("DEFINE TABLE IF NOT EXISTS tenant SCHEMALESS")
             .await?;
+        // Belt-and-suspenders alongside TenantProvisioner's per-org-id
+        // mutex: that mutex only guards a single process, so it can't stop
+        // two instances (or a restart racing a still-in-flight request)
+        // from both provisioning the same org id. This index is the actual
+        // guarantee; tenant_repo::create() treats a violation of it as
+        // "someone else already won, fetch their row".
+        db.query(format!(
+            "DEFINE INDEX IF NOT EXISTS {TENANT_ORG_ID_INDEX} ON tenant FIELDS org_id UNIQUE"
+        ))
+        .await?;
         Ok(Self {
             root: db,
             ns: cfg.ns.clone(),

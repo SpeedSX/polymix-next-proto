@@ -6,6 +6,8 @@ use surrealdb::engine::any::Any;
 use surrealdb::types::{RecordId, RecordIdKey, SurrealValue};
 use ulid::Ulid;
 
+use crate::TENANT_ORG_ID_INDEX;
+
 const TABLE: &str = "tenant";
 
 #[derive(Debug, SurrealValue)]
@@ -59,6 +61,15 @@ fn map_err(err: surrealdb::Error) -> DomainError {
     DomainError::Store(err.to_string())
 }
 
+/// SurrealDB 3.2 doesn't map a unique-index violation to a structured
+/// `AlreadyExists` error kind over the wire (confirmed empirically: it comes
+/// back as a generic `Internal`-kind error) — the index name in the message
+/// text is the only signal available, so match on that.
+fn is_org_id_conflict(err: &surrealdb::Error) -> bool {
+    let message = err.to_string();
+    message.contains(TENANT_ORG_ID_INDEX) && message.contains("already contains")
+}
+
 pub struct SurrealTenantRepo {
     session: Surreal<Any>,
 }
@@ -86,6 +97,7 @@ impl TenantRepo for SurrealTenantRepo {
     async fn create(&self, data: NewTenant) -> Result<Tenant, DomainError> {
         let now = chrono::Utc::now().to_rfc3339();
         let id = Ulid::new().to_string();
+        let org_id = data.org_id.clone();
         let content = TenantContent {
             org_id: data.org_id,
             db_name: data.db_name,
@@ -95,12 +107,24 @@ impl TenantRepo for SurrealTenantRepo {
             created_at: now.clone(),
             updated_at: now,
         };
-        let row: Option<TenantRow> = self
-            .session
-            .create((TABLE, id))
-            .content(content)
-            .await
-            .map_err(map_err)?;
+        let result: Result<Option<TenantRow>, surrealdb::Error> =
+            self.session.create((TABLE, id)).content(content).await;
+
+        let row = match result {
+            Ok(row) => row,
+            // Lost a race with another process (or another instance) also
+            // provisioning this org id — the unique index is what actually
+            // caught it, since TenantProvisioner's mutex only guards this
+            // one process. Whoever won is the source of truth; fetch it.
+            Err(err) if is_org_id_conflict(&err) => {
+                return self
+                    .find_by_org_id(&org_id)
+                    .await?
+                    .ok_or_else(|| DomainError::Store(err.to_string()));
+            }
+            Err(err) => return Err(map_err(err)),
+        };
+
         row.map(Tenant::from)
             .ok_or_else(|| DomainError::Store("tenant create returned no row".to_string()))
     }

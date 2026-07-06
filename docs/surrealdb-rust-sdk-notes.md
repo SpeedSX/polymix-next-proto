@@ -66,7 +66,46 @@ registry's `tenant` table in the shared `system` db (defined once in
 tracking (defined at the top of `apply_migrations`, since it runs against a
 just-created, completely untouched tenant db).
 
-## 3. `SurrealValue`, not `serde::{Serialize, Deserialize}`, is the DB-facing trait
+## 3. A unique-index violation is not a structured error kind — match the message
+
+`surrealdb::Error`'s wire format (see `surrealdb_types::error::Error`) is
+supposed to be structured: a `kind` (`ErrorDetails` enum — `Validation`,
+`NotFound`, `AlreadyExists`, etc.) plus a human `message`. `AlreadyExists`
+even has a matching detail enum (`Session | Table | Record | Namespace |
+Database`). None of that fires for a `DEFINE INDEX ... UNIQUE` violation,
+though — confirmed empirically against `surrealdb/surrealdb:v3.2` by
+triggering one through the real client and printing `{:?}`:
+
+```
+Error { code: -32000, message: "Database index `tenant_org_id` already
+contains 'dup_probe', with record `tenant:probe1`", details: Internal,
+cause: None }
+```
+
+`details: Internal` — i.e. the generic catch-all, not `AlreadyExists`. The
+core crate does have a dedicated `Error::IndexExists { record, index, value
+}` variant server-side (`surrealdb-core/src/err/mod.rs`), it just isn't
+mapped to the newer typed wire schema yet. So the only signal a client gets
+today is the message text. Detect it with something reasonably specific —
+matching both the index name and the phrase, not just `"already contains"`
+alone — and treat it as "someone else's row won, go fetch it":
+
+```rust
+fn is_org_id_conflict(err: &surrealdb::Error) -> bool {
+    let message = err.to_string();
+    message.contains(TENANT_ORG_ID_INDEX) && message.contains("already contains")
+}
+```
+
+This matters wherever a unique index is the actual concurrency guarantee
+(e.g. a per-org-id in-process mutex only protects one process/instance — the
+index is what stops two instances, or a restart racing an in-flight
+request, from both creating the same logical row). Revisit this matcher if
+a future SDK version does map `IndexExists` to `AlreadyExists` — at that
+point `err.already_exists_details()` would be the correct, non-stringly
+check.
+
+## 4. `SurrealValue`, not `serde::{Serialize, Deserialize}`, is the DB-facing trait
 
 This was the main compile-time surprise vs. older SurrealDB SDK examples
 still floating around online (most are written against 1.x/2.x).
@@ -103,7 +142,7 @@ still floating around online (most are written against 1.x/2.x).
   and `RecordId`/`RecordIdKey` already implement `SurrealValue` natively —
   only your own structs need the derive.
 
-## 4. `RecordId` / `RecordIdKey`
+## 5. `RecordId` / `RecordIdKey`
 
 - Location: `surrealdb::types::RecordId` (**not** `surrealdb::RecordId` — the
   crate root does not re-export it).
@@ -128,7 +167,7 @@ still floating around online (most are written against 1.x/2.x).
 - `RecordId::new(table, key)` — `table`/`key` accept anything with a matching
   `Into`, including plain `&str`/`String`.
 
-## 5. `Surreal::new::<Ws>(url)` silently double-prefixes a scheme — use `engine::any::connect` for config-driven URLs
+## 6. `Surreal::new::<Ws>(url)` silently double-prefixes a scheme — use `engine::any::connect` for config-driven URLs
 
 If your connection URL comes from config as a full scheme-prefixed string
 (e.g. `ws://localhost:8000`, matching how most docs/examples show it), do
@@ -158,13 +197,13 @@ than known at compile time — `Any` is designed for exactly that ("choice of
 engine is made at runtime" per the module's own docs), and only needs the
 matching protocol feature enabled (`protocol-ws` is on by default).
 
-## 6. `opt::auth::Root` takes owned `String`s
+## 7. `opt::auth::Root` takes owned `String`s
 
 `surrealdb::opt::auth::Root { username: String, password: String }` — not
 `&str`. Older sample code (and muscle memory from other SDKs) reaches for
 borrowed strings here; clone before constructing it.
 
-## 7. Misc version-pinning gotchas hit while resolving `Cargo.toml`
+## 8. Misc version-pinning gotchas hit while resolving `Cargo.toml`
 
 - `tracing = "1"` does not exist as a version requirement — the crate is
   still on the `0.x` line (`tracing = "0.1"`). Easy typo since `tokio`,
@@ -175,7 +214,7 @@ borrowed strings here; clone before constructing it.
   multiple major versions of the same crate to coexist in one dependency
   graph; this is not a conflict to "fix".
 
-## 8. How these were confirmed
+## 9. How these were confirmed
 
 Web docs for a fast-moving SDK (three major versions in recent history) were
 sometimes stale or summarized ambiguously by the fetch tool. The reliable
