@@ -29,11 +29,7 @@ pub async fn require_auth(
     let kid = header_data
         .kid
         .ok_or_else(|| ApiError::unauthorized("token missing kid"))?;
-    let key = state
-        .jwks
-        .get_key(&kid)
-        .await
-        .map_err(|_| ApiError::unauthorized("unknown signing key"))?;
+    let key = state.jwks.get_key(&kid).await?;
 
     let mut validation = Validation::new(Algorithm::RS256);
     validation.set_issuer(std::slice::from_ref(&state.config.auth_issuer));

@@ -5,6 +5,8 @@ use domain::error::DomainError;
 use serde::Serialize;
 use serde_json::Value;
 
+use crate::jwks::JwksError;
+
 pub struct ApiError {
     pub status: StatusCode,
     pub code: &'static str,
@@ -80,6 +82,23 @@ impl From<DomainError> for ApiError {
             DomainError::Store(message) => {
                 tracing::error!(error = %message, "store error");
                 ApiError::internal("internal server error")
+            }
+        }
+    }
+}
+
+impl From<JwksError> for ApiError {
+    fn from(err: JwksError) -> Self {
+        match err {
+            // The JWKS endpoint being down/slow/malformed is an upstream
+            // dependency failure, not the caller's fault — 401 here would
+            // mislead debugging into suspecting the token instead.
+            JwksError::FetchFailed(message) => {
+                tracing::error!(error = %message, "jwks fetch failed");
+                ApiError::internal("internal server error")
+            }
+            JwksError::UnknownKid(kid) => {
+                ApiError::unauthorized(format!("unknown signing key: {kid}"))
             }
         }
     }

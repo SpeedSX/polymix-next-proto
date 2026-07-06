@@ -6,6 +6,18 @@ use serde::Deserialize;
 use tokio::sync::RwLock;
 
 const REFRESH_INTERVAL: Duration = Duration::from_secs(300);
+const FETCH_TIMEOUT: Duration = Duration::from_secs(3);
+
+#[derive(Debug, thiserror::Error)]
+pub enum JwksError {
+    /// The JWKS endpoint itself is unreachable, slow, or returned garbage —
+    /// an upstream dependency failure, not the caller's fault.
+    #[error("failed to fetch JWKS: {0}")]
+    FetchFailed(String),
+    /// The JWKS was fetched successfully but doesn't contain this `kid`.
+    #[error("unknown signing key: {0}")]
+    UnknownKid(String),
+}
 
 #[derive(Deserialize)]
 struct JwksResponse {
@@ -36,7 +48,13 @@ impl JwksCache {
     pub fn new(url: String) -> Self {
         Self {
             url,
-            client: reqwest::Client::new(),
+            // Without a timeout, a hung JWKS endpoint blocks the refresh
+            // indefinitely — and every other request waits on it too, since
+            // refresh holds the cache's write lock for its duration.
+            client: reqwest::Client::builder()
+                .timeout(FETCH_TIMEOUT)
+                .build()
+                .expect("reqwest client with a timeout should always build"),
             state: RwLock::new(CacheState {
                 keys: HashMap::new(),
                 last_refresh: None,
@@ -44,7 +62,7 @@ impl JwksCache {
         }
     }
 
-    pub async fn get_key(&self, kid: &str) -> anyhow::Result<DecodingKey> {
+    pub async fn get_key(&self, kid: &str) -> Result<DecodingKey, JwksError> {
         if let Some(key) = self.state.read().await.keys.get(kid) {
             return Ok(key.clone());
         }
@@ -57,10 +75,10 @@ impl JwksCache {
             .keys
             .get(kid)
             .cloned()
-            .ok_or_else(|| anyhow::anyhow!("unknown signing key: {kid}"))
+            .ok_or_else(|| JwksError::UnknownKid(kid.to_string()))
     }
 
-    async fn refresh_if_due(&self) -> anyhow::Result<()> {
+    async fn refresh_if_due(&self) -> Result<(), JwksError> {
         let mut state = self.state.write().await;
         if let Some(last) = state.last_refresh
             && last.elapsed() < REFRESH_INTERVAL
@@ -68,12 +86,22 @@ impl JwksCache {
             return Ok(());
         }
 
-        let response: JwksResponse = self.client.get(&self.url).send().await?.json().await?;
-        state.keys.clear();
+        let response: JwksResponse = self
+            .client
+            .get(&self.url)
+            .send()
+            .await
+            .map_err(|e| JwksError::FetchFailed(e.to_string()))?
+            .json()
+            .await
+            .map_err(|e| JwksError::FetchFailed(e.to_string()))?;
+        let mut keys = HashMap::with_capacity(response.keys.len());
         for jwk in response.keys {
-            let key = DecodingKey::from_rsa_components(&jwk.n, &jwk.e)?;
-            state.keys.insert(jwk.kid, key);
+            let key = DecodingKey::from_rsa_components(&jwk.n, &jwk.e)
+                .map_err(|e| JwksError::FetchFailed(e.to_string()))?;
+            keys.insert(jwk.kid, key);
         }
+        state.keys = keys;
         state.last_refresh = Some(Instant::now());
         Ok(())
     }
