@@ -215,7 +215,8 @@ Base path `/api`, JSON everywhere. All routes except `/api/health` require `Auth
 
 | Method + path | Purpose |
 |---|---|
-| `GET /api/health` | liveness: `{"status":"ok"}`, no auth |
+| `GET /api/health` | liveness: `{"status":"ok"}`, no auth, no dependencies |
+| `GET /api/ready` | readiness (M6): DB ping, no auth — see Operational hardening |
 | `GET /api/me` | `{ user_id, org_id, tenant: { name, default_language, default_currency } }` |
 | `GET /api/customers` | paged list, params below |
 | `POST /api/customers` | create; body = entity minus id/timestamps |
@@ -275,9 +276,42 @@ Backend (env vars, read once at startup, fail fast if required ones are missing)
 | `AUTH_ORG_CLAIM` | `org_id` | |
 | `AUTH_AUDIENCE` | — | optional; unset disables `aud` validation |
 | `AUTH_DEV_MODE` | `false` | enables dev issuer |
+| `CORS_ALLOWED_ORIGINS` | — | M6; comma-separated exact origins. Unset: permissive in dev mode, **startup error** otherwise |
 | `RUST_LOG` | `info,api=debug` | tracing-subscriber env filter |
 
 Frontend (Vite env): `VITE_API_URL`, `VITE_WS_URL`, `VITE_AUTH_MODE` (`clerk` | `dev`), `VITE_CLERK_PUBLISHABLE_KEY`.
+
+## Operational hardening (M6)
+
+Three changes that make the API survive cloud conditions (no compose healthcheck to hide behind, real browsers, real orchestrator probes). All three land in M6, before the Fly.io deploy.
+
+### Startup retry in `Store::connect`
+
+On Fly.io the API can start before SurrealDB accepts connections; `Store::connect` currently fails fast and the process dies.
+
+- Wrap the **whole** startup sequence (connect → signin → `use_ns`/`use_db` → system-db DEFINEs) in a retry loop. A partial success (connected but signin failed) restarts the sequence from the top — the steps are all idempotent.
+- Backoff: start at 500 ms, double per attempt, cap at 5 s; give up after a total deadline of 30 s and return the last error (the process exits; the orchestrator restarts it — that is the correct behavior past the deadline).
+- Log **every** failed attempt at `warn` with the attempt number and the error text. Retry all error kinds: reliably telling transient errors from misconfiguration apart via SDK error types isn't worth the fragility, and the warn logs make a wrong password visible on attempt 1 even while retrying. This is a deliberate trade-off — record it in a comment.
+- Hardcode the three durations as named constants; they are not config (keep the env surface small).
+- Scope is startup only. Runtime connection loss stays the WS hub's job (see the WebSocket spec: re-establish live queries + broadcast `resync`); repos surface runtime errors as 500s.
+- `just dev` keeps `compose up -d --wait` — locally the retry loop is a fallback, not the primary mechanism.
+- Test: integration test that starts the API container before SurrealDB (or pauses the SurrealDB container) and asserts the API comes up once the DB does.
+
+### CORS from config
+
+`CorsLayer::permissive()` is a dev convenience, not a production posture.
+
+- `CORS_ALLOWED_ORIGINS`: comma-separated **exact** origins — scheme + host (+ port), no trailing slash, no wildcards, e.g. `https://polymix.fly.dev,https://app.polymix.example`.
+- Resolution at startup: variable set → `AllowOrigin::list` with exactly those origins; unset + `AUTH_DEV_MODE=true` → permissive (unchanged local DX); unset + non-dev → **fail startup** with a clear message. A prod deploy must never silently run permissive.
+- Allowed methods `GET, POST, PUT, DELETE`; allowed headers `authorization, content-type`; `max_age` 300 s so preflights are cached.
+- `/api/ws` is unaffected: browsers do not enforce CORS on WebSocket upgrades — its protection is the JWT in the query string, nothing else. Don't pretend otherwise with WS-specific CORS code.
+
+### Readiness endpoint
+
+- `/api/health` stays exactly as is: liveness, no auth, **no dependencies**. Never wire the DB into liveness — a DB outage would turn into an API restart loop.
+- New `GET /api/ready`, no auth: runs `RETURN 1` on the system session wrapped in a 1 s `tokio::time::timeout`. Success → `200 {"status":"ready"}`; timeout or error → `503 {"status":"unavailable"}` with the real error logged at `error` (not leaked in the body).
+- Point the Fly.io HTTP service checks at `/api/ready`; liveness-style restarts (if configured at all) at `/api/health`. Same split applies to any future compose healthcheck on the api container.
+- Test: readiness returns 503 while the SurrealDB testcontainer is paused, 200 after it resumes.
 
 ## Backend conventions
 
@@ -385,7 +419,7 @@ Each milestone ends runnable and demoable, with explicit acceptance criteria.
 
 2. **M1 — Tenancy + Customers CRUD.**
    Clerk integration behind `VITE_AUTH_MODE` (`<SignIn/>`, `<OrganizationSwitcher/>`); tenant registry + provisioning as specced; customer entity end-to-end: repo, service with validation, five REST routes, list page (TanStack Table, server pagination + sorting), detail, create/edit forms (Mantine + zod).
-   **Done when:** with two dev orgs, customers created in one are invisible in the other (this is the tenant-isolation integration test — mandatory); all customer CRUD works from the UI; validation errors from the API render on the matching form fields; Clerk mode works in a browser against a real Clerk app.
+   **Done when:** with two dev orgs, customers created in one are invisible in the other (this is the tenant-isolation integration test — mandatory, running via the harness in **Integration test harness + CI**); all customer CRUD works from the UI; validation errors from the API render on the matching form fields; Clerk mode works in a browser against a real Clerk app; `just test-int` runs green in CI as its own job.
 
 3. **M2 — Orders & Invoices.**
    Order and invoice entities per the data model: numbering, status transitions, invoice-from-order, totals math in the service; UI lists (orders filterable by customer and status), forms with line-item editing (add/remove rows), status-transition buttons; seeder crate producing ≥50k customers / ≥200k orders per demo tenant (batched inserts of 1000).
@@ -404,8 +438,8 @@ Each milestone ends runnable and demoable, with explicit acceptance criteria.
    **Done when:** switching to `de` translates every screen (no raw keys, no leftover English in the main flows) and reformats dates/numbers; an invoice created in USD on a EUR tenant stores the rate snapshot and renders both amounts; money round-trips through forms without losing cents (unit tests on the minor-units conversion).
 
 7. **M6 — Cloud + perf pass.**
-   Dockerfiles (multi-stage; frontend served by nginx); fly.toml for api + SurrealDB (volume-backed) + static frontend; k6 scripts for search, list pagination, and mutation fan-out with 100 concurrent WS clients; numbers recorded in `/docs/perf.md` against the NFR targets.
-   **Done when:** the demo runs on Fly.io URLs end-to-end including Clerk sign-in; k6 runs are scripted (`/deploy/k6/`), repeatable, and their p95s are written to `/docs/perf.md` with a pass/fail verdict per NFR.
+   Dockerfiles (multi-stage; frontend served by nginx); fly.toml for api + SurrealDB (volume-backed) + static frontend; the three items in **Operational hardening (M6)** — startup retry, CORS from config, readiness endpoint; k6 scripts for search, list pagination, and mutation fan-out with 100 concurrent WS clients; numbers recorded in `/docs/perf.md` against the NFR targets.
+   **Done when:** the demo runs on Fly.io URLs end-to-end including Clerk sign-in; starting the API before SurrealDB recovers without manual intervention (integration test); `/api/ready` flips 503 ↔ 200 as the DB goes down/up (integration test); a non-dev start without `CORS_ALLOWED_ORIGINS` fails with a clear error, and a preflight from an unlisted origin gets no `Access-Control-Allow-Origin` header; k6 runs are scripted (`/deploy/k6/`), repeatable, and their p95s are written to `/docs/perf.md` with a pass/fail verdict per NFR.
 
 8. **M7 — Customer portal + instant quote** (post-prototype candidate): public product configurator with a parametric pricing engine. This is the first item of the post-prototype roadmap below; its design is already written (`docs/instant-quote.md`, `docs/product-configuration.md`, and the normative `docs/quote-engine-spec.md`).
 
@@ -413,6 +447,31 @@ Each milestone ends runnable and demoable, with explicit acceptance criteria.
 
 - **Backend:** unit tests in `domain` (validation, totals + rounding, status transitions, numbering); integration tests in `surreal-store`/`api` against a real SurrealDB via testcontainers — CRUD, FTS ranking, live-query delivery, and tenant isolation (the isolation test is mandatory, not optional). Integration tests use the dev issuer for tokens.
 - **Frontend:** Vitest + Testing Library for forms and money/i18n utilities; one Playwright smoke covering login (dev mode) → create customer → search finds it → live update visible in a second context.
+
+### Integration test harness + CI (lands with M1)
+
+The first integration test (tenant isolation) arrives in M1, so the harness and the CI wiring land with it — not retrofitted later.
+
+**Test conventions**
+
+- Integration tests are `#[tokio::test]` + `#[ignore]` in `tests/` directories of `surreal-store` and `api`. `cargo test --workspace` (inside `just check`) therefore stays DB-free and fast; `just test-int` (`cargo test --workspace -- --ignored`) runs the real thing. Never gate on an env var instead of `#[ignore]` — a skipped-by-default test that silently never runs anywhere is the failure mode to avoid.
+- **One SurrealDB container per test binary, not per test.** Start `surrealdb/surrealdb:v3.2` (same tag as compose — keep them in lockstep) once via testcontainers behind a `tokio::sync::OnceCell`; every test gets the shared connection.
+- **Isolation between tests comes from the db-per-tenant design itself:** each test provisions its own tenant(s) with a unique org id (`test_<ulid>`), which yields a fresh database. No truncation, no ordering dependencies, tests run in parallel. The `system` db is shared — tests must not assert on global registry counts, only on rows they created.
+- `api`-level tests boot the real router (dev issuer enabled) via `axum_test`/`tower::ServiceExt::oneshot` against the shared container, mint tokens from the dev issuer, and exercise real HTTP — the tenant-isolation test creates a customer as org A and asserts org B's list is empty and org B's `GET /api/customers/{id}` is 404 **through the API**, not the store.
+
+**CI wiring (`.github/workflows/ci.yml`)**
+
+- New `test-int` job, parallel to `check` (not chained after it — wall-clock matters more than saving a cache miss): checkout, Rust toolchain, `Swatinem/rust-cache` (same `workspaces: backend` key so the build cache is shared), `extractions/setup-just`, `just test-int`. Docker is preinstalled on `ubuntu-latest`; testcontainers needs zero extra setup there.
+- Add `timeout-minutes: 20` on the job (testcontainers hangs manifest as stuck jobs, not failures — bound them) and a top-level concurrency block so stale pushes stop burning runners:
+
+  ```yaml
+  concurrency:
+    group: ${{ github.workflow }}-${{ github.ref }}
+    cancel-in-progress: true
+  ```
+
+- The `build` job's `needs: check` should become `needs: [check, test-int]` — images only build once both gates pass.
+- Local note (Windows/podman): testcontainers talks to the Docker socket. With podman, expose it via `podman machine` socket + `DOCKER_HOST`; document the one-liner in the readme when it first bites, don't build tooling around it.
 
 ## Risks
 
