@@ -46,6 +46,7 @@ export interface InvoiceListParams {
   sort: string
   customer_id?: string
   status?: InvoiceStatus
+  q?: string
   [key: string]: string | number | undefined
 }
 

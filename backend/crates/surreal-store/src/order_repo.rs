@@ -203,6 +203,25 @@ fn sort_clause(sort: &str) -> Result<String, DomainError> {
     Ok(format!("{field} {dir}"))
 }
 
+fn non_empty_q(q: &Option<String>) -> Option<&str> {
+    q.as_deref().filter(|s| !s.is_empty())
+}
+
+// One FULLTEXT index per field (see migrations/0004_search.surql) means
+// each predicate needs its own match reference — reusing one across fields
+// errors with "Duplicated Match reference" on this SurrealDB version. See
+// docs/adr/0001-surrealdb-fulltext-keyword.md.
+// line_items[*].description is deliberately excluded: SurrealDB 3.2's
+// FULLTEXT index on an array field can't push the LIMIT into the index scan
+// (EXPLAIN shows "Iterate Index" + "MemoryOrderedLimit" instead of the
+// scalar-field "FullTextScan" with a pushed limit), so it collects every
+// match before ranking — with the seeded data's ~10-value line-item
+// vocabulary, a common 3-letter prefix matches tens of thousands of rows and
+// costs 1-2s. Revisit once the order/line-item entity structure is final;
+// see docs/adr/0003-order-search-excludes-line-items.md.
+const SEARCH_CONDITION: &str = "(number @0@ $q OR notes @1@ $q)";
+const SEARCH_SCORE: &str = "(search::score(0) + search::score(1))";
+
 /// Builds the `WHERE` clause shared by the list and count queries. Returns
 /// an empty string when no filters apply.
 fn where_clause(query: &OrderListQuery) -> String {
@@ -213,10 +232,29 @@ fn where_clause(query: &OrderListQuery) -> String {
     if query.status.is_some() {
         conditions.push("status = $status");
     }
+    if non_empty_q(&query.q).is_some() {
+        conditions.push(SEARCH_CONDITION);
+    }
     if conditions.is_empty() {
         String::new()
     } else {
         format!("WHERE {}", conditions.join(" AND "))
+    }
+}
+
+#[derive(Debug, SurrealValue)]
+#[surreal(crate = "surrealdb::types")]
+struct SearchHitRow {
+    id: RecordId,
+    label: String,
+    highlight: Option<String>,
+}
+
+fn to_hit(row: SearchHitRow) -> domain::SearchHit {
+    domain::SearchHit {
+        id: record_key(&row.id),
+        highlight: row.highlight.unwrap_or_else(|| row.label.clone()),
+        label: row.label,
     }
 }
 
@@ -254,38 +292,56 @@ impl SurrealOrderRepo {
 #[async_trait]
 impl OrderRepo for SurrealOrderRepo {
     async fn list(&self, query: OrderListQuery) -> Result<Paged<Order>, DomainError> {
-        let order = sort_clause(&query.sort)?;
+        let q = non_empty_q(&query.q);
         let start = (query.page.saturating_sub(1) as i64) * query.limit as i64;
         let filters = where_clause(&query);
 
-        let mut list_query = self
-            .session
-            .query(format!(
+        let mut list_query = if q.is_some() {
+            self.session.query(format!(
+                "SELECT *, {SEARCH_SCORE} AS score FROM type::table($table) {filters} ORDER BY score DESC LIMIT $limit START $start"
+            ))
+        } else {
+            let order = sort_clause(&query.sort)?;
+            self.session.query(format!(
                 "SELECT * FROM type::table($table) {filters} ORDER BY {order} LIMIT $limit START $start"
             ))
-            .bind(("table", TABLE))
-            .bind(("limit", query.limit as i64))
-            .bind(("start", start));
+        }
+        .bind(("table", TABLE))
+        .bind(("limit", query.limit as i64))
+        .bind(("start", start));
         if let Some(customer_id) = &query.customer_id {
             list_query = list_query.bind(("customer_id", customer_id.clone()));
         }
         if let Some(status) = query.status {
             list_query = list_query.bind(("status", status_to_str(status)));
         }
+        if let Some(q) = q {
+            list_query = list_query.bind(("q", q.to_string()));
+        }
         let mut response = list_query.await.map_err(map_err)?;
         let rows: Vec<OrderRow> = response.take(0).map_err(map_err)?;
 
-        let mut count_query = self
-            .session
-            .query(format!(
+        // A bare `SELECT count() ... WHERE <fulltext predicate> GROUP ALL`
+        // mis-plans to 0 on this SurrealDB version; wrap the same filters in
+        // a subquery instead. See docs/adr/0001-surrealdb-fulltext-keyword.md.
+        let mut count_query = if q.is_some() {
+            self.session.query(format!(
+                "SELECT count() FROM (SELECT id FROM type::table($table) {filters}) GROUP ALL"
+            ))
+        } else {
+            self.session.query(format!(
                 "SELECT count() FROM type::table($table) {filters} GROUP ALL"
             ))
-            .bind(("table", TABLE));
+        }
+        .bind(("table", TABLE));
         if let Some(customer_id) = &query.customer_id {
             count_query = count_query.bind(("customer_id", customer_id.clone()));
         }
         if let Some(status) = query.status {
             count_query = count_query.bind(("status", status_to_str(status)));
+        }
+        if let Some(q) = q {
+            count_query = count_query.bind(("q", q.to_string()));
         }
         let mut count_response = count_query.await.map_err(map_err)?;
         let count_rows: Vec<CountRow> = count_response.take(0).map_err(map_err)?;
@@ -402,5 +458,21 @@ impl OrderRepo for SurrealOrderRepo {
         row.map(Order::try_from)
             .transpose()?
             .ok_or(DomainError::NotFound)
+    }
+
+    async fn search(&self, q: &str, limit: u32) -> Result<Vec<domain::SearchHit>, DomainError> {
+        let mut response = self
+            .session
+            .query(format!(
+                "SELECT id, number AS label, search::highlight('<b>', '</b>', 0) AS highlight, {SEARCH_SCORE} AS score \
+                 FROM type::table($table) WHERE {SEARCH_CONDITION} ORDER BY score DESC LIMIT $limit"
+            ))
+            .bind(("table", TABLE))
+            .bind(("q", q.to_string()))
+            .bind(("limit", limit as i64))
+            .await
+            .map_err(map_err)?;
+        let rows: Vec<SearchHitRow> = response.take(0).map_err(map_err)?;
+        Ok(rows.into_iter().map(to_hit).collect())
     }
 }

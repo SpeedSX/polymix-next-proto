@@ -1,0 +1,9 @@
+{
+  "trigger": "Search",
+  "placeholder": "Search customers, orders, invoices…",
+  "loading": "Searching…",
+  "empty": "No results.",
+  "groups.customers": "Customers",
+  "groups.orders": "Orders",
+  "groups.invoices": "Invoices"
+}

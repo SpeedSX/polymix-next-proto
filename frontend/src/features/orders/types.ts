@@ -55,6 +55,7 @@ export interface OrderListParams {
   sort: string
   customer_id?: string
   status?: OrderStatus
+  q?: string
   [key: string]: string | number | undefined
 }
 

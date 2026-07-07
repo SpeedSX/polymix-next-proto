@@ -6,6 +6,7 @@ import common from './locales/en/common.json'
 import customers from './locales/en/customers.json'
 import invoices from './locales/en/invoices.json'
 import orders from './locales/en/orders.json'
+import search from './locales/en/search.json'
 
 void i18n
   .use(ICU)
@@ -14,9 +15,9 @@ void i18n
     lng: 'en',
     fallbackLng: 'en',
     defaultNS: 'common',
-    ns: ['common', 'customers', 'orders', 'invoices'],
+    ns: ['common', 'customers', 'orders', 'invoices', 'search'],
     resources: {
-      en: { common, customers, orders, invoices },
+      en: { common, customers, orders, invoices, search },
     },
     interpolation: {
       escapeValue: false,

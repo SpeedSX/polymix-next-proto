@@ -192,6 +192,15 @@ fn sort_clause(sort: &str) -> Result<String, DomainError> {
     Ok(format!("{field} {dir}"))
 }
 
+fn non_empty_q(q: &Option<String>) -> Option<&str> {
+    q.as_deref().filter(|s| !s.is_empty())
+}
+
+// Matches the `invoice_search_number` index (see
+// migrations/0004_search.surql).
+const SEARCH_CONDITION: &str = "number @0@ $q";
+const SEARCH_SCORE: &str = "search::score(0)";
+
 fn where_clause(query: &InvoiceListQuery) -> String {
     let mut conditions = Vec::new();
     if query.customer_id.is_some() {
@@ -199,6 +208,9 @@ fn where_clause(query: &InvoiceListQuery) -> String {
     }
     if query.status.is_some() {
         conditions.push("status = $status");
+    }
+    if non_empty_q(&query.q).is_some() {
+        conditions.push(SEARCH_CONDITION);
     }
     if conditions.is_empty() {
         String::new()
@@ -222,6 +234,22 @@ fn currency_mismatch_error(order_currency: &str) -> DomainError {
         ),
     );
     DomainError::Validation(details)
+}
+
+#[derive(Debug, SurrealValue)]
+#[surreal(crate = "surrealdb::types")]
+struct SearchHitRow {
+    id: RecordId,
+    label: String,
+    highlight: Option<String>,
+}
+
+fn to_hit(row: SearchHitRow) -> domain::SearchHit {
+    domain::SearchHit {
+        id: record_key(&row.id),
+        highlight: row.highlight.unwrap_or_else(|| row.label.clone()),
+        label: row.label,
+    }
 }
 
 pub struct SurrealInvoiceRepo {
@@ -249,38 +277,56 @@ impl SurrealInvoiceRepo {
 #[async_trait]
 impl InvoiceRepo for SurrealInvoiceRepo {
     async fn list(&self, query: InvoiceListQuery) -> Result<Paged<Invoice>, DomainError> {
-        let order = sort_clause(&query.sort)?;
+        let q = non_empty_q(&query.q);
         let start = (query.page.saturating_sub(1) as i64) * query.limit as i64;
         let filters = where_clause(&query);
 
-        let mut list_query = self
-            .session
-            .query(format!(
+        let mut list_query = if q.is_some() {
+            self.session.query(format!(
+                "SELECT *, {SEARCH_SCORE} AS score FROM type::table($table) {filters} ORDER BY score DESC LIMIT $limit START $start"
+            ))
+        } else {
+            let order = sort_clause(&query.sort)?;
+            self.session.query(format!(
                 "SELECT * FROM type::table($table) {filters} ORDER BY {order} LIMIT $limit START $start"
             ))
-            .bind(("table", TABLE))
-            .bind(("limit", query.limit as i64))
-            .bind(("start", start));
+        }
+        .bind(("table", TABLE))
+        .bind(("limit", query.limit as i64))
+        .bind(("start", start));
         if let Some(customer_id) = &query.customer_id {
             list_query = list_query.bind(("customer_id", customer_id.clone()));
         }
         if let Some(status) = query.status {
             list_query = list_query.bind(("status", status_to_str(status)));
         }
+        if let Some(q) = q {
+            list_query = list_query.bind(("q", q.to_string()));
+        }
         let mut response = list_query.await.map_err(map_err)?;
         let rows: Vec<InvoiceRow> = response.take(0).map_err(map_err)?;
 
-        let mut count_query = self
-            .session
-            .query(format!(
+        // A bare `SELECT count() ... WHERE <fulltext predicate> GROUP ALL`
+        // mis-plans to 0 on this SurrealDB version; wrap the same filters in
+        // a subquery instead. See docs/adr/0001-surrealdb-fulltext-keyword.md.
+        let mut count_query = if q.is_some() {
+            self.session.query(format!(
+                "SELECT count() FROM (SELECT id FROM type::table($table) {filters}) GROUP ALL"
+            ))
+        } else {
+            self.session.query(format!(
                 "SELECT count() FROM type::table($table) {filters} GROUP ALL"
             ))
-            .bind(("table", TABLE));
+        }
+        .bind(("table", TABLE));
         if let Some(customer_id) = &query.customer_id {
             count_query = count_query.bind(("customer_id", customer_id.clone()));
         }
         if let Some(status) = query.status {
             count_query = count_query.bind(("status", status_to_str(status)));
+        }
+        if let Some(q) = q {
+            count_query = count_query.bind(("q", q.to_string()));
         }
         let mut count_response = count_query.await.map_err(map_err)?;
         let count_rows: Vec<CountRow> = count_response.take(0).map_err(map_err)?;
@@ -412,5 +458,21 @@ impl InvoiceRepo for SurrealInvoiceRepo {
         row.map(Invoice::try_from)
             .transpose()?
             .ok_or(DomainError::NotFound)
+    }
+
+    async fn search(&self, q: &str, limit: u32) -> Result<Vec<domain::SearchHit>, DomainError> {
+        let mut response = self
+            .session
+            .query(format!(
+                "SELECT id, number AS label, search::highlight('<b>', '</b>', 0) AS highlight, {SEARCH_SCORE} AS score \
+                 FROM type::table($table) WHERE {SEARCH_CONDITION} ORDER BY score DESC LIMIT $limit"
+            ))
+            .bind(("table", TABLE))
+            .bind(("q", q.to_string()))
+            .bind(("limit", limit as i64))
+            .await
+            .map_err(map_err)?;
+        let rows: Vec<SearchHitRow> = response.take(0).map_err(map_err)?;
+        Ok(rows.into_iter().map(to_hit).collect())
     }
 }

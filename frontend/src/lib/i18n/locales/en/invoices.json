@@ -2,6 +2,7 @@
   "list.title": "Invoices",
   "list.loadError": "Failed to load invoices.",
   "list.empty": "No invoices yet.",
+  "list.searchPlaceholder": "Search invoices…",
   "list.filterCustomer": "Filter by customer ID",
   "list.filterStatus": "Filter by status",
   "detail.loadError": "Failed to load invoice.",

@@ -1,5 +1,6 @@
 import { fireEvent, render, screen } from '@testing-library/react'
 import { MantineProvider } from '@mantine/core'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { RouterProvider } from '@tanstack/react-router'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
@@ -18,11 +19,15 @@ describe('app shell', () => {
       vi.fn(async () => new Response(JSON.stringify({ token: 'test-token' }), { status: 200 })),
     )
 
+    const queryClient = new QueryClient()
+
     render(
       <MantineProvider>
-        <AuthProvider>
-          <RouterProvider router={router} />
-        </AuthProvider>
+        <QueryClientProvider client={queryClient}>
+          <AuthProvider>
+            <RouterProvider router={router} />
+          </AuthProvider>
+        </QueryClientProvider>
       </MantineProvider>,
     )
 

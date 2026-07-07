@@ -107,6 +107,7 @@ pub fn build_router(state: AppState) -> Router {
             "/api/invoices/{id}/status",
             post(routes::invoices::set_status),
         )
+        .route("/api/search", get(routes::search::search))
         .layer(middleware::from_fn_with_state(
             state.clone(),
             auth::require_auth,

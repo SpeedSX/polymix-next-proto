@@ -214,7 +214,64 @@ borrowed strings here; clone before constructing it.
   multiple major versions of the same crate to coexist in one dependency
   graph; this is not a conflict to "fix".
 
-## 9. How these were confirmed
+## 9. `FULLTEXT` index quirks: one field per index, unique match refs, and a `count()` planner bug
+
+PLAN.md's M3 spec writes `DEFINE INDEX ... SEARCH ANALYZER ... BM25
+HIGHLIGHTS` with a multi-field `FIELDS` list, and a query shape that reuses
+one match reference (`@0@`) across every predicate. None of that survives
+contact with `surrealdb/surrealdb:v3.2` unchanged — see
+`docs/adr/0001-surrealdb-fulltext-keyword.md` for the full writeup and the
+decision. Four points, all confirmed against a live container and cross-
+checked against `surrealdb-core-3.2.0/src/syn/parser/stmt/define.rs`:
+
+1. The keyword is `FULLTEXT`, not `SEARCH` (`SEARCH` isn't recognized at
+   all at that grammar position).
+2. A `FULLTEXT` index takes exactly **one** field — `DEFINE INDEX ... ON t
+   FIELDS a, b FULLTEXT ...` fails with `Expected one column, found 2`. One
+   index per searchable field, not one index per table.
+3. Match references (`@N@`) must be **unique per query** across different
+   indexes — reusing `@0@` for predicates on two different fields/indexes
+   fails with `Duplicated Match reference: 0`. Give each field its own `N`
+   and sum `search::score(N)` for a combined rank.
+4. `ORDER BY search::score(0) DESC` alone fails
+   (`Missing order idiom \`search\` in statement selection`) — the score
+   expression must be projected first: `SELECT *, (search::score(0) + ...)
+   AS score ... ORDER BY score`.
+
+A fifth issue is a genuine planner bug, not a spec mismatch:
+**`SELECT count() FROM t WHERE <fulltext predicate> GROUP ALL` returns
+`{"count": 0}` even when rows match.** Confirmed by running the identical
+`WHERE` clause as `SELECT *` (returns the matching rows) right next to the
+`count()` form (returns `0`) in the same request. Workaround: wrap the
+predicate in a subquery —
+`SELECT count() FROM (SELECT id FROM t WHERE <predicate>) GROUP ALL`
+returns the correct count. Only affects count-only aggregates over a
+full-text predicate; a plain `SELECT count() ... GROUP ALL` with no `@N@`
+operator in its `WHERE` is unaffected.
+
+## 10. The `ascii` analyzer filter does not damage non-Latin scripts
+
+Worth confirming before assuming `FILTERS lowercase, ascii, edgengram(...)`
+is Latin/English-only: it isn't. Tested interactively against
+`surrealdb/surrealdb:v3.2` with Cyrillic content (`"Адамант Print GmbH"`)
+indexed through an analyzer that includes `ascii`:
+
+- Cyrillic queries match and case-fold correctly: `"адам"` and `"АДАМ"`
+  both matched via edge-ngram prefix search, same as they would through an
+  analyzer with the `ascii` filter removed.
+- The `ascii` filter's actual effect is Latin-diacritic folding only —
+  `"café"` matched a query for `"cafe"` through the `ascii`-filtered field,
+  but the same query did *not* match an otherwise-identical field indexed
+  without `ascii`. Non-Latin code points pass through unchanged; they are
+  not stripped, mangled, or excluded from the index.
+
+Practical implication: PLAN.md's `autocomplete` analyzer (`class`
+tokenizer, `lowercase, ascii, edgengram(2, 10)`) needs no adjustment to
+support the `ua` locale — the `ascii` filter is pure upside for mixed
+Latin/Cyrillic tenant data (it still folds diacritics in Latin-script
+customer/company names) with no downside for Cyrillic search.
+
+## 11. How these were confirmed
 
 Web docs for a fast-moving SDK (three major versions in recent history) were
 sometimes stale or summarized ambiguously by the fetch tool. The reliable
@@ -231,3 +288,37 @@ When the SDK's own behavior is in question (not just "what's the current
 API"), prefer grepping that source over trusting a summarized doc fetch —
 then confirm with `cargo check`/`cargo clippy -D warnings` against the real
 compiler.
+
+## 12. Cloning an already-cloned session hangs queries — clone from root only, once
+
+Building on §1's pattern: `clone()` forks a new server-side session by
+sending a `SessionId::Clone { old, new }` event that the connection's router
+task replays (`Attach` + recorded `use_ns`/`use_db`/etc. commands) onto a
+fresh session id (`surrealdb-3.2.0/src/engine/remote/ws/mod.rs`,
+`handle_session_clone`). That works correctly exactly once — cloning
+`root` for a per-request/tenant session, as §1 prescribes.
+
+**Cloning that already-cloned session again — a second-generation
+clone/grandchild of `root` — causes every subsequent query issued on it to
+hang indefinitely**, even though the query text, bindings, and underlying
+data are identical to ones that succeed on the first-generation session.
+Confirmed empirically with a standalone example reusing the real crates on
+the same live connection:
+
+- Query run directly on the session returned by `for_tenant()` (one clone
+  from `root`): consistently fast (~100-200ms).
+- The exact same query, run on `session.clone()` of that session (two clones
+  from `root`) — via a raw inline query, *not* going through any repo/trait
+  code: hangs (no response, ever).
+- A **fresh** `store.for_tenant(...)` call (a new first-generation clone of
+  `root`) instead of `.clone()`-ing the existing session: fast again.
+
+This was not a query-shape issue (ruled out `search::highlight()`,
+`SurrealValue` deserialization, and `type::table($table)` individually —
+all fast in isolation) and not `async_trait` dispatch (a hand-inlined copy
+of the trait method's body hung identically when run on a double-clone).
+Root-caused to the clone depth itself. Not yet filed upstream; treat as an
+open SurrealDB 3.2 SDK/server bug rather than something to route around
+case-by-case — **never call `.clone()` on a session that is itself already
+a clone; call `for_tenant()` (or equivalent root-clone) again instead.**
+See `docs/adr/0002-surrealdb-session-clone-depth.md`.

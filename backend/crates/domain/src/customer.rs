@@ -49,6 +49,9 @@ pub struct ListQuery {
     pub page: u32,
     pub limit: u32,
     pub sort: String,
+    /// Full-text filter (M3). When present, results are ranked by BM25
+    /// score and `sort` is ignored, per PLAN.md's list-parameters contract.
+    pub q: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -66,6 +69,9 @@ pub trait CustomerRepo: Send + Sync {
     async fn create(&self, data: NewCustomer) -> Result<Customer, DomainError>;
     async fn update(&self, id: &str, data: NewCustomer) -> Result<Customer, DomainError>;
     async fn delete(&self, id: &str) -> Result<(), DomainError>;
+    /// Top BM25-ranked hits for the global omnibox (M3). `q` is assumed
+    /// non-empty — callers filter that out before calling.
+    async fn search(&self, q: &str, limit: u32) -> Result<Vec<crate::SearchHit>, DomainError>;
 }
 
 #[cfg(test)]

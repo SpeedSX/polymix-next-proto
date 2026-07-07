@@ -2,6 +2,7 @@
   "list.title": "Customers",
   "list.new": "New customer",
   "list.loadError": "Failed to load customers.",
+  "list.searchPlaceholder": "Search customers…",
   "list.empty": "No customers yet.",
   "create.title": "New customer",
   "detail.loadError": "Failed to load customer.",

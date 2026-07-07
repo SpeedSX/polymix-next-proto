@@ -32,6 +32,7 @@ pub struct ListParams {
     sort: String,
     customer_id: Option<String>,
     status: Option<OrderStatus>,
+    q: Option<String>,
 }
 
 impl From<ListParams> for OrderListQuery {
@@ -42,6 +43,7 @@ impl From<ListParams> for OrderListQuery {
             sort: params.sort,
             customer_id: params.customer_id,
             status: params.status,
+            q: params.q,
         }
     }
 }

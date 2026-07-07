@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react'
 import { Badge, Button, Group, Pagination, Select, Stack, Table, Text, TextInput, Title } from '@mantine/core'
+import { useDebouncedValue } from '@mantine/hooks'
 import { useQuery } from '@tanstack/react-query'
 import { useNavigate } from '@tanstack/react-router'
 import { createColumnHelper, flexRender, getCoreRowModel, useReactTable } from '@tanstack/react-table'
@@ -14,6 +15,7 @@ import type { Order, OrderStatus } from './types'
 
 const PAGE_SIZE = 25
 const DEFAULT_SORT = '-created_at'
+const SEARCH_DEBOUNCE_MS = 250
 
 function sortParam(sorting: SortingState): string {
   if (sorting.length === 0) {
@@ -33,6 +35,9 @@ export function OrderList() {
   const [sorting, setSorting] = useState<SortingState>([{ id: 'created_at', desc: true }])
   const [customerId, setCustomerId] = useState('')
   const [status, setStatus] = useState<string | null>(null)
+  const [search, setSearch] = useState('')
+  const [debouncedSearch] = useDebouncedValue(search, SEARCH_DEBOUNCE_MS)
+  const hasSearch = debouncedSearch.trim() !== ''
 
   const params = useMemo(
     () => ({
@@ -41,8 +46,9 @@ export function OrderList() {
       sort: sortParam(sorting),
       customer_id: customerId || undefined,
       status: (status as OrderStatus | null) ?? undefined,
+      q: hasSearch ? debouncedSearch.trim() : undefined,
     }),
-    [page, sorting, customerId, status],
+    [page, sorting, customerId, status, hasSearch, debouncedSearch],
   )
 
   const { data, isLoading, isError } = useQuery({
@@ -80,6 +86,9 @@ export function OrderList() {
     manualSorting: true,
     manualPagination: true,
     enableMultiSort: false,
+    // The server ranks by BM25 score and ignores `sort` while a search
+    // query is active — don't offer column sorting that would be a no-op.
+    enableSorting: !hasSearch,
     onSortingChange: handleSortingChange,
     getCoreRowModel: getCoreRowModel(),
   })
@@ -93,6 +102,14 @@ export function OrderList() {
         <Button onClick={() => navigate({ to: '/orders/new' })}>{t('list.new')}</Button>
       </Group>
       <Group>
+        <TextInput
+          placeholder={t('list.searchPlaceholder')}
+          value={search}
+          onChange={(event) => {
+            setSearch(event.currentTarget.value)
+            setPage(1)
+          }}
+        />
         <TextInput
           placeholder={t('list.filterCustomer')}
           value={customerId}

@@ -59,6 +59,7 @@ export interface CustomerListParams {
   page: number
   limit: number
   sort: string
+  q?: string
   [key: string]: string | number | undefined
 }
 

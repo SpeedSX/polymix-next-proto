@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react'
-import { Button, Group, Pagination, Stack, Table, Text, Title } from '@mantine/core'
+import { Button, Group, Pagination, Stack, Table, Text, TextInput, Title } from '@mantine/core'
+import { useDebouncedValue } from '@mantine/hooks'
 import { useQuery } from '@tanstack/react-query'
 import { useNavigate } from '@tanstack/react-router'
 import { createColumnHelper, flexRender, getCoreRowModel, useReactTable } from '@tanstack/react-table'
@@ -12,6 +13,7 @@ import type { Customer } from './types'
 
 const PAGE_SIZE = 25
 const DEFAULT_SORT = '-created_at'
+const SEARCH_DEBOUNCE_MS = 250
 
 function sortParam(sorting: SortingState): string {
   if (sorting.length === 0) {
@@ -38,8 +40,14 @@ export function CustomerList() {
   const api = useApi()
   const [page, setPage] = useState(1)
   const [sorting, setSorting] = useState<SortingState>([{ id: 'created_at', desc: true }])
+  const [search, setSearch] = useState('')
+  const [debouncedSearch] = useDebouncedValue(search, SEARCH_DEBOUNCE_MS)
+  const hasSearch = debouncedSearch.trim() !== ''
 
-  const params = useMemo(() => ({ page, limit: PAGE_SIZE, sort: sortParam(sorting) }), [page, sorting])
+  const params = useMemo(
+    () => ({ page, limit: PAGE_SIZE, sort: sortParam(sorting), q: hasSearch ? debouncedSearch.trim() : undefined }),
+    [page, sorting, hasSearch, debouncedSearch],
+  )
 
   const { data, isLoading, isError } = useQuery({
     queryKey: customersKeys.list(params),
@@ -70,6 +78,9 @@ export function CustomerList() {
     manualSorting: true,
     manualPagination: true,
     enableMultiSort: false,
+    // The server ranks by BM25 score and ignores `sort` while a search
+    // query is active — don't offer column sorting that would be a no-op.
+    enableSorting: !hasSearch,
     onSortingChange: handleSortingChange,
     getCoreRowModel: getCoreRowModel(),
   })
@@ -82,6 +93,14 @@ export function CustomerList() {
         <Title order={2}>{t('list.title')}</Title>
         <Button onClick={() => navigate({ to: '/customers/new' })}>{t('list.new')}</Button>
       </Group>
+      <TextInput
+        placeholder={t('list.searchPlaceholder')}
+        value={search}
+        onChange={(event) => {
+          setSearch(event.currentTarget.value)
+          setPage(1)
+        }}
+      />
       {isError && <Text c="red">{t('list.loadError')}</Text>}
       <Table highlightOnHover>
         <Table.Thead>

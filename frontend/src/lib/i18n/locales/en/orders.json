@@ -3,6 +3,7 @@
   "list.new": "New order",
   "list.loadError": "Failed to load orders.",
   "list.empty": "No orders yet.",
+  "list.searchPlaceholder": "Search orders…",
   "list.filterCustomer": "Filter by customer ID",
   "list.filterStatus": "Filter by status",
   "create.title": "New order",

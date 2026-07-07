@@ -19,9 +19,18 @@ check:
     cd frontend && npm run typecheck
     cd frontend && npm run test
 
-# Backend integration tests (testcontainers).
+# Backend integration tests (testcontainers). Cleans up afterwards regardless
+# of pass/fail: the `testcontainers` crate has no Ryuk-style reaper, and our
+# harness caches the SurrealDB container in a `static OnceCell` per test
+# binary for speed — Rust never runs `Drop` on statics at process exit (and
+# `cargo test`'s harness calls `std::process::exit` anyway), so containers
+# would otherwise leak on every run. Every container it starts carries
+# `org.testcontainers.managed-by=testcontainers`, so filter on that.
 test-int:
-    cd backend && cargo test --workspace -- --ignored
+    cd backend && cargo test --workspace -- --ignored; code=$?; \
+    ids=$({{container_runtime}} ps -aq --filter "label=org.testcontainers.managed-by=testcontainers"); \
+    if [ -n "$ids" ]; then {{container_runtime}} rm -f $ids; fi; \
+    exit $code
 
 # Seeder against the local dev tenant (50k customers, 200k orders).
 seed:

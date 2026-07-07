@@ -30,6 +30,7 @@ pub struct ListParams {
     limit: u32,
     #[serde(default = "default_sort")]
     sort: String,
+    q: Option<String>,
 }
 
 impl From<ListParams> for ListQuery {
@@ -38,6 +39,7 @@ impl From<ListParams> for ListQuery {
             page: params.page.max(1),
             limit: params.limit.clamp(1, 100),
             sort: params.sort,
+            q: params.q,
         }
     }
 }

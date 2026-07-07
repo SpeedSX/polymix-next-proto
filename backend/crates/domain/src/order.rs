@@ -136,6 +136,9 @@ pub struct OrderListQuery {
     pub sort: String,
     pub customer_id: Option<String>,
     pub status: Option<OrderStatus>,
+    /// Full-text filter (M3). When present, results are ranked by BM25
+    /// score and `sort` is ignored, per PLAN.md's list-parameters contract.
+    pub q: Option<String>,
 }
 
 #[async_trait::async_trait]
@@ -146,6 +149,9 @@ pub trait OrderRepo: Send + Sync {
     async fn update(&self, id: &str, data: NewOrder) -> Result<Order, DomainError>;
     async fn delete(&self, id: &str) -> Result<(), DomainError>;
     async fn set_status(&self, id: &str, status: OrderStatus) -> Result<Order, DomainError>;
+    /// Top BM25-ranked hits for the global omnibox (M3). `q` is assumed
+    /// non-empty — callers filter that out before calling.
+    async fn search(&self, q: &str, limit: u32) -> Result<Vec<crate::SearchHit>, DomainError>;
 }
 
 #[cfg(test)]
