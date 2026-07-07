@@ -3,6 +3,11 @@ import { createRootRoute, createRoute, createRouter, Navigate } from '@tanstack/
 import { CustomerDetail } from '../features/customers/Detail'
 import { CustomerList } from '../features/customers/List'
 import { CustomerNew } from '../features/customers/New'
+import { InvoiceDetail } from '../features/invoices/Detail'
+import { InvoiceList } from '../features/invoices/List'
+import { OrderDetail } from '../features/orders/Detail'
+import { OrderList } from '../features/orders/List'
+import { OrderNew } from '../features/orders/New'
 import { AppShell } from './AppShell'
 
 const rootRoute = createRootRoute({
@@ -33,11 +38,46 @@ const customerDetailRoute = createRoute({
   component: CustomerDetail,
 })
 
+const ordersListRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/orders',
+  component: OrderList,
+})
+
+const ordersNewRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/orders/new',
+  component: OrderNew,
+})
+
+const orderDetailRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/orders/$id',
+  component: OrderDetail,
+})
+
+const invoicesListRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/invoices',
+  component: InvoiceList,
+})
+
+const invoiceDetailRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/invoices/$id',
+  component: InvoiceDetail,
+})
+
 const routeTree = rootRoute.addChildren([
   indexRoute,
   customersListRoute,
   customersNewRoute,
   customerDetailRoute,
+  ordersListRoute,
+  ordersNewRoute,
+  orderDetailRoute,
+  invoicesListRoute,
+  invoiceDetailRoute,
 ])
 
 export const router = createRouter({ routeTree })

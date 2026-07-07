@@ -30,8 +30,8 @@ export function AppShell() {
       </MantineAppShell.Header>
       <MantineAppShell.Navbar p="md">
         <NavLink label={t('nav.customers')} component={Link} to="/customers" />
-        <NavLink label={t('nav.orders')} disabled />
-        <NavLink label={t('nav.invoices')} disabled />
+        <NavLink label={t('nav.orders')} component={Link} to="/orders" />
+        <NavLink label={t('nav.invoices')} component={Link} to="/invoices" />
       </MantineAppShell.Navbar>
       <MantineAppShell.Main>
         <Outlet />
