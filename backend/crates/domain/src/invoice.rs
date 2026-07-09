@@ -99,7 +99,7 @@ pub struct NewInvoice {
     pub order_id: String,
     /// Optional currency override. M2 only accepts a value equal to the
     /// order's own currency — real multi-currency invoicing (rate snapshot,
-    /// display conversion) is M5 scope per PLAN.md.
+    /// display conversion) is M4 scope per PLAN.md.
     pub currency: Option<String>,
 }
 

@@ -158,7 +158,7 @@ invoice {
   order_id: ulid (required),
   customer_id: ulid,              // denormalized from the order
   status: "draft" | "issued" | "paid" | "void",
-  currency: string,               // may differ from the order's currency (M5)
+  currency: string,               // may differ from the order's currency (M4)
   exchange_rate: string | null,   // decimal string, snapshot at issue time; null when currency == tenant default. Informational only — display conversions happen on the frontend.
   line_items: [ { description, quantity, unit_price: money } ],   // copied from the order at creation, then independent
   net_total: money,
@@ -228,7 +228,7 @@ Base path `/api`, JSON everywhere. All routes except `/api/health` require `Auth
 | `POST /api/orders/{id}/invoice` | create invoice from order; body `{ currency?: string }` |
 | `POST /api/invoices/{id}/status` | body `{ "status": "issued" }` |
 | `GET /api/search?q=` | global omnibox (M3), shape below |
-| `GET /api/ws?token=<jwt>` | WebSocket upgrade (M4) |
+| `GET /api/ws?token=<jwt>` | WebSocket upgrade (M5) |
 
 **List parameters:** `page` (1-based, default 1), `limit` (default 25, max 100), `sort` (field name, prefix `-` for desc, default `-created_at`), `q` (FTS filter, M3+; when present results are ranked by score and `sort` is ignored). Orders/invoices additionally accept `customer_id` and `status` filters.
 
@@ -252,7 +252,7 @@ Codes: `unauthorized` (401), `forbidden` (403), `not_found` (404), `validation_f
 
 **Clerk** (M1): default Clerk session tokens include `org_id` when an active organization is set — no custom template needed. Frontend uses `@clerk/clerk-react`: `<SignIn/>`, `<OrganizationSwitcher/>`, and `getToken()` per request (Clerk rotates short-lived tokens; never cache one).
 
-## WebSocket protocol (M4)
+## WebSocket protocol (M5)
 
 - Connect: `GET /api/ws?token=<jwt>` (browsers can't set headers on WS). Invalid/missing token → close before upgrade with HTTP 401.
 - Server → client: `{ "type": "change", "entity": "customer|order|invoice", "action": "create|update|delete", "id": "<ulid>", "data": <entity or null for delete> }` and `{ "type": "ping" }` every 30 s.
@@ -261,7 +261,7 @@ Codes: `unauthorized` (401), `forbidden` (403), `not_found` (404), `validation_f
 - Cache mapping: `change` on entity X invalidates list queries `['customers']` etc. and patches/invalidates detail query `['customers', id]`.
 - The hub (backend): one task per tenant owning the three live queries; drops the live queries when the tenant's subscriber count hits zero; on SurrealDB connection loss, re-establishes live queries and broadcasts `{ "type": "resync" }` so clients refetch.
 
-## M4 work breakdown (Live updates)
+## M5 work breakdown (Live updates)
 
 The WebSocket protocol section above is the contract; this section is the build order. Each step leaves `just check` green; integration tests land with the step that makes them testable, not at the end.
 
@@ -495,13 +495,13 @@ Each milestone ends runnable and demoable, with explicit acceptance criteria.
    Migration adding analyzer + the three FTS indexes; `q` param on list endpoints; `/api/search` omnibox endpoint; `Ctrl+K` overlay with keyboard navigation and highlighted matches; debounced (250 ms) search-as-you-type.
    **Done when:** searching a customer name prefix ("ada" finds "Adamant Print GmbH") works in lists and omnibox; omnibox navigates to the selected record on Enter; FTS integration test asserts ranking (exact-prefix beats mid-word); p95 < 100 ms for the search endpoint on the seeded volume (measure with a quick script, record in `/docs/perf.md`).
 
-5. **M4 — Live updates.**
-   Hub + live queries per the WS spec; frontend WS client with reconnect + invalidate-on-reconnect; optimistic updates on edit/transition mutations. Build order, module layout, and per-step tests: see **M4 work breakdown (Live updates)** above.
-   **Done when:** two browsers on one tenant — an edit in one appears in the other within 1 s without user action, on both list and detail views; a browser on a second tenant sees nothing (integration test: WS client of tenant B receives no event for tenant A's mutation — mandatory); killing and restarting SurrealDB recovers live updates without a page reload.
-
-6. **M5 — i18n + currency.**
-   `ua` locale files for every namespace; language switcher; all dates/numbers locale-formatted; invoice in a non-default currency with rate snapshot from the seeded `exchange_rate` table; display-only converted amount ("≈ UAH 1,234.56") on the invoice detail.
+5. **M4 — i18n + currency + org settings.**
+   `ua` locale files for every namespace; language switcher; all dates/numbers locale-formatted; invoice in a non-default currency with rate snapshot from the seeded `exchange_rate` table; display-only converted amount ("≈ UAH 1,234.56") on the invoice detail; Order and Invoice table prefixes are configured at organization level - default is empty so no prefix displayed, just number; admin prefix edit out-of-scope; create and seed database 100 customers, 1000 orders with ukrainian names.
    **Done when:** switching to `ua` translates every screen (no raw keys, no leftover English in the main flows) and reformats dates/numbers; an invoice created in USD on a EUR tenant stores the rate snapshot and renders both amounts; money round-trips through forms without losing cents (unit tests on the minor-units conversion).
+
+6. **M5 — Live updates.**
+   Hub + live queries per the WS spec; frontend WS client with reconnect + invalidate-on-reconnect; optimistic updates on edit/transition mutations. Build order, module layout, and per-step tests: see **M5 work breakdown (Live updates)** above.
+   **Done when:** two browsers on one tenant — an edit in one appears in the other within 1 s without user action, on both list and detail views; a browser on a second tenant sees nothing (integration test: WS client of tenant B receives no event for tenant A's mutation — mandatory); killing and restarting SurrealDB recovers live updates without a page reload.
 
 7. **M6 — Cloud + perf pass.**
    Dockerfiles (multi-stage; frontend served by nginx); fly.toml for api + SurrealDB (volume-backed) + static frontend; the three items in **Operational hardening (M6)** — startup retry, CORS from config, readiness endpoint; k6 scripts for search, list pagination, and mutation fan-out with 100 concurrent WS clients; numbers recorded in `/docs/perf.md` against the NFR targets.
@@ -564,7 +564,7 @@ What we do once the prototype **appears successful**. Nothing here starts before
 
 The prototype is judged after M6, against evidence, and the verdict is written as an ADR (`docs/adr/`, "prototype verdict"). It must answer three questions explicitly:
 
-1. **Does SurrealDB stay?** Inputs: M6 k6 numbers vs the NFR targets (search p95 < 100 ms on seeded volume; list pagination p95 < 200 ms; live-update fan-out stable at 100 concurrent WS clients), operational behavior observed during M4/M6 (live-query reconnect, memory under load, backup story), and developer friction encountered. Outcomes: **keep** (proceed as-is), or **swap** to the recorded fallback (Postgres + Meilisearch + LISTEN/NOTIFY-or-CDC behind the same repository traits and hub) as the *first* post-prototype workstream — the traits and the WS protocol were designed so this swap does not ripple past `surreal-store` and the hub internals.
+1. **Does SurrealDB stay?** Inputs: M6 k6 numbers vs the NFR targets (search p95 < 100 ms on seeded volume; list pagination p95 < 200 ms; live-update fan-out stable at 100 concurrent WS clients), operational behavior observed during M5/M6 (live-query reconnect, memory under load, backup story), and developer friction encountered. Outcomes: **keep** (proceed as-is), or **swap** to the recorded fallback (Postgres + Meilisearch + LISTEN/NOTIFY-or-CDC behind the same repository traits and hub) as the *first* post-prototype workstream — the traits and the WS protocol were designed so this swap does not ripple past `surreal-store` and the hub internals.
 2. **Does Clerk stay?** Inputs: per-MAU cost projected at target tenant count, EU data-residency requirements of the DACH launch market, and any friction with org-per-tenant. The JWT middleware was built provider-agnostic precisely so the answer can be "swap to Zitadel/Logto" without touching the backend beyond config.
 3. **Is the demo convincing to real users?** At least two demo sessions with actual print-shop staff (not just us) using the seeded tenant; their reactions to search, live updates, and the order→invoice flow are recorded in the ADR. If the core loop doesn't land with them, we fix that before building anything new.
 
@@ -579,7 +579,7 @@ Ordered by dependency; A1 and A2 are the headline features that justified "Next"
 3. **A3 — Customer portal (public instant quote).** Public, unauthenticated configurator per tenant (tenant resolved by subdomain/slug); renders a `product_template`, greys out options via `compatibility_rule`, shows the price ladder live (<300 ms per parameter change, server-computed), lets the customer pick a quantity and submit a quote request with contact details + artwork upload placeholder. Quote is stored with its `pricelist_version`.
 4. **A4 — Quote → order pipeline.** Staff view of incoming quote requests; accepting one creates an `order` carrying the engine's production plan (imposition, technology choice, operations) — the plan is what production scheduling (A6) consumes. Internal estimating uses the same engine with staff-only overrides (manual discount, margin override — audit-logged).
 5. **A5 — Documents & email.** Invoice **PDF generation** (legally required to invoice anyone; Typst or headless-Chromium rendering — decide by ADR) with correct VAT presentation for DE, quote PDFs, and transactional email (invoice/quote delivery, quote-request confirmation). High priority: without A5 no tenant can actually run their business on the system.
-6. **A6 — Production scheduling / job board.** Orders' production plans become jobs on a board (queued → on-machine → done per operation), machine calendars, drag-reordering, the shop-floor screen. Live updates (M4 hub) are the transport — this is where they pay off beyond demos.
+6. **A6 — Production scheduling / job board.** Orders' production plans become jobs on a board (queued → on-machine → done per operation), machine calendars, drag-reordering, the shop-floor screen. Live updates (M5 hub) are the transport — this is where they pay off beyond demos.
 7. **A7 — Materials & inventory.** Stock levels on `material`, decrement from completed production plans, reorder alerts. Feeds real material costs back into the price model.
 8. **A8 — Reporting/BI.** Revenue by customer/product/period, margin per order (engine cost vs invoiced price), quote conversion rate. Start as read-only SQL/SurrealQL views + CSV export; a real BI story is its own later decision.
 

@@ -100,7 +100,7 @@ are same-machine and unambiguous.)
   removable.
 - Cached sessions live for the process lifetime (capacity 10k tenants).
   Session state after a SurrealDB reconnect follows the same SDK
-  router-replay mechanism as before; the M4 hub work that owns reconnect
+  router-replay mechanism as before; the M5 hub work that owns reconnect
   behavior should verify cached sessions survive it (or invalidate the
   cache on reconnect).
 - The customers list endpoint sits at the target boundary (p95 93-102ms).
