@@ -1,0 +1,51 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 500 160" width="500" height="160">
+  <defs>
+    <filter id="docShadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="3" stdDeviation="5" flood-color="rgba(15,23,42,0.14)"/>
+    </filter>
+  </defs>
+
+  <!-- Background -->
+  <rect width="500" height="160" fill="#FFFFFF"/>
+
+  <!-- ─── ICON: stacked order sheets ─── -->
+  <g filter="url(#docShadow)">
+    <!-- Back sheet -->
+    <rect x="8"  y="50" width="66" height="84" rx="7" fill="#BAE6FD"/>
+    <!-- Middle sheet -->
+    <rect x="19" y="38" width="66" height="84" rx="7" fill="#38BDF8"/>
+    <!-- Front sheet -->
+    <rect x="30" y="26" width="66" height="84" rx="7" fill="#0F172A"/>
+  </g>
+
+  <!-- Accent tag on front sheet — category / order type indicator -->
+  <rect x="37" y="34" width="45" height="7" rx="3.5" fill="#0096C7"/>
+
+  <!-- Content lines on front sheet — simulated print/text content -->
+  <rect x="37" y="50" width="44" height="4" rx="2" fill="#FFFFFF" opacity="0.22"/>
+  <rect x="37" y="60" width="35" height="4" rx="2" fill="#FFFFFF" opacity="0.18"/>
+  <rect x="37" y="70" width="40" height="4" rx="2" fill="#FFFFFF" opacity="0.18"/>
+  <rect x="37" y="80" width="28" height="4" rx="2" fill="#FFFFFF" opacity="0.13"/>
+
+  <!-- Separator -->
+  <line x1="118" y1="28" x2="118" y2="132" stroke="#E2E8F0" stroke-width="1.5"/>
+
+  <!-- ─── WORDMARK ─── -->
+  <text
+    x="136" y="98"
+    font-family="'Helvetica Neue', HelveticaNeue, Helvetica, Arial, sans-serif"
+    font-size="60"
+    font-weight="800"
+    letter-spacing="-1.5">
+    <tspan fill="#0F172A">Poly</tspan><tspan fill="#0096C7">Mix</tspan>
+  </text>
+
+  <!-- ─── DESCRIPTOR ─── -->
+  <text
+    x="138" y="126"
+    font-family="'Helvetica Neue', HelveticaNeue, Helvetica, Arial, sans-serif"
+    font-size="11"
+    font-weight="500"
+    fill="#94A3B8"
+    letter-spacing="3.6">PRINT ORDER MANAGEMENT</text>
+</svg>

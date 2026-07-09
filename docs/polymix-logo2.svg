@@ -1,0 +1,33 @@
+<svg viewBox="0 0 520 200" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="pmGraph" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#2E3440"/>
+      <stop offset="100%" stop-color="#4C566A"/>
+    </linearGradient>
+    <linearGradient id="pmAccent" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#5E81AC"/>
+      <stop offset="100%" stop-color="#88C0D0"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Знак: концентричні пластини друку + точка суміщення -->
+  <g transform="translate(38,42)">
+    <!-- нижня пластина -->
+    <rect x="14" y="14" width="82" height="82" rx="16" fill="url(#pmGraph)" opacity="0.35"/>
+    <!-- середня пластина -->
+    <rect x="7" y="7" width="82" height="82" rx="16" fill="url(#pmGraph)" opacity="0.7"/>
+    <!-- верхня пластина -->
+    <rect x="0" y="0" width="82" height="82" rx="16" fill="url(#pmGraph)"/>
+    <!-- акцентна діагональ (потік замовлень) -->
+    <path d="M0 58 L82 24" stroke="url(#pmAccent)" stroke-width="7" stroke-linecap="round"/>
+    <!-- точка суміщення / реєстрова мітка -->
+    <circle cx="41" cy="41" r="12" fill="none" stroke="#88C0D0" stroke-width="4"/>
+    <circle cx="41" cy="41" r="3" fill="#88C0D0"/>
+  </g>
+
+  <!-- Текстовий блок -->
+  <g transform="translate(150,0)">
+    <text x="0" y="116" font-family="'Segoe UI','Helvetica Neue',Arial,sans-serif" font-size="56" font-weight="300" fill="#2E3440" letter-spacing="1">Poly<tspan font-weight="700" fill="url(#pmAccent)">Mix</tspan></text>
+    <text x="3" y="143" font-family="'Segoe UI','Helvetica Neue',Arial,sans-serif" font-size="15" font-weight="500" letter-spacing="4" fill="#7A8494">PRINT &amp; ORDER SYSTEM</text>
+  </g>
+</svg>

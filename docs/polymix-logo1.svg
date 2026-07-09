@@ -1,0 +1,26 @@
+<svg viewBox="0 0 520 200" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="pmGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#5B4BE8"/>
+      <stop offset="100%" stop-color="#8A63F4"/>
+    </linearGradient>
+    <linearGradient id="pmGrad2" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#8A63F4"/>
+      <stop offset="100%" stop-color="#B79CF9"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Знак: складені шари, що утворюють "P" -->
+  <g transform="translate(30,40)">
+    <rect x="8" y="8" width="90" height="90" rx="20" fill="url(#pmGrad2)" opacity="0.55"/>
+    <rect x="0" y="0" width="90" height="90" rx="20" fill="url(#pmGrad)"/>
+    <path d="M28 22 h26 a18 18 0 0 1 0 36 h-14 v12 h-12 z M40 34 v12 h13 a6 6 0 0 0 0-12 z" fill="#fff"/>
+    <circle cx="72" cy="70" r="7" fill="#fff" opacity="0.9"/>
+  </g>
+
+  <!-- Текстовий блок -->
+  <g transform="translate(155,0)">
+    <text x="0" y="118" font-family="'Segoe UI','Helvetica Neue',Arial,sans-serif" font-size="58" font-weight="700" fill="#2B2540">Poly<tspan fill="url(#pmGrad)">Mix</tspan></text>
+    <text x="2" y="145" font-family="'Segoe UI','Helvetica Neue',Arial,sans-serif" font-size="16.5" font-weight="500" letter-spacing="3.2" fill="#8A85A0">ORDER MANAGEMENT</text>
+  </g>
+</svg>
