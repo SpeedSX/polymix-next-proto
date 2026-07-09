@@ -97,7 +97,7 @@ pub async fn create(
 ) -> Result<(StatusCode, Json<Order>), ApiError> {
     prepare(&mut body, &tenant)?;
     let repo = repo_for(&state, &auth).await?;
-    let order = repo.create(body).await?;
+    let order = repo.create(body, &tenant).await?;
     Ok((StatusCode::CREATED, Json(order)))
 }
 

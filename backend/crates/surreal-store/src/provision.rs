@@ -2,9 +2,10 @@ use std::sync::Arc;
 use std::time::Duration;
 
 use domain::error::DomainError;
-use domain::tenant::{NewTenant, Tenant, TenantRepo};
+use domain::tenant::{DEFAULT_CURRENCY, DEFAULT_LANGUAGE, NewTenant, Tenant, TenantRepo};
 use sha2::{Digest, Sha256};
 
+use crate::exchange_rate::seed_default_rates;
 use crate::migrations::apply_migrations;
 use crate::store::Store;
 use crate::tenant_repo::SurrealTenantRepo;
@@ -67,6 +68,38 @@ impl TenantProvisioner {
         org_id: &str,
         display_name: &str,
     ) -> Result<Tenant, DomainError> {
+        self.find_or_provision_with_locale(org_id, display_name, DEFAULT_LANGUAGE, DEFAULT_CURRENCY)
+            .await
+    }
+
+    /// Provisions a tenant with caller-chosen defaults instead of
+    /// [`DEFAULT_LANGUAGE`]/[`DEFAULT_CURRENCY`] — used by the seeder to
+    /// stand up the Ukrainian demo tenant (PLAN.md M4). Bypasses the
+    /// request-path cache entirely: seeding is a one-shot CLI run, not a hot
+    /// path, and going through `try_get_with` would require threading the
+    /// locale/currency into the cache key for no benefit.
+    ///
+    /// Like the normal path, an already-provisioned org id is returned as-is
+    /// — re-running the seeder against an existing tenant never changes its
+    /// settings.
+    pub async fn provision_with_locale(
+        &self,
+        org_id: &str,
+        display_name: &str,
+        default_language: &str,
+        default_currency: &str,
+    ) -> Result<Tenant, DomainError> {
+        self.find_or_provision_with_locale(org_id, display_name, default_language, default_currency)
+            .await
+    }
+
+    async fn find_or_provision_with_locale(
+        &self,
+        org_id: &str,
+        display_name: &str,
+        default_language: &str,
+        default_currency: &str,
+    ) -> Result<Tenant, DomainError> {
         let registry = SurrealTenantRepo::new(self.store.system());
 
         if let Some(tenant) = registry.find_by_org_id(org_id).await? {
@@ -83,12 +116,20 @@ impl TenantProvisioner {
             .await
             .map_err(|e| DomainError::Store(e.to_string()))?;
 
-        registry
+        let tenant = registry
             .create(NewTenant {
                 org_id: org_id.to_string(),
                 db_name,
                 name: display_name.to_string(),
+                default_language: default_language.to_string(),
+                default_currency: default_currency.to_string(),
             })
+            .await?;
+
+        seed_default_rates(&tenant_session, &tenant.default_currency)
             .await
+            .map_err(|e| DomainError::Store(e.to_string()))?;
+
+        Ok(tenant)
     }
 }

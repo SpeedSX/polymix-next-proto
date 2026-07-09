@@ -60,6 +60,7 @@ export function CustomerDetail() {
         onSuccess={(updated) => {
           queryClient.setQueryData(customersKeys.detail(id), updated)
           void queryClient.invalidateQueries({ queryKey: customersKeys.all })
+          void navigate({ to: '/customers' })
         }}
         onCancel={() => navigate({ to: '/customers' })}
       />

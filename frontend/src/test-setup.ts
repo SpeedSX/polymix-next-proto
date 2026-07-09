@@ -19,3 +19,12 @@ Object.defineProperty(window, 'matchMedia', {
     dispatchEvent: () => false,
   }),
 })
+
+// jsdom has no ResizeObserver; Mantine's Combobox (Select, etc.) uses one
+// unconditionally on mount to position its dropdown.
+class ResizeObserverStub {
+  observe() {}
+  unobserve() {}
+  disconnect() {}
+}
+window.ResizeObserver = ResizeObserverStub

@@ -1,6 +1,12 @@
 //! Fake-data generator for the demo tenant (PLAN.md M2: "seeder crate
 //! producing >= 50k customers / >= 200k orders per demo tenant, batched
 //! inserts of 1000"). Run with `just seed` or `cargo run -p seeder`.
+//!
+//! `SEED_LOCALE=ua` (see `just seed-ua`) provisions the M4 Ukrainian demo
+//! tenant instead (default currency UAH, default language `ua`, names drawn
+//! from the `ua` module) — everything else about the run is unchanged.
+
+mod ua;
 
 use std::env;
 use std::sync::Arc;
@@ -25,6 +31,7 @@ use ulid::Ulid;
 const BATCH_SIZE: usize = 1000;
 const CUSTOMER_TABLE: &str = "customer";
 const ORDER_TABLE: &str = "order";
+const UA_LOCALE: &str = "ua";
 
 const PRODUCTS: &[&str] = &[
     "Business cards",
@@ -154,11 +161,11 @@ fn random_status(rng: &mut impl Rng) -> OrderStatus {
     unreachable!("weights partition the full range")
 }
 
-fn random_line_items(rng: &mut impl Rng, currency: &str) -> Vec<LineItem> {
+fn random_line_items(rng: &mut impl Rng, currency: &str, products: &[&str]) -> Vec<LineItem> {
     let count = rng.gen_range(1..=4);
     (0..count)
         .map(|_| LineItem {
-            description: (*PRODUCTS.choose(rng).unwrap()).to_string(),
+            description: (*products.choose(rng).unwrap()).to_string(),
             quantity: rng.gen_range(1..=500),
             unit_price: Money {
                 amount_minor: rng.gen_range(10..=25_000),
@@ -172,10 +179,19 @@ fn random_line_items(rng: &mut impl Rng, currency: &str) -> Vec<LineItem> {
 async fn main() -> anyhow::Result<()> {
     tracing_subscriber::fmt::init();
 
-    let customer_count = env_count("SEED_CUSTOMERS", 50_000);
-    let order_count = env_count("SEED_ORDERS", 200_000);
-    let org_id = env_or("SEED_ORG_ID", "demo");
-    let org_name = env_or("SEED_ORG_NAME", "Demo Print Shop");
+    let locale = env_or("SEED_LOCALE", "en");
+    let ukrainian = locale == UA_LOCALE;
+
+    let customer_count = env_count("SEED_CUSTOMERS", if ukrainian { 100 } else { 50_000 });
+    let order_count = env_count("SEED_ORDERS", if ukrainian { 1_000 } else { 200_000 });
+    let default_org_id = if ukrainian { "demo-ua" } else { "demo" };
+    let default_org_name = if ukrainian {
+        "Демо Друкарня"
+    } else {
+        "Demo Print Shop"
+    };
+    let org_id = env_or("SEED_ORG_ID", default_org_id);
+    let org_name = env_or("SEED_ORG_NAME", default_org_name);
 
     let config = DbConfig {
         url: env_or("SURREALDB_URL", "ws://localhost:8000"),
@@ -186,13 +202,19 @@ async fn main() -> anyhow::Result<()> {
 
     let store = Arc::new(Store::connect(&config).await?);
     let provisioner = TenantProvisioner::new(store.clone());
-    let tenant = provisioner.ensure_tenant(&org_id, &org_name).await?;
+    let tenant = if ukrainian {
+        provisioner
+            .provision_with_locale(&org_id, &org_name, "ua", "UAH")
+            .await?
+    } else {
+        provisioner.ensure_tenant(&org_id, &org_name).await?
+    };
     let session = store.for_tenant(&tenant.db_name).await?;
 
     tracing::info!(tenant = %tenant.db_name, org_id = %org_id, "seeding tenant");
 
     let started = Instant::now();
-    let customer_ids = seed_customers(&session, customer_count).await?;
+    let customer_ids = seed_customers(&session, customer_count, ukrainian).await?;
     tracing::info!(count = customer_ids.len(), elapsed = ?started.elapsed(), "customers seeded");
 
     let orders_started = Instant::now();
@@ -201,6 +223,7 @@ async fn main() -> anyhow::Result<()> {
         &customer_ids,
         order_count,
         &tenant.default_currency,
+        ukrainian,
     )
     .await?;
     tracing::info!(count = order_count, elapsed = ?orders_started.elapsed(), "orders seeded");
@@ -209,10 +232,15 @@ async fn main() -> anyhow::Result<()> {
     Ok(())
 }
 
-async fn seed_customers(session: &Surreal<Any>, count: usize) -> anyhow::Result<Vec<String>> {
+async fn seed_customers(
+    session: &Surreal<Any>,
+    count: usize,
+    ukrainian: bool,
+) -> anyhow::Result<Vec<String>> {
     let mut rng = rand::thread_rng();
     let mut ids = Vec::with_capacity(count);
     let mut remaining = count;
+    let mut seq = 0usize;
 
     while remaining > 0 {
         let batch_size = remaining.min(BATCH_SIZE);
@@ -220,23 +248,43 @@ async fn seed_customers(session: &Surreal<Any>, count: usize) -> anyhow::Result<
         let mut batch = Vec::with_capacity(batch_size);
         for _ in 0..batch_size {
             let id = Ulid::new().to_string();
-            batch.push(CustomerSeedRow {
-                id: RecordId::new(CUSTOMER_TABLE, id.clone()),
-                name: CompanyName().fake_with_rng(&mut rng),
-                contact_name: Some(Name().fake_with_rng(&mut rng)),
-                email: Some(FreeEmail().fake_with_rng(&mut rng)),
-                phone: Some(PhoneNumber().fake_with_rng(&mut rng)),
-                address: Some(AddressRow {
-                    street: Some(StreetName().fake_with_rng(&mut rng)),
-                    zip: Some(ZipCode().fake_with_rng(&mut rng)),
-                    city: Some(CityName().fake_with_rng(&mut rng)),
-                    country: Some(CountryCode().fake_with_rng(&mut rng)),
-                }),
-                notes: None,
-                created_at: now.clone(),
-                updated_at: now.clone(),
+            batch.push(if ukrainian {
+                CustomerSeedRow {
+                    id: RecordId::new(CUSTOMER_TABLE, id.clone()),
+                    name: ua::company_name(&mut rng),
+                    contact_name: Some(ua::contact_name(&mut rng)),
+                    email: Some(ua::email(&mut rng, seq)),
+                    phone: Some(ua::phone(&mut rng)),
+                    address: Some(AddressRow {
+                        street: Some(ua::street(&mut rng)),
+                        zip: Some(ua::zip(&mut rng)),
+                        city: Some(ua::city(&mut rng)),
+                        country: Some("UA".to_string()),
+                    }),
+                    notes: None,
+                    created_at: now.clone(),
+                    updated_at: now.clone(),
+                }
+            } else {
+                CustomerSeedRow {
+                    id: RecordId::new(CUSTOMER_TABLE, id.clone()),
+                    name: CompanyName().fake_with_rng(&mut rng),
+                    contact_name: Some(Name().fake_with_rng(&mut rng)),
+                    email: Some(FreeEmail().fake_with_rng(&mut rng)),
+                    phone: Some(PhoneNumber().fake_with_rng(&mut rng)),
+                    address: Some(AddressRow {
+                        street: Some(StreetName().fake_with_rng(&mut rng)),
+                        zip: Some(ZipCode().fake_with_rng(&mut rng)),
+                        city: Some(CityName().fake_with_rng(&mut rng)),
+                        country: Some(CountryCode().fake_with_rng(&mut rng)),
+                    }),
+                    notes: None,
+                    created_at: now.clone(),
+                    updated_at: now.clone(),
+                }
             });
             ids.push(id);
+            seq += 1;
         }
 
         let _: Vec<CustomerSeedRow> = session.insert(CUSTOMER_TABLE).content(batch).await?;
@@ -258,13 +306,15 @@ async fn seed_orders(
     customer_ids: &[String],
     count: usize,
     currency: &str,
+    ukrainian: bool,
 ) -> anyhow::Result<()> {
     let mut rng = rand::thread_rng();
     let mut remaining = count;
     let mut seeded = 0usize;
+    let products = if ukrainian { ua::PRODUCTS } else { PRODUCTS };
 
     // Re-running the seeder against an already-provisioned tenant must not
-    // restart numbering at ORD-000001: that would mint duplicates against
+    // restart numbering at 000001: that would mint duplicates against
     // existing orders and rewind the shared counter, colliding with the
     // next API-created order.
     let mut response = session
@@ -285,12 +335,14 @@ async fn seed_orders(
                 .choose(&mut rng)
                 .expect("customer_ids is non-empty")
                 .clone();
-            let line_items = random_line_items(&mut rng, currency);
+            let line_items = random_line_items(&mut rng, currency, products);
             let total = line_items_total(&line_items, currency);
             let status = random_status(&mut rng);
             batch.push(OrderSeedRow {
                 id: RecordId::new(ORDER_TABLE, id),
-                number: format!("ORD-{number:06}"),
+                // Matches `counter::next_number`'s empty-prefix format — the
+                // tenant's `order_prefix` defaults to empty (PLAN.md M4).
+                number: format!("{number:06}"),
                 customer_id,
                 status: status_str(status).to_string(),
                 currency: currency.to_string(),

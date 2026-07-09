@@ -14,8 +14,10 @@ fn map_err(err: surrealdb::Error) -> DomainError {
 }
 
 /// Assigns the next per-tenant sequence number for `kind` ("order" |
-/// "invoice") via an atomic UPSERT (`counter:<kind>`), per PLAN.md's
-/// document-numbering convention, formatted as `<prefix>-NNNNNN`.
+/// "invoice") via an atomic UPSERT (`counter:<kind>`), formatted as
+/// `<prefix>-NNNNNN`, or bare `NNNNNN` when `prefix` is empty — the tenant's
+/// `order_prefix`/`invoice_prefix` default to empty (PLAN.md M4: "default is
+/// empty so no prefix displayed, just number").
 ///
 /// `value` is backtick-escaped: confirmed empirically against
 /// `surrealdb/surrealdb:v3.2` that it's a reserved SurrealQL keyword and
@@ -38,5 +40,28 @@ pub(crate) async fn next_number(
         .first()
         .map(|r| r.value)
         .ok_or_else(|| DomainError::Store("counter upsert returned no row".to_string()))?;
-    Ok(format!("{prefix}-{value:06}"))
+    Ok(format_number(prefix, value))
+}
+
+fn format_number(prefix: &str, value: i64) -> String {
+    if prefix.is_empty() {
+        format!("{value:06}")
+    } else {
+        format!("{prefix}-{value:06}")
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn formats_without_a_dash_when_prefix_is_empty() {
+        assert_eq!(format_number("", 123), "000123");
+    }
+
+    #[test]
+    fn formats_with_the_prefix_when_set() {
+        assert_eq!(format_number("ORD", 123), "ORD-000123");
+    }
 }

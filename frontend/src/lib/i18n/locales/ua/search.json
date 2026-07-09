@@ -1,0 +1,9 @@
+{
+  "trigger": "Пошук",
+  "placeholder": "Пошук клієнтів, замовлень, рахунків…",
+  "loading": "Пошук…",
+  "empty": "Нічого не знайдено.",
+  "groups.customers": "Клієнти",
+  "groups.orders": "Замовлення",
+  "groups.invoices": "Рахунки"
+}

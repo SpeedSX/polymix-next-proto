@@ -18,6 +18,10 @@ const MIGRATIONS: &[(&str, &str)] = &[
         "0004_search",
         include_str!("../migrations/0004_search.surql"),
     ),
+    (
+        "0005_exchange_rate",
+        include_str!("../migrations/0005_exchange_rate.surql"),
+    ),
 ];
 
 #[derive(Debug, SurrealValue)]

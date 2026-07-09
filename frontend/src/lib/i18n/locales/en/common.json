@@ -9,5 +9,8 @@
   "auth.signIn": "Sign in",
   "auth.signOut": "Sign out",
   "auth.devSignInFailed": "Sign-in failed. Check the API is running and try again.",
-  "auth.selectOrganization": "Select an organization to continue"
+  "auth.selectOrganization": "Select an organization to continue",
+  "lang.label": "Language",
+  "lang.en": "English",
+  "lang.ua": "Ukrainian"
 }

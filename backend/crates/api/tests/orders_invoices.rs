@@ -168,7 +168,7 @@ async fn full_order_to_paid_invoice_flow() {
     let (status, order) = app.create_order(org, &customer_id).await;
     assert_eq!(status, StatusCode::CREATED);
     assert_eq!(order["status"], "draft");
-    assert_eq!(order["number"], "ORD-000001");
+    assert_eq!(order["number"], "000001");
     // 3 * 250 + 2 * 1000 = 2750
     assert_eq!(order["total"]["amount_minor"], 2750);
     assert_eq!(order["total"]["currency"], "EUR");
@@ -181,7 +181,7 @@ async fn full_order_to_paid_invoice_flow() {
     let (status, invoice) = app.create_invoice_from_order(org, &order_id).await;
     assert_eq!(status, StatusCode::CREATED);
     assert_eq!(invoice["status"], "draft");
-    assert_eq!(invoice["number"], "INV-000001");
+    assert_eq!(invoice["number"], "000001");
     assert_eq!(invoice["net_total"]["amount_minor"], 2750);
     assert_eq!(invoice["tax_rate_bp"], 1900);
     // round(2750 * 1900 / 10000) = round(522.5) = 523 (half-up)

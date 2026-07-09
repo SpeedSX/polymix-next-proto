@@ -5,6 +5,7 @@ use validator::Validate;
 use crate::error::DomainError;
 use crate::money::{Money, round_half_up};
 use crate::order::LineItem;
+use crate::tenant::Tenant;
 
 /// Default VAT rate (19%, in basis points) applied to every invoice in the
 /// prototype — not yet client-configurable (see PLAN.md M2 scope).
@@ -97,9 +98,11 @@ pub struct Invoice {
 pub struct NewInvoice {
     #[validate(length(min = 1, message = "must not be empty"))]
     pub order_id: String,
-    /// Optional currency override. M2 only accepts a value equal to the
-    /// order's own currency — real multi-currency invoicing (rate snapshot,
-    /// display conversion) is M4 scope per PLAN.md.
+    /// Optional currency override — must equal the order's own currency, the
+    /// only value accepted (multi-currency accounting beyond the
+    /// display-only rate snapshot stays out of scope per PLAN.md). The
+    /// invoice's own rate snapshot (M4) is keyed off the *tenant's* default
+    /// currency vs. this value, not off an override here.
     pub currency: Option<String>,
 }
 
@@ -141,7 +144,9 @@ pub struct InvoiceListQuery {
 pub trait InvoiceRepo: Send + Sync {
     async fn list(&self, query: InvoiceListQuery) -> Result<crate::Paged<Invoice>, DomainError>;
     async fn get(&self, id: &str) -> Result<Option<Invoice>, DomainError>;
-    async fn create(&self, data: NewInvoice) -> Result<Invoice, DomainError>;
+    /// `tenant` supplies `invoice_prefix` for the assigned number and
+    /// `default_currency` for the exchange-rate snapshot (PLAN.md M4).
+    async fn create(&self, data: NewInvoice, tenant: &Tenant) -> Result<Invoice, DomainError>;
     async fn update(&self, id: &str, data: UpdateInvoice) -> Result<Invoice, DomainError>;
     async fn delete(&self, id: &str) -> Result<(), DomainError>;
     async fn set_status(&self, id: &str, status: InvoiceStatus) -> Result<Invoice, DomainError>;

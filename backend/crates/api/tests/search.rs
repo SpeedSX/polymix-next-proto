@@ -221,9 +221,9 @@ async fn order_list_search_matches_number_and_notes_but_not_line_items() {
     let rush_order = app
         .create_order(org, customer_id, Some("Rush job, handle with care"))
         .await;
-    assert_eq!(rush_order["number"], "ORD-000001");
+    assert_eq!(rush_order["number"], "000001");
     let other_order = app.create_order(org, customer_id, None).await;
-    assert_eq!(other_order["number"], "ORD-000002");
+    assert_eq!(other_order["number"], "000002");
 
     let by_number = app.list_orders(org, "000001").await;
     let numbers: Vec<&str> = by_number["items"]
@@ -232,7 +232,7 @@ async fn order_list_search_matches_number_and_notes_but_not_line_items() {
         .iter()
         .map(|o| o["number"].as_str().unwrap())
         .collect();
-    assert_eq!(numbers, vec!["ORD-000001"]);
+    assert_eq!(numbers, vec!["000001"]);
     assert_eq!(by_number["total"], 1);
 
     let by_notes = app.list_orders(org, "rush").await;
@@ -242,7 +242,7 @@ async fn order_list_search_matches_number_and_notes_but_not_line_items() {
         .iter()
         .map(|o| o["number"].as_str().unwrap())
         .collect();
-    assert_eq!(numbers, vec!["ORD-000001"]);
+    assert_eq!(numbers, vec!["000001"]);
     assert_eq!(by_notes["total"], 1);
 
     // ADR 0003: line_items[*].description is deliberately excluded from
@@ -265,13 +265,13 @@ async fn omnibox_matches_order_and_invoice_hits() {
     let order = app.create_order(org, customer_id, None).await;
     let order_id = order["id"].as_str().unwrap().to_string();
     let order_number = order["number"].as_str().unwrap().to_string();
-    assert_eq!(order_number, "ORD-000001");
+    assert_eq!(order_number, "000001");
 
     app.set_order_status(org, &order_id, "confirmed").await;
     let invoice = app.create_invoice_from_order(org, &order_id).await;
     let invoice_id = invoice["id"].as_str().unwrap().to_string();
     let invoice_number = invoice["number"].as_str().unwrap().to_string();
-    assert_eq!(invoice_number, "INV-000001");
+    assert_eq!(invoice_number, "000001");
 
     // "000001" matches both the order's and the invoice's number.
     let results = app.search(org, "000001").await;
@@ -282,7 +282,7 @@ async fn omnibox_matches_order_and_invoice_hits() {
     assert_eq!(orders.len(), 1);
     assert_eq!(orders[0]["id"], order_id);
     assert_eq!(orders[0]["label"], order_number);
-    assert_eq!(orders[0]["highlight"], "ORD-<b>000001</b>");
+    assert_eq!(orders[0]["highlight"], "<b>000001</b>");
 
     let invoices = results["invoices"]
         .as_array()
@@ -290,7 +290,7 @@ async fn omnibox_matches_order_and_invoice_hits() {
     assert_eq!(invoices.len(), 1);
     assert_eq!(invoices[0]["id"], invoice_id);
     assert_eq!(invoices[0]["label"], invoice_number);
-    assert_eq!(invoices[0]["highlight"], "INV-<b>000001</b>");
+    assert_eq!(invoices[0]["highlight"], "<b>000001</b>");
 }
 
 #[tokio::test]

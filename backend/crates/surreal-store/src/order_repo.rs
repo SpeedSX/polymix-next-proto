@@ -9,6 +9,7 @@ use domain::order::{
     LineItem, NewOrder, Order, OrderListQuery, OrderRepo, OrderStatus, line_items_total,
     validate_transition,
 };
+use domain::tenant::Tenant;
 use surrealdb::Surreal;
 use surrealdb::engine::any::Any;
 use surrealdb::types::{RecordId, RecordIdKey, SurrealValue};
@@ -366,13 +367,13 @@ impl OrderRepo for SurrealOrderRepo {
         row.map(Order::try_from).transpose()
     }
 
-    async fn create(&self, data: NewOrder) -> Result<Order, DomainError> {
+    async fn create(&self, data: NewOrder, tenant: &Tenant) -> Result<Order, DomainError> {
         if !self.customer_exists(&data.customer_id).await? {
             return Err(customer_not_found_error());
         }
         let currency = data.currency.clone().unwrap_or_else(|| "EUR".to_string());
         let total = line_items_total(&data.line_items, &currency);
-        let number = next_number(&self.session, "order", "ORD").await?;
+        let number = next_number(&self.session, "order", &tenant.order_prefix).await?;
         let now = chrono::Utc::now().to_rfc3339();
         let id = Ulid::new().to_string();
         let content = OrderContent {

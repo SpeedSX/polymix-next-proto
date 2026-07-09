@@ -17,7 +17,7 @@ export interface InvoiceFormProps {
 }
 
 export function InvoiceForm({ initialValues, currency, onSubmit, onSuccess, onCancel }: InvoiceFormProps) {
-  const { t } = useTranslation('invoices')
+  const { t, i18n } = useTranslation('invoices')
   const [submitting, setSubmitting] = useState(false)
   const [formError, setFormError] = useState<string | null>(null)
   const form = useForm<InvoiceFormValues>({
@@ -26,7 +26,7 @@ export function InvoiceForm({ initialValues, currency, onSubmit, onSuccess, onCa
   })
 
   const netTotal = form.values.lineItems.reduce((sum, item) => {
-    const unitPriceMinor = toMinorUnits(item.unitPrice, currency)
+    const unitPriceMinor = toMinorUnits(item.unitPrice, currency, i18n.language)
     return sum + (Number.isFinite(unitPriceMinor) ? unitPriceMinor : 0) * (item.quantity || 0)
   }, 0)
 
@@ -34,7 +34,7 @@ export function InvoiceForm({ initialValues, currency, onSubmit, onSuccess, onCa
     setFormError(null)
     setSubmitting(true)
     try {
-      const invoice = await onSubmit(toUpdateInvoice(values, currency))
+      const invoice = await onSubmit(toUpdateInvoice(values, currency, i18n.language))
       onSuccess(invoice)
     } catch (err) {
       if (err instanceof ApiError && err.code === 'validation_failed' && err.details) {
@@ -105,7 +105,7 @@ export function InvoiceForm({ initialValues, currency, onSubmit, onSuccess, onCa
           >
             {t('form.addLine')}
           </Button>
-          <Text fw={600}>{t('fields.netTotal')}: {formatMoney({ amount_minor: netTotal, currency })}</Text>
+          <Text fw={600}>{t('fields.netTotal')}: {formatMoney({ amount_minor: netTotal, currency }, i18n.language)}</Text>
         </Group>
 
         <Group justify="flex-end">

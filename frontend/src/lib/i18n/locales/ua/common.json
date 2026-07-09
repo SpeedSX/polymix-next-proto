@@ -1,0 +1,16 @@
+{
+  "app.title": "PolyMix Next",
+  "nav.customers": "Клієнти",
+  "nav.orders": "Замовлення",
+  "nav.invoices": "Рахунки",
+  "auth.devSignInTitle": "Тестовий вхід",
+  "auth.userId": "Ідентифікатор користувача",
+  "auth.orgId": "Ідентифікатор організації",
+  "auth.signIn": "Увійти",
+  "auth.signOut": "Вийти",
+  "auth.devSignInFailed": "Не вдалося увійти. Перевірте, що API запущено, і спробуйте ще раз.",
+  "auth.selectOrganization": "Оберіть організацію, щоб продовжити",
+  "lang.label": "Мова",
+  "lang.en": "English",
+  "lang.ua": "Українська"
+}

@@ -28,7 +28,7 @@ function sortParam(sorting: SortingState): string {
 const columnHelper = createColumnHelper<Invoice>()
 
 export function InvoiceList() {
-  const { t } = useTranslation('invoices')
+  const { t, i18n } = useTranslation('invoices')
   const navigate = useNavigate()
   const api = useApi()
   const [page, setPage] = useState(1)
@@ -65,13 +65,13 @@ export function InvoiceList() {
         header: t('fields.status'),
         cell: (info) => <Badge>{t(`status.${info.getValue()}`)}</Badge>,
       }),
-      columnHelper.accessor((row) => formatMoney(row.gross_total), {
+      columnHelper.accessor((row) => formatMoney(row.gross_total, i18n.language), {
         id: 'gross_total',
         header: t('fields.grossTotal'),
         enableSorting: false,
       }),
     ],
-    [t],
+    [t, i18n.language],
   )
 
   const handleSortingChange = (updaterOrValue: Updater<SortingState>) => {

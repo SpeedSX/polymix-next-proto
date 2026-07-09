@@ -80,22 +80,22 @@ export const invoiceFormSchema = z.object({
 
 export type InvoiceFormValues = z.infer<typeof invoiceFormSchema>
 
-export function fromInvoice(invoice: Invoice): InvoiceFormValues {
+export function fromInvoice(invoice: Invoice, locale = 'en'): InvoiceFormValues {
   return {
     lineItems: invoice.line_items.map((item) => ({
       description: item.description,
       quantity: item.quantity,
-      unitPrice: fromMinorUnits(item.unit_price.amount_minor, item.unit_price.currency),
+      unitPrice: fromMinorUnits(item.unit_price.amount_minor, item.unit_price.currency, locale),
     })),
   }
 }
 
-export function toUpdateInvoice(values: InvoiceFormValues, currency: string): UpdateInvoice {
+export function toUpdateInvoice(values: InvoiceFormValues, currency: string, locale = 'en'): UpdateInvoice {
   return {
     line_items: values.lineItems.map((item) => ({
       description: item.description,
       quantity: item.quantity,
-      unit_price: { amount_minor: toMinorUnits(item.unitPrice, currency), currency },
+      unit_price: { amount_minor: toMinorUnits(item.unitPrice, currency, locale), currency },
     })),
   }
 }

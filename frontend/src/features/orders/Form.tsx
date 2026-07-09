@@ -16,7 +16,7 @@ export interface OrderFormProps {
 }
 
 export function OrderForm({ initialValues, onSubmit, onSuccess, onCancel }: OrderFormProps) {
-  const { t } = useTranslation('orders')
+  const { t, i18n } = useTranslation('orders')
   const [submitting, setSubmitting] = useState(false)
   const [formError, setFormError] = useState<string | null>(null)
   const form = useForm<OrderFormValues>({
@@ -26,7 +26,7 @@ export function OrderForm({ initialValues, onSubmit, onSuccess, onCancel }: Orde
 
   const currency = form.values.currency.toUpperCase()
   const total = form.values.lineItems.reduce((sum, item) => {
-    const unitPriceMinor = toMinorUnits(item.unitPrice, currency)
+    const unitPriceMinor = toMinorUnits(item.unitPrice, currency, i18n.language)
     return sum + (Number.isFinite(unitPriceMinor) ? unitPriceMinor : 0) * (item.quantity || 0)
   }, 0)
 
@@ -34,7 +34,7 @@ export function OrderForm({ initialValues, onSubmit, onSuccess, onCancel }: Orde
     setFormError(null)
     setSubmitting(true)
     try {
-      const order = await onSubmit(toNewOrder(values))
+      const order = await onSubmit(toNewOrder(values, i18n.language))
       onSuccess(order)
     } catch (err) {
       if (err instanceof ApiError && err.code === 'validation_failed' && err.details) {
@@ -109,7 +109,7 @@ export function OrderForm({ initialValues, onSubmit, onSuccess, onCancel }: Orde
           >
             {t('form.addLine')}
           </Button>
-          <Text fw={600}>{t('fields.total')}: {formatMoney({ amount_minor: total, currency })}</Text>
+          <Text fw={600}>{t('fields.total')}: {formatMoney({ amount_minor: total, currency }, i18n.language)}</Text>
         </Group>
 
         <Textarea label={t('fields.notes')} {...form.getInputProps('notes')} />

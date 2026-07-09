@@ -1,5 +1,6 @@
 pub mod counter;
 pub mod customer_repo;
+pub mod exchange_rate;
 pub mod invoice_repo;
 pub mod migrations;
 pub mod order_repo;

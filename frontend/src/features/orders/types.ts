@@ -90,7 +90,7 @@ export function emptyOrderFormValues(defaultCurrency: string): OrderFormValues {
   }
 }
 
-export function toNewOrder(values: OrderFormValues): NewOrder {
+export function toNewOrder(values: OrderFormValues, locale = 'en'): NewOrder {
   const currency = values.currency.toUpperCase()
   return {
     customer_id: values.customerId,
@@ -99,12 +99,12 @@ export function toNewOrder(values: OrderFormValues): NewOrder {
     line_items: values.lineItems.map((item) => ({
       description: item.description,
       quantity: item.quantity,
-      unit_price: { amount_minor: toMinorUnits(item.unitPrice, currency), currency },
+      unit_price: { amount_minor: toMinorUnits(item.unitPrice, currency, locale), currency },
     })),
   }
 }
 
-export function fromOrder(order: Order): OrderFormValues {
+export function fromOrder(order: Order, locale = 'en'): OrderFormValues {
   return {
     customerId: order.customer_id,
     currency: order.currency,
@@ -112,7 +112,7 @@ export function fromOrder(order: Order): OrderFormValues {
     lineItems: order.line_items.map((item) => ({
       description: item.description,
       quantity: item.quantity,
-      unitPrice: fromMinorUnits(item.unit_price.amount_minor, item.unit_price.currency),
+      unitPrice: fromMinorUnits(item.unit_price.amount_minor, item.unit_price.currency, locale),
     })),
   }
 }

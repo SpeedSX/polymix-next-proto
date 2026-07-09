@@ -7,7 +7,7 @@ use domain::invoice::{
     Invoice, InvoiceListQuery, InvoiceRepo, InvoiceStatus, NewInvoice, UpdateInvoice,
 };
 use domain::order::LineItem;
-use domain::{AuthContext, Paged};
+use domain::{AuthContext, Paged, Tenant};
 use serde::Deserialize;
 use serde_json::{Value, json};
 use surreal_store::SurrealInvoiceRepo;
@@ -94,6 +94,7 @@ pub struct CreateBody {
 pub async fn create(
     State(state): State<AppState>,
     Extension(auth): Extension<AuthContext>,
+    Extension(tenant): Extension<Tenant>,
     Json(body): Json<CreateBody>,
 ) -> Result<(StatusCode, Json<Invoice>), ApiError> {
     let data = NewInvoice {
@@ -102,7 +103,7 @@ pub async fn create(
     };
     data.validate_domain()?;
     let repo = repo_for(&state, &auth).await?;
-    let invoice = repo.create(data).await?;
+    let invoice = repo.create(data, &tenant).await?;
     Ok((StatusCode::CREATED, Json(invoice)))
 }
 
@@ -111,6 +112,7 @@ pub async fn create(
 pub async fn create_from_order(
     State(state): State<AppState>,
     Extension(auth): Extension<AuthContext>,
+    Extension(tenant): Extension<Tenant>,
     Path(order_id): Path<String>,
     Json(body): Json<NewInvoiceBody>,
 ) -> Result<(StatusCode, Json<Invoice>), ApiError> {
@@ -120,7 +122,7 @@ pub async fn create_from_order(
     };
     data.validate_domain()?;
     let repo = repo_for(&state, &auth).await?;
-    let invoice = repo.create(data).await?;
+    let invoice = repo.create(data, &tenant).await?;
     Ok((StatusCode::CREATED, Json(invoice)))
 }
 

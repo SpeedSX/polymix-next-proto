@@ -1,12 +1,42 @@
 import { useState } from 'react'
-import { AppShell as MantineAppShell, Button, Group, Kbd, NavLink, Text, Title } from '@mantine/core'
+import { AppShell as MantineAppShell, Button, Group, Kbd, NavLink, Select, Text, Title } from '@mantine/core'
 import { useHotkeys } from '@mantine/hooks'
 import { OrganizationSwitcher } from '@clerk/react'
 import { useTranslation } from 'react-i18next'
 import { Link, Outlet } from '@tanstack/react-router'
 
 import { useAuth } from '../lib/auth'
+import { LANGUAGE_STORAGE_KEY, SUPPORTED_LANGUAGES } from '../lib/i18n'
+import type { SupportedLanguage } from '../lib/i18n'
 import { Omnibox } from '../features/search/Omnibox'
+
+function LanguageSwitcher() {
+  const { t, i18n } = useTranslation()
+
+  return (
+    <Select
+      aria-label={t('lang.label')}
+      w={140}
+      data={SUPPORTED_LANGUAGES.map((lng) => ({ value: lng, label: t(`lang.${lng}`) }))}
+      value={i18n.language}
+      allowDeselect={false}
+      onChange={(value) => {
+        if (!value) {
+          return
+        }
+        const lng = value as SupportedLanguage
+        void i18n.changeLanguage(lng)
+        try {
+          localStorage.setItem(LANGUAGE_STORAGE_KEY, lng)
+        } catch {
+          // localStorage can throw in locked-down environments (private
+          // browsing, disabled storage) — the switch itself still works,
+          // it just won't survive a reload.
+        }
+      }}
+    />
+  )
+}
 
 export function AppShell() {
   const { t } = useTranslation()
@@ -25,6 +55,7 @@ export function AppShell() {
             <Button variant="default" onClick={() => setSearchOpened(true)}>
               {tSearch('trigger')} <Kbd ml={6}>Ctrl+K</Kbd>
             </Button>
+            <LanguageSwitcher />
             {mode === 'clerk' ? (
               <OrganizationSwitcher hidePersonal />
             ) : (

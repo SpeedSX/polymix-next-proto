@@ -5,14 +5,19 @@ import { useParams } from '@tanstack/react-router'
 import { useTranslation } from 'react-i18next'
 
 import { ApiError, useApi } from '../../lib/api'
-import { formatMoney } from '../../lib/money'
+import { formatDate } from '../../lib/dates'
+import { convertedDisplay, formatMoney } from '../../lib/money'
 import { fetchInvoice, invoicesKeys, setInvoiceStatus, updateInvoice } from './api'
 import { InvoiceForm } from './Form'
 import { fromInvoice, INVOICE_TRANSITIONS } from './types'
 import type { InvoiceStatus } from './types'
 
+interface MeResponse {
+  tenant: { default_currency: string }
+}
+
 export function InvoiceDetail() {
-  const { t } = useTranslation('invoices')
+  const { t, i18n } = useTranslation('invoices')
   const { id } = useParams({ from: '/invoices/$id' })
   const api = useApi()
   const queryClient = useQueryClient()
@@ -22,6 +27,10 @@ export function InvoiceDetail() {
   const { data: invoice, isLoading, isError } = useQuery({
     queryKey: invoicesKeys.detail(id),
     queryFn: () => fetchInvoice(api, id),
+  })
+  const { data: me } = useQuery({
+    queryKey: ['me'],
+    queryFn: () => api<MeResponse>('/api/me'),
   })
 
   const statusMutation = useMutation({
@@ -46,7 +55,7 @@ export function InvoiceDetail() {
       <Stack>
         <Title order={2}>{invoice.number}</Title>
         <InvoiceForm
-          initialValues={fromInvoice(invoice)}
+          initialValues={fromInvoice(invoice, i18n.language)}
           currency={invoice.currency}
           onSubmit={(data) => updateInvoice(api, id, data)}
           onSuccess={(updated) => {
@@ -77,12 +86,12 @@ export function InvoiceDetail() {
       </Text>
       {invoice.issue_date && (
         <Text>
-          {t('fields.issueDate')}: {invoice.issue_date}
+          {t('fields.issueDate')}: {formatDate(invoice.issue_date, i18n.language)}
         </Text>
       )}
       {invoice.due_date && (
         <Text>
-          {t('fields.dueDate')}: {invoice.due_date}
+          {t('fields.dueDate')}: {formatDate(invoice.due_date, i18n.language)}
         </Text>
       )}
 
@@ -99,7 +108,7 @@ export function InvoiceDetail() {
             <Table.Tr key={index}>
               <Table.Td>{item.description}</Table.Td>
               <Table.Td>{item.quantity}</Table.Td>
-              <Table.Td>{formatMoney(item.unit_price)}</Table.Td>
+              <Table.Td>{formatMoney(item.unit_price, i18n.language)}</Table.Td>
             </Table.Tr>
           ))}
         </Table.Tbody>
@@ -107,14 +116,21 @@ export function InvoiceDetail() {
 
       <Stack gap={4}>
         <Text>
-          {t('fields.netTotal')}: {formatMoney(invoice.net_total)}
+          {t('fields.netTotal')}: {formatMoney(invoice.net_total, i18n.language)}
         </Text>
         <Text>
-          {t('fields.taxTotal')}: {formatMoney(invoice.tax_total)} ({invoice.tax_rate_bp / 100}%)
+          {t('fields.taxTotal')}: {formatMoney(invoice.tax_total, i18n.language)} ({invoice.tax_rate_bp / 100}%)
         </Text>
         <Text fw={600}>
-          {t('fields.grossTotal')}: {formatMoney(invoice.gross_total)}
+          {t('fields.grossTotal')}: {formatMoney(invoice.gross_total, i18n.language)}
         </Text>
+        {invoice.exchange_rate && me && (
+          <Text c="dimmed" size="sm">
+            {t('detail.convertedGrossTotal', {
+              amount: convertedDisplay(invoice.gross_total, invoice.exchange_rate, me.tenant.default_currency, i18n.language),
+            })}
+          </Text>
+        )}
       </Stack>
 
       <Group>

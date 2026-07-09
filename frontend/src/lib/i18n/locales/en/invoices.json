@@ -27,5 +27,6 @@
   "status.draft": "Draft",
   "status.issued": "Issued",
   "status.paid": "Paid",
-  "status.void": "Void"
+  "status.void": "Void",
+  "detail.convertedGrossTotal": "≈ {amount}"
 }

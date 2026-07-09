@@ -41,3 +41,25 @@ export function fromMinorUnits(amountMinor: number, currency: string, locale = '
   const digits = minorUnitDigits(currency, locale)
   return (amountMinor / 10 ** digits).toFixed(digits)
 }
+
+// Display-only conversion of `money` into `targetCurrency` using a stored
+// `rateBaseToQuote` snapshot ("1 targetCurrency = <rate> money.currency",
+// per PLAN.md's exchange_rate shape — base is the tenant's default
+// currency, quote is the invoice's currency). Never used for accounting;
+// returns null when there's no snapshot to convert with.
+export function convertedDisplay(money: Money, rateBaseToQuote: string | null, targetCurrency: string, locale = 'en'): string | null {
+  if (!rateBaseToQuote) {
+    return null
+  }
+  const rate = Number.parseFloat(rateBaseToQuote)
+  if (!Number.isFinite(rate) || rate <= 0) {
+    return null
+  }
+  const majorAmount = Number.parseFloat(fromMinorUnits(money.amount_minor, money.currency, locale))
+  const converted = majorAmount / rate
+  try {
+    return new Intl.NumberFormat(locale, { style: 'currency', currency: targetCurrency }).format(converted)
+  } catch {
+    return converted.toFixed(2)
+  }
+}

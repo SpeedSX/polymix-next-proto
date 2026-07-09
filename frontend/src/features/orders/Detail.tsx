@@ -12,7 +12,7 @@ import { fromOrder, INVOICEABLE_STATUSES, ORDER_TRANSITIONS } from './types'
 import type { OrderStatus } from './types'
 
 export function OrderDetail() {
-  const { t } = useTranslation('orders')
+  const { t, i18n } = useTranslation('orders')
   const { id } = useParams({ from: '/orders/$id' })
   const navigate = useNavigate()
   const api = useApi()
@@ -65,7 +65,7 @@ export function OrderDetail() {
       <Stack>
         <Title order={2}>{order.number}</Title>
         <OrderForm
-          initialValues={fromOrder(order)}
+          initialValues={fromOrder(order, i18n.language)}
           onSubmit={(data) => updateOrder(api, id, data)}
           onSuccess={(updated) => {
             queryClient.setQueryData(ordersKeys.detail(id), updated)
@@ -105,13 +105,13 @@ export function OrderDetail() {
             <Table.Tr key={index}>
               <Table.Td>{item.description}</Table.Td>
               <Table.Td>{item.quantity}</Table.Td>
-              <Table.Td>{formatMoney(item.unit_price)}</Table.Td>
+              <Table.Td>{formatMoney(item.unit_price, i18n.language)}</Table.Td>
             </Table.Tr>
           ))}
         </Table.Tbody>
       </Table>
       <Text fw={600}>
-        {t('fields.total')}: {formatMoney(order.total)}
+        {t('fields.total')}: {formatMoney(order.total, i18n.language)}
       </Text>
 
       <Group>

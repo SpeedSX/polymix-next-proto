@@ -8,6 +8,7 @@ import type { SortingState, Updater } from '@tanstack/react-table'
 import { useTranslation } from 'react-i18next'
 
 import { useApi } from '../../lib/api'
+import { formatDateTime } from '../../lib/dates'
 import { customersKeys, fetchCustomers } from './api'
 import type { Customer } from './types'
 
@@ -23,19 +24,10 @@ function sortParam(sorting: SortingState): string {
   return desc ? `-${id}` : id
 }
 
-function pad(value: number): string {
-  return value.toString().padStart(2, '0')
-}
-
-function formatCreatedAt(value: string): string {
-  const date = new Date(value)
-  return `${pad(date.getDate())}-${pad(date.getMonth() + 1)}-${date.getFullYear()} ${pad(date.getHours())}:${pad(date.getMinutes())}`
-}
-
 const columnHelper = createColumnHelper<Customer>()
 
 export function CustomerList() {
-  const { t } = useTranslation('customers')
+  const { t, i18n } = useTranslation('customers')
   const navigate = useNavigate()
   const api = useApi()
   const [page, setPage] = useState(1)
@@ -60,9 +52,12 @@ export function CustomerList() {
       columnHelper.accessor((row) => row.contact_name ?? '', { id: 'contact_name', header: t('fields.contactName') }),
       columnHelper.accessor((row) => row.email ?? '', { id: 'email', header: t('fields.email') }),
       columnHelper.accessor((row) => row.address?.city ?? '', { id: 'city', header: t('fields.city'), enableSorting: false }),
-      columnHelper.accessor('created_at', { header: t('fields.createdAt'), cell: (info) => formatCreatedAt(info.getValue()) }),
+      columnHelper.accessor('created_at', {
+        header: t('fields.createdAt'),
+        cell: (info) => formatDateTime(info.getValue(), i18n.language),
+      }),
     ],
-    [t],
+    [t, i18n.language],
   )
 
   const handleSortingChange = (updaterOrValue: Updater<SortingState>) => {

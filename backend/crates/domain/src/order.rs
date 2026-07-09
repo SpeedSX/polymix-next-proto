@@ -5,6 +5,7 @@ use validator::Validate;
 
 use crate::error::DomainError;
 use crate::money::Money;
+use crate::tenant::Tenant;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
@@ -145,7 +146,8 @@ pub struct OrderListQuery {
 pub trait OrderRepo: Send + Sync {
     async fn list(&self, query: OrderListQuery) -> Result<crate::Paged<Order>, DomainError>;
     async fn get(&self, id: &str) -> Result<Option<Order>, DomainError>;
-    async fn create(&self, data: NewOrder) -> Result<Order, DomainError>;
+    /// `tenant` supplies `order_prefix` for the assigned number (PLAN.md M4).
+    async fn create(&self, data: NewOrder, tenant: &Tenant) -> Result<Order, DomainError>;
     async fn update(&self, id: &str, data: NewOrder) -> Result<Order, DomainError>;
     async fn delete(&self, id: &str) -> Result<(), DomainError>;
     async fn set_status(&self, id: &str, status: OrderStatus) -> Result<Order, DomainError>;

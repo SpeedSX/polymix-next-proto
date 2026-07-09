@@ -11,12 +11,14 @@ use domain::invoice::{
 use domain::order::{
     LineItem, OrderStatus, can_invoice, line_items_total, validate_line_item_currencies,
 };
+use domain::tenant::Tenant;
 use surrealdb::Surreal;
 use surrealdb::engine::any::Any;
 use surrealdb::types::{RecordId, RecordIdKey, SurrealValue};
 use ulid::Ulid;
 
 use crate::counter::next_number;
+use crate::exchange_rate::lookup_rate;
 use crate::order_repo::{LineItemRow, MoneyRow};
 
 const TABLE: &str = "invoice";
@@ -353,7 +355,7 @@ impl InvoiceRepo for SurrealInvoiceRepo {
         row.map(Invoice::try_from).transpose()
     }
 
-    async fn create(&self, data: NewInvoice) -> Result<Invoice, DomainError> {
+    async fn create(&self, data: NewInvoice, tenant: &Tenant) -> Result<Invoice, DomainError> {
         let order: Option<OrderSnapshotRow> = self
             .session
             .select((ORDER_TABLE, data.order_id.as_str()))
@@ -378,10 +380,21 @@ impl InvoiceRepo for SurrealInvoiceRepo {
             return Err(currency_mismatch_error(&order.currency));
         }
 
+        // Display-only conversion snapshot (PLAN.md M4): taken at creation,
+        // not at issue — the invoice's currency is fixed from here on, so
+        // there is nothing left to snapshot later. `None` when the order was
+        // already priced in the tenant's own default currency, or when no
+        // rate was seeded for this pair (informational feature only).
+        let exchange_rate = if order.currency == tenant.default_currency {
+            None
+        } else {
+            lookup_rate(&self.session, &tenant.default_currency, &order.currency).await?
+        };
+
         let net_total = domain::Money::from(order.total);
         let tax_total = compute_tax(&net_total, DEFAULT_TAX_RATE_BP);
         let gross_total = compute_gross(&net_total, &tax_total);
-        let number = next_number(&self.session, "invoice", "INV").await?;
+        let number = next_number(&self.session, "invoice", &tenant.invoice_prefix).await?;
         let now = chrono::Utc::now().to_rfc3339();
         let id = Ulid::new().to_string();
 
@@ -391,7 +404,7 @@ impl InvoiceRepo for SurrealInvoiceRepo {
             customer_id: order.customer_id,
             status: status_to_str(InvoiceStatus::Draft).to_string(),
             currency: order.currency,
-            exchange_rate: None,
+            exchange_rate,
             line_items: order.line_items,
             net_total: net_total.into(),
             tax_rate_bp: DEFAULT_TAX_RATE_BP,

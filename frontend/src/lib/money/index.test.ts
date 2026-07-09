@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { formatMoney, fromMinorUnits, toMinorUnits } from '.'
+import { convertedDisplay, formatMoney, fromMinorUnits, toMinorUnits } from '.'
 
 describe('money', () => {
   it('formats and converts amounts for a valid currency', () => {
@@ -19,5 +19,21 @@ describe('money', () => {
   it('treats a comma decimal separator the same as a dot, without dropping cents', () => {
     expect(toMinorUnits('12,34', 'USD')).toBe(1234)
     expect(toMinorUnits('12.34', 'USD')).toBe(toMinorUnits('12,34', 'USD'))
+  })
+
+  it('round-trips through the ua locale without losing cents', () => {
+    const minor = toMinorUnits('12,34', 'UAH', 'ua')
+    expect(minor).toBe(1234)
+    expect(fromMinorUnits(minor, 'UAH', 'ua')).toBe('12.34')
+  })
+
+  it('converts a display-only amount using a base->quote rate snapshot', () => {
+    // 1 EUR = 1.0842 USD, so 108.42 USD converts back to ~100.00 EUR.
+    const display = convertedDisplay({ amount_minor: 10842, currency: 'USD' }, '1.0842', 'EUR')
+    expect(display).toContain('100.00')
+  })
+
+  it('has no display when there is no rate snapshot', () => {
+    expect(convertedDisplay({ amount_minor: 1000, currency: 'USD' }, null, 'EUR')).toBeNull()
   })
 })
