@@ -261,6 +261,72 @@ Codes: `unauthorized` (401), `forbidden` (403), `not_found` (404), `validation_f
 - Cache mapping: `change` on entity X invalidates list queries `['customers']` etc. and patches/invalidates detail query `['customers', id]`.
 - The hub (backend): one task per tenant owning the three live queries; drops the live queries when the tenant's subscriber count hits zero; on SurrealDB connection loss, re-establishes live queries and broadcasts `{ "type": "resync" }` so clients refetch.
 
+## M4 work breakdown (Live updates)
+
+The WebSocket protocol section above is the contract; this section is the build order. Each step leaves `just check` green; integration tests land with the step that makes them testable, not at the end.
+
+### Step 1 — Backend: token validation reusable outside the header middleware
+
+`require_auth` in `crates/api/src/auth.rs` currently owns the whole chain (bearer header → JWT validation → org claim → tenant resolution/provisioning → `AuthContext`). The WS route gets its token from the `?token=` query parameter, so:
+
+- Extract the header-independent core into `authenticate_token(state, token) -> Result<AuthContext, AuthError>` (JWT validation against the JWKS cache, org-claim check, tenant resolution incl. auto-provisioning). `require_auth` becomes "read header → call it"; the WS handler calls it directly with the query param.
+- No behavior change; the existing auth unit tests must pass unmodified. Add one test asserting header extraction and token validation fail independently (bad header vs bad token).
+
+### Step 2 — Backend: typed live-change streams in `surreal-store`
+
+The api crate must not see `RecordId`/row structs (they're private to the repos, and the layering rule says no SurrealDB types outside the store). Add `crates/surreal-store/src/live.rs`:
+
+- `pub enum LiveChange { Customer(ChangeEvent<Customer>), Order(ChangeEvent<Order>), Invoice(ChangeEvent<Invoice>) }` with `pub struct ChangeEvent<T> { pub action: ChangeAction /* Create|Update|Delete */, pub id: String, pub data: Option<T> }` — `data` is `Some(entity)` for create/update, `None` for delete (matches the protocol's `data: null`).
+- `pub async fn live_changes(session: Arc<Surreal<Any>>) -> Result<impl Stream<Item = LiveChange>, DomainError>` — opens `LIVE SELECT` on `customer`, `order`, `invoice` via the SDK's `.select(table).live()` streams, merges them (`futures::stream::select_all`), and maps notifications through the same Row→domain conversions the repos use (move those `From<…Row>` impls to a shared module rather than duplicating).
+- Dropping the returned stream must kill the live queries server-side (the SDK does this on stream drop — verify with a test, it's the mechanism the hub's teardown relies on).
+- Integration test (`#[ignore]`, shared container): open the stream on a fresh tenant db, create/update/delete a customer through the repo, assert three `LiveChange`s with correct action, id (key part, not `customer:…`), and mapped data.
+
+### Step 3 — Backend: the hub
+
+New `crates/api/src/ws/hub.rs`, owned by `AppState` as `Arc<Hub>`:
+
+- `Hub { tenants: Mutex<HashMap<String, TenantEntry>>, store: Arc<Store> }`; `TenantEntry { tx: broadcast::Sender<Arc<ServerEvent>>, subscribers: usize, task: JoinHandle<()> }`. `ServerEvent` is the serialized protocol envelope (`change` | `resync`); broadcast capacity 256.
+- `subscribe(tenant_db) -> broadcast::Receiver<…>`: under the lock, bump the count; on 0→1 spawn the tenant task. `unsubscribe(tenant_db)`: decrement; on 1→0 abort the task and remove the entry — same lock guards both, so a subscribe racing an unsubscribe either finds the live entry or creates a fresh one, never a half-dead one.
+- Tenant task: `store.for_tenant(db)` for its own long-lived session (per the tenant-session rules — never shared with request traffic), then loop: open `live_changes`, forward each mapped envelope into `tx`. If the stream ends or errors (SurrealDB restart), retry with backoff 500 ms → 5 s (cap), and after a successful re-open broadcast `{ "type": "resync" }` so clients refetch what they missed. Log reconnect attempts at `warn`.
+- Unit-testable seam: the task body takes the stream-factory as a closure so hub lifecycle (spawn on first, abort on last, resync after factory error) is testable without a database.
+
+### Step 4 — Backend: WS route
+
+`crates/api/src/ws/handler.rs`, wired as `GET /api/ws` **outside** the `require_auth` middleware layer (it authenticates itself):
+
+- Extract `token` from the query string; missing/invalid → the appropriate error envelope status (401/403) *before* `ws.on_upgrade` — the protocol requires rejection pre-upgrade.
+- Per connection: `hub.subscribe(auth.tenant_db)`, then a select loop over (a) broadcast receiver → forward JSON text frames, (b) 30 s interval → send `{ "type": "ping" }`, (c) incoming messages → accept `{ "type": "pong" }` and close frames, ignore anything else. On `RecvError::Lagged` send one `resync` instead of dropping the connection. Any send error → break.
+- `hub.unsubscribe` on exit via a guard type, so panics and normal exits both release the slot.
+- Integration tests (api crate, `#[ignore]`, real router + `tokio-tungstenite` client against a bound listener — `oneshot` can't carry a WS upgrade):
+  - no/invalid token → HTTP 401 on the upgrade request;
+  - create/update/delete a customer via REST → connected client receives the three envelopes in order, delete has `data: null`;
+  - **tenant isolation (mandatory):** clients on org A and org B; a mutation in A reaches A's client and, within a 2 s window, nothing arrives at B's;
+  - resilience: pause/unpause the SurrealDB container → client receives `resync` and a subsequent mutation's event still arrives.
+
+### Step 5 — Frontend: WS client + cache mapping
+
+New `frontend/src/lib/ws/`:
+
+- `WsClient`: connects to `VITE_WS_URL + '/api/ws?token=' + await getToken()` — the token is fetched fresh on **every** (re)connect attempt (Clerk rotates short-lived tokens; a cached one would fail after ~60 s). Reconnect with exponential backoff 1 s → 30 s cap, reset on successful open. Replies `{"type":"pong"}` to pings.
+- Cache mapping in one place (`lib/ws/applyChange.ts`), driven by the existing query-key modules: `change` on entity X → `invalidateQueries(xKeys.all)` for lists; detail: update with `data` → `setQueryData(xKeys.detail(id), data)`, create → nothing extra (lists cover it), delete → `removeQueries(xKeys.detail(id))`. `resync` **and every reconnect-open after a drop** → `queryClient.invalidateQueries()` (missed events must never leave stale UI).
+- Mounted as `<LiveUpdatesProvider>` inside the auth provider (needs `getToken`) and the QueryClient provider; disconnects on sign-out/org switch and reconnects with the new token (org switch changes the tenant — a stale socket would stream the wrong tenant's events).
+- Vitest: `applyChange` against a real `QueryClient` (all four action×entity mappings, plus resync); reconnect backoff with fake timers and a mock WebSocket.
+
+### Step 6 — Frontend: optimistic updates
+
+Scope: edit-shaped mutations only — customer/order/invoice edit forms and the status-transition buttons. Creates stay invalidate-on-success (no id to patch yet).
+
+- Standard TanStack pattern per mutation: `onMutate` cancels in-flight queries for the detail key, snapshots, `setQueryData` with the optimistic value; `onError` restores the snapshot; `onSettled` invalidates the detail + list keys. The WS `change` event is the reconciliation signal — no special handling needed, the mapping from Step 5 already applies the server truth.
+- Status transitions must render the optimistic status instantly and roll back visibly on 409 (the invalid-transition toast from M2 remains the error surface).
+- Vitest: one mutation's optimistic→rollback path with a mocked failing fetch.
+
+### Step 7 — Acceptance pass
+
+- Two browsers, same dev tenant: edit in one appears in the other < 1 s on list and detail without user action.
+- Browser on a second tenant sees nothing (manual mirror of the automated isolation test).
+- `<runtime> compose … restart surrealdb` mid-session: both browsers recover live updates without a page reload (resync path).
+- Record any deviations from the WS protocol section as an ADR; update `docs/perf.md` only if the hub changes search/list latencies (it shouldn't).
+
 ## Configuration
 
 Backend (env vars, read once at startup, fail fast if required ones are missing):
@@ -430,7 +496,7 @@ Each milestone ends runnable and demoable, with explicit acceptance criteria.
    **Done when:** searching a customer name prefix ("ada" finds "Adamant Print GmbH") works in lists and omnibox; omnibox navigates to the selected record on Enter; FTS integration test asserts ranking (exact-prefix beats mid-word); p95 < 100 ms for the search endpoint on the seeded volume (measure with a quick script, record in `/docs/perf.md`).
 
 5. **M4 — Live updates.**
-   Hub + live queries per the WS spec; frontend WS client with reconnect + invalidate-on-reconnect; optimistic updates on create/edit mutations.
+   Hub + live queries per the WS spec; frontend WS client with reconnect + invalidate-on-reconnect; optimistic updates on edit/transition mutations. Build order, module layout, and per-step tests: see **M4 work breakdown (Live updates)** above.
    **Done when:** two browsers on one tenant — an edit in one appears in the other within 1 s without user action, on both list and detail views; a browser on a second tenant sees nothing (integration test: WS client of tenant B receives no event for tenant A's mutation — mandatory); killing and restarting SurrealDB recovers live updates without a page reload.
 
 6. **M5 — i18n + currency.**
