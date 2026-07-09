@@ -42,6 +42,37 @@ query against SurrealDB's `/sql` endpoint directly resolves in 30-55ms)
 and the decision to accept both as a documented deviation rather than
 block M3 on further optimization.
 
+### HTTP-engine experiment (ruled out)
+
+`Store` is built on `Surreal<Any>`, so pointing `SURREALDB_URL` at
+`http://localhost:8000` instead of `ws://localhost:8000` switches the
+whole request path to the SDK's HTTP engine (after adding the
+`protocol-http` cargo feature, which isn't on by default — not quite the
+zero-code-change swap it first appeared to be). Hypothesis: since the same
+query resolves in 30-55ms via a bare `/sql` call, routing the SDK itself
+over HTTP would close most of the gap.
+
+Result: the opposite. Two runs, same seeded tenant:
+
+| Build       | Endpoint  | p50     | p95     | p99     |
+| ----------- | --------- | ------- | ------- | ------- |
+| http engine | omnibox   | 213ms   | 377ms   | 491ms   |
+| http engine | omnibox   | 224ms   | 387ms   | 464ms   |
+| http engine | customers | 178ms   | 316ms   | 414ms   |
+| http engine | customers | 211ms   | 368ms   | 466ms   |
+| http engine | orders    | 77ms    | 165ms   | 209ms   |
+| http engine | orders    | 63ms    | 119ms   | 144ms   |
+
+Every endpoint got slower under the HTTP engine, not faster — roughly
+1.3-1.7x the ws:// p95 in `docs/adr/0004-search-p95-exceeds-target.md`.
+The bare `/sql` number reflects one query with no session state; the SDK
+still has to re-establish namespace/db selection (`for_tenant()`'s
+`use_ns`/`use_db`) on every request, and over HTTP that costs more, not
+less, than over the SDK's persistent WS connection — there's no
+keep-alive session to amortize it across. Ruled out: swapping the
+transport is not the fix. See `docs/adr/0004-search-p95-exceeds-target.md`
+for the updated decision.
+
 ## Fixes already applied to get here
 
 - `docs/adr/0002-surrealdb-session-clone-depth.md` — fixed an indefinite
