@@ -3,9 +3,14 @@
 container_runtime := `command -v docker >/dev/null 2>&1 && echo docker || echo podman`
 
 # Bring up SurrealDB + the API (dev auth mode) + the Vite dev server.
+#
+# Kills only the two background jobs, not the whole process group: `kill 0`
+# signals the group leader (this sh) too, and each subshell inherits the trap
+# and re-fires it — the resulting self-signal re-entrancy is what crashes
+# MSYS2's runtime into a stackdump on Windows.
 dev:
     {{container_runtime}} compose -f deploy/compose.yaml up -d --wait
-    trap 'kill 0' EXIT INT TERM; \
+    trap 'kill $(jobs -p) 2>/dev/null' EXIT INT TERM; \
     (cd backend && AUTH_DEV_MODE=true PORT=8080 cargo run -p api) & \
     (cd frontend && npm run dev) & \
     wait
