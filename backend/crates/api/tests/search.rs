@@ -21,6 +21,24 @@ impl TestApp {
             .expect("create customer response was not JSON")
     }
 
+    async fn create_customer_with_contact(
+        &self,
+        org_id: &str,
+        name: &str,
+        contact_name: &str,
+    ) -> Value {
+        self.client
+            .post(format!("{}/api/customers", self.base_url))
+            .bearer_auth(self.token_for(org_id))
+            .json(&json!({ "name": name, "contact_name": contact_name }))
+            .send()
+            .await
+            .expect("create customer request failed")
+            .json()
+            .await
+            .expect("create customer response was not JSON")
+    }
+
     async fn list_customers(&self, org_id: &str, q: &str) -> Value {
         self.client
             .get(format!("{}/api/customers", self.base_url))
@@ -45,6 +63,67 @@ impl TestApp {
             .json()
             .await
             .expect("search response was not JSON")
+    }
+
+    // Every order gets the same "Stickers" line item so tests can assert
+    // that text never surfaces a match — see docs/adr/0003.
+    async fn create_order(&self, org_id: &str, customer_id: &str, notes: Option<&str>) -> Value {
+        self.client
+            .post(format!("{}/api/orders", self.base_url))
+            .bearer_auth(self.token_for(org_id))
+            .json(&json!({
+                "customer_id": customer_id,
+                "currency": "EUR",
+                "line_items": [
+                    { "description": "Stickers", "quantity": 1, "unit_price": { "amount_minor": 500, "currency": "EUR" } }
+                ],
+                "notes": notes
+            }))
+            .send()
+            .await
+            .expect("create order request failed")
+            .json()
+            .await
+            .expect("create order response was not JSON")
+    }
+
+    async fn set_order_status(&self, org_id: &str, order_id: &str, status: &str) -> Value {
+        self.client
+            .post(format!("{}/api/orders/{order_id}/status", self.base_url))
+            .bearer_auth(self.token_for(org_id))
+            .json(&json!({ "status": status }))
+            .send()
+            .await
+            .expect("set order status request failed")
+            .json()
+            .await
+            .expect("set order status response was not JSON")
+    }
+
+    async fn create_invoice_from_order(&self, org_id: &str, order_id: &str) -> Value {
+        self.client
+            .post(format!("{}/api/orders/{order_id}/invoice", self.base_url))
+            .bearer_auth(self.token_for(org_id))
+            .json(&json!({}))
+            .send()
+            .await
+            .expect("create invoice request failed")
+            .json()
+            .await
+            .expect("create invoice response was not JSON")
+    }
+
+    async fn list_orders(&self, org_id: &str, q: &str) -> Value {
+        self.client
+            .get(format!("{}/api/orders", self.base_url))
+            .bearer_auth(self.token_for(org_id))
+            .query(&[("q", q)])
+            .send()
+            .await
+            .expect("list orders request failed")
+            .json()
+            .await
+            .expect("list orders response was not JSON")
     }
 }
 
@@ -77,6 +156,35 @@ async fn prefix_match_ranks_and_excludes_mid_word_match() {
 
 #[tokio::test]
 #[ignore]
+async fn multi_field_match_outranks_single_field_match() {
+    let app = TestApp::spawn().await;
+    let org = "org-search-ranking-multi";
+
+    // Matches "ada" in the name field only.
+    app.create_customer(org, "Adamant Solo GmbH").await;
+    // Matches "ada" in both name and contact_name. customer_repo.rs's
+    // SEARCH_SCORE sums search::score() across every matched field, and
+    // BM25 term scores are never negative, so this record's combined score
+    // can only be >= the single-field match's — pinning that ORDER BY score
+    // DESC is load-bearing, not incidental.
+    app.create_customer_with_contact(org, "Adamant Duo GmbH", "Adalina Duo")
+        .await;
+    // Unrelated control record.
+    app.create_customer(org, "Zebra Druck AG").await;
+
+    let body = app.list_customers(org, "ada").await;
+    let items = body["items"].as_array().expect("items is an array");
+    let names: Vec<&str> = items
+        .iter()
+        .map(|c| c["name"].as_str().expect("name is a string"))
+        .collect();
+
+    assert_eq!(names, vec!["Adamant Duo GmbH", "Adamant Solo GmbH"]);
+    assert_eq!(body["total"], 2);
+}
+
+#[tokio::test]
+#[ignore]
 async fn omnibox_ranks_across_entities_with_highlight() {
     let app = TestApp::spawn().await;
     let org = "org-search-omnibox";
@@ -97,6 +205,92 @@ async fn omnibox_ranks_across_entities_with_highlight() {
 
     assert!(results["orders"].as_array().unwrap().is_empty());
     assert!(results["invoices"].as_array().unwrap().is_empty());
+}
+
+#[tokio::test]
+#[ignore]
+async fn order_list_search_matches_number_and_notes_but_not_line_items() {
+    let app = TestApp::spawn().await;
+    let org = "org-search-order-list";
+
+    let customer = app.create_customer(org, "Adamant Print GmbH").await;
+    let customer_id = customer["id"].as_str().unwrap();
+
+    // Counters are per-tenant and start at 1 (see orders_invoices.rs), so
+    // these numbers are deterministic.
+    let rush_order = app
+        .create_order(org, customer_id, Some("Rush job, handle with care"))
+        .await;
+    assert_eq!(rush_order["number"], "ORD-000001");
+    let other_order = app.create_order(org, customer_id, None).await;
+    assert_eq!(other_order["number"], "ORD-000002");
+
+    let by_number = app.list_orders(org, "000001").await;
+    let numbers: Vec<&str> = by_number["items"]
+        .as_array()
+        .expect("items is an array")
+        .iter()
+        .map(|o| o["number"].as_str().unwrap())
+        .collect();
+    assert_eq!(numbers, vec!["ORD-000001"]);
+    assert_eq!(by_number["total"], 1);
+
+    let by_notes = app.list_orders(org, "rush").await;
+    let numbers: Vec<&str> = by_notes["items"]
+        .as_array()
+        .expect("items is an array")
+        .iter()
+        .map(|o| o["number"].as_str().unwrap())
+        .collect();
+    assert_eq!(numbers, vec!["ORD-000001"]);
+    assert_eq!(by_notes["total"], 1);
+
+    // ADR 0003: line_items[*].description is deliberately excluded from
+    // order search, even though both orders share a "Stickers" line item
+    // and the FULLTEXT index on it still exists.
+    let by_line_item = app.list_orders(org, "sticker").await;
+    assert_eq!(by_line_item["total"], 0);
+    assert!(by_line_item["items"].as_array().unwrap().is_empty());
+}
+
+#[tokio::test]
+#[ignore]
+async fn omnibox_matches_order_and_invoice_hits() {
+    let app = TestApp::spawn().await;
+    let org = "org-search-omnibox-order-invoice";
+
+    let customer = app.create_customer(org, "Adamant Print GmbH").await;
+    let customer_id = customer["id"].as_str().unwrap();
+
+    let order = app.create_order(org, customer_id, None).await;
+    let order_id = order["id"].as_str().unwrap().to_string();
+    let order_number = order["number"].as_str().unwrap().to_string();
+    assert_eq!(order_number, "ORD-000001");
+
+    app.set_order_status(org, &order_id, "confirmed").await;
+    let invoice = app.create_invoice_from_order(org, &order_id).await;
+    let invoice_id = invoice["id"].as_str().unwrap().to_string();
+    let invoice_number = invoice["number"].as_str().unwrap().to_string();
+    assert_eq!(invoice_number, "INV-000001");
+
+    // "000001" matches both the order's and the invoice's number.
+    let results = app.search(org, "000001").await;
+
+    assert!(results["customers"].as_array().unwrap().is_empty());
+
+    let orders = results["orders"].as_array().expect("orders is an array");
+    assert_eq!(orders.len(), 1);
+    assert_eq!(orders[0]["id"], order_id);
+    assert_eq!(orders[0]["label"], order_number);
+    assert_eq!(orders[0]["highlight"], "ORD-<b>000001</b>");
+
+    let invoices = results["invoices"]
+        .as_array()
+        .expect("invoices is an array");
+    assert_eq!(invoices.len(), 1);
+    assert_eq!(invoices[0]["id"], invoice_id);
+    assert_eq!(invoices[0]["label"], invoice_number);
+    assert_eq!(invoices[0]["highlight"], "INV-<b>000001</b>");
 }
 
 #[tokio::test]

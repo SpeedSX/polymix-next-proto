@@ -44,6 +44,14 @@ pub fn validate_transition(
     }
 }
 
+/// Whether `status` allows the invoice's line items to be edited via `PUT`.
+/// Only drafts are mutable — once issued, an invoice is frozen so its totals
+/// can never drift from what was sent to the customer (see
+/// docs/adr/0005-invoice-put-drafts-only.md).
+pub fn can_edit(status: InvoiceStatus) -> bool {
+    matches!(status, InvoiceStatus::Draft)
+}
+
 /// `round(net_total × tax_rate_bp / 10000)`, half-up, on the total — not
 /// per line, per PLAN.md.
 pub fn compute_tax(net_total: &Money, tax_rate_bp: u32) -> Money {
@@ -101,6 +109,22 @@ impl NewInvoice {
     }
 }
 
+/// Body of `PUT /api/invoices/{id}`. Only line items are editable — the
+/// order, customer, currency, and tax rate are set at creation and never
+/// change; net/tax/gross are recomputed by the repo from these line items.
+/// Rejected with `409` unless the invoice is still a draft.
+#[derive(Debug, Clone, Deserialize, Validate)]
+pub struct UpdateInvoice {
+    #[validate(length(min = 1, message = "must have at least one line item"), nested)]
+    pub line_items: Vec<LineItem>,
+}
+
+impl UpdateInvoice {
+    pub fn validate_domain(&self) -> Result<(), DomainError> {
+        self.validate().map_err(DomainError::from)
+    }
+}
+
 #[derive(Debug, Clone)]
 pub struct InvoiceListQuery {
     pub page: u32,
@@ -118,7 +142,7 @@ pub trait InvoiceRepo: Send + Sync {
     async fn list(&self, query: InvoiceListQuery) -> Result<crate::Paged<Invoice>, DomainError>;
     async fn get(&self, id: &str) -> Result<Option<Invoice>, DomainError>;
     async fn create(&self, data: NewInvoice) -> Result<Invoice, DomainError>;
-    async fn update(&self, id: &str, data: NewInvoice) -> Result<Invoice, DomainError>;
+    async fn update(&self, id: &str, data: UpdateInvoice) -> Result<Invoice, DomainError>;
     async fn delete(&self, id: &str) -> Result<(), DomainError>;
     async fn set_status(&self, id: &str, status: InvoiceStatus) -> Result<Invoice, DomainError>;
     /// Top BM25-ranked hits for the global omnibox (M3). `q` is assumed
@@ -193,5 +217,13 @@ mod tests {
     fn paid_and_void_are_terminal() {
         assert!(validate_transition(InvoiceStatus::Paid, InvoiceStatus::Void).is_err());
         assert!(validate_transition(InvoiceStatus::Void, InvoiceStatus::Draft).is_err());
+    }
+
+    #[test]
+    fn only_draft_invoices_are_editable() {
+        assert!(can_edit(InvoiceStatus::Draft));
+        assert!(!can_edit(InvoiceStatus::Issued));
+        assert!(!can_edit(InvoiceStatus::Paid));
+        assert!(!can_edit(InvoiceStatus::Void));
     }
 }

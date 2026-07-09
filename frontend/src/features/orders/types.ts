@@ -1,6 +1,6 @@
 import { z } from 'zod'
 
-import { fromMinorUnits, toMinorUnits } from '../../lib/money'
+import { fromMinorUnits, MONEY_DECIMAL_PATTERN, toMinorUnits } from '../../lib/money'
 
 export const ORDER_STATUSES = ['draft', 'confirmed', 'in_production', 'completed', 'cancelled'] as const
 export type OrderStatus = (typeof ORDER_STATUSES)[number]
@@ -69,7 +69,7 @@ export interface OrderListResponse {
 export const lineItemFormSchema = z.object({
   description: z.string().min(1),
   quantity: z.coerce.number().int().min(1),
-  unitPrice: z.string().min(1),
+  unitPrice: z.string().regex(MONEY_DECIMAL_PATTERN),
 })
 
 export const orderFormSchema = z.object({
@@ -117,11 +117,34 @@ export function fromOrder(order: Order): OrderFormValues {
   }
 }
 
-const API_ERROR_FIELD_MAP: Record<string, string> = {
+const TOP_LEVEL_FIELD_MAP: Record<string, string> = {
   customer_id: 'customerId',
-  line_items: 'lineItems',
 }
 
-export function mapApiErrorField(field: string): string {
-  return API_ERROR_FIELD_MAP[field] ?? field
+const LINE_ITEM_FIELD_PATTERN = /^line_items\[(\d+)\]\.(.+)$/
+
+/**
+ * Translates a backend validation error key to the Mantine form path it
+ * corresponds to, e.g. `line_items[0].unit_price.currency` -> `lineItems.0.unitPrice`
+ * (the form collects unit price as a single string field, not the nested
+ * Money struct the backend validates). Returns null when the error targets
+ * the line-item array as a whole rather than a single row/field — callers
+ * should surface those as a form-level message instead of a field error.
+ */
+export function mapApiErrorField(field: string): string | null {
+  const lineItemMatch = field.match(LINE_ITEM_FIELD_PATTERN)
+  if (lineItemMatch) {
+    const [, index, rest] = lineItemMatch
+    if (rest === 'description' || rest === 'quantity') {
+      return `lineItems.${index}.${rest}`
+    }
+    if (rest.startsWith('unit_price')) {
+      return `lineItems.${index}.unitPrice`
+    }
+    return null
+  }
+  if (field === 'line_items') {
+    return null
+  }
+  return TOP_LEVEL_FIELD_MAP[field] ?? field
 }

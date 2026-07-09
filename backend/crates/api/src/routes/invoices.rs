@@ -3,7 +3,10 @@ use axum::Json;
 use axum::extract::{Path, Query, State};
 use axum::http::StatusCode;
 use domain::error::DomainError;
-use domain::invoice::{Invoice, InvoiceListQuery, InvoiceRepo, InvoiceStatus, NewInvoice};
+use domain::invoice::{
+    Invoice, InvoiceListQuery, InvoiceRepo, InvoiceStatus, NewInvoice, UpdateInvoice,
+};
+use domain::order::LineItem;
 use domain::{AuthContext, Paged};
 use serde::Deserialize;
 use serde_json::{Value, json};
@@ -131,16 +134,21 @@ pub async fn get(
     Ok(Json(invoice))
 }
 
+#[derive(Debug, Deserialize)]
+pub struct UpdateBody {
+    line_items: Vec<LineItem>,
+}
+
 pub async fn update(
     State(state): State<AppState>,
     Extension(auth): Extension<AuthContext>,
     Path(id): Path<String>,
-    Json(body): Json<CreateBody>,
+    Json(body): Json<UpdateBody>,
 ) -> Result<Json<Invoice>, ApiError> {
-    let data = NewInvoice {
-        order_id: body.order_id,
-        currency: body.currency,
+    let data = UpdateInvoice {
+        line_items: body.line_items,
     };
+    data.validate_domain()?;
     let repo = repo_for(&state, &auth).await?;
     let invoice = repo.update(&id, data).await?;
     Ok(Json(invoice))

@@ -89,6 +89,16 @@ it against the syntax the installed SurrealDB version actually accepts:
 - The API contract, response shapes, and ranking semantics ("exact-prefix
   beats mid-word", BM25 ordering) are unaffected — this is purely a DDL
   and query-construction correction.
+- PLAN.md's M3 "Done when" ranking test is literally "exact-prefix beats
+  mid-word", but the `autocomplete` analyzer is edge-ngram: it only ever
+  indexes *prefixes* of a token, so a true mid-word substring (e.g. "ada"
+  inside "Kanada") never matches at all — there is no row for a prefix
+  match to outrank. `prefix_match_ranks_and_excludes_mid_word_match` in
+  `crates/api/tests/search.rs` asserts that exclusion instead. Actual
+  ORDER BY score DESC ranking (BM25 scores summed across matched fields,
+  per the point above) is separately pinned by
+  `multi_field_match_outranks_single_field_match` in the same file, which
+  puts two rows in the result set so the ordering is load-bearing.
 - If SurrealDB is upgraded past 3.2, re-verify all five points against the
   installed version's parser/planner (see `docs/surrealdb-rust-sdk-notes.md`
   §9 for how this was confirmed) before trusting this ADR or PLAN.md's

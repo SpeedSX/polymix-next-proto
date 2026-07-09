@@ -1,3 +1,7 @@
+import { z } from 'zod'
+
+import { fromMinorUnits, MONEY_DECIMAL_PATTERN, toMinorUnits } from '../../lib/money'
+
 export const INVOICE_STATUSES = ['draft', 'issued', 'paid', 'void'] as const
 export type InvoiceStatus = (typeof INVOICE_STATUSES)[number]
 
@@ -55,4 +59,61 @@ export interface InvoiceListResponse {
   total: number
   page: number
   limit: number
+}
+
+export interface UpdateInvoice {
+  line_items: LineItem[]
+}
+
+export const lineItemFormSchema = z.object({
+  description: z.string().min(1),
+  quantity: z.coerce.number().int().min(1),
+  unitPrice: z.string().regex(MONEY_DECIMAL_PATTERN),
+})
+
+// PUT /api/invoices/{id} only edits line items — order, customer, currency,
+// and tax rate are set at creation/issuance and not part of this form. See
+// docs/adr/0005-invoice-put-drafts-only.md.
+export const invoiceFormSchema = z.object({
+  lineItems: z.array(lineItemFormSchema).min(1),
+})
+
+export type InvoiceFormValues = z.infer<typeof invoiceFormSchema>
+
+export function fromInvoice(invoice: Invoice): InvoiceFormValues {
+  return {
+    lineItems: invoice.line_items.map((item) => ({
+      description: item.description,
+      quantity: item.quantity,
+      unitPrice: fromMinorUnits(item.unit_price.amount_minor, item.unit_price.currency),
+    })),
+  }
+}
+
+export function toUpdateInvoice(values: InvoiceFormValues, currency: string): UpdateInvoice {
+  return {
+    line_items: values.lineItems.map((item) => ({
+      description: item.description,
+      quantity: item.quantity,
+      unit_price: { amount_minor: toMinorUnits(item.unitPrice, currency), currency },
+    })),
+  }
+}
+
+const LINE_ITEM_FIELD_PATTERN = /^line_items\[(\d+)\]\.(.+)$/
+
+/** Mirrors orders/types.ts's mapApiErrorField — see that doc comment for the mapping rationale. */
+export function mapApiErrorField(field: string): string | null {
+  const lineItemMatch = field.match(LINE_ITEM_FIELD_PATTERN)
+  if (lineItemMatch) {
+    const [, index, rest] = lineItemMatch
+    if (rest === 'description' || rest === 'quantity') {
+      return `lineItems.${index}.${rest}`
+    }
+    if (rest.startsWith('unit_price')) {
+      return `lineItems.${index}.unitPrice`
+    }
+    return null
+  }
+  return null
 }

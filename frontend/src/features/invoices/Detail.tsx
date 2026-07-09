@@ -6,8 +6,9 @@ import { useTranslation } from 'react-i18next'
 
 import { ApiError, useApi } from '../../lib/api'
 import { formatMoney } from '../../lib/money'
-import { fetchInvoice, invoicesKeys, setInvoiceStatus } from './api'
-import { INVOICE_TRANSITIONS } from './types'
+import { fetchInvoice, invoicesKeys, setInvoiceStatus, updateInvoice } from './api'
+import { InvoiceForm } from './Form'
+import { fromInvoice, INVOICE_TRANSITIONS } from './types'
 import type { InvoiceStatus } from './types'
 
 export function InvoiceDetail() {
@@ -15,6 +16,7 @@ export function InvoiceDetail() {
   const { id } = useParams({ from: '/invoices/$id' })
   const api = useApi()
   const queryClient = useQueryClient()
+  const [editing, setEditing] = useState(false)
   const [actionError, setActionError] = useState<string | null>(null)
 
   const { data: invoice, isLoading, isError } = useQuery({
@@ -37,6 +39,25 @@ export function InvoiceDetail() {
   }
   if (isError || !invoice) {
     return <Alert color="red">{t('detail.loadError')}</Alert>
+  }
+
+  if (editing) {
+    return (
+      <Stack>
+        <Title order={2}>{invoice.number}</Title>
+        <InvoiceForm
+          initialValues={fromInvoice(invoice)}
+          currency={invoice.currency}
+          onSubmit={(data) => updateInvoice(api, id, data)}
+          onSuccess={(updated) => {
+            queryClient.setQueryData(invoicesKeys.detail(id), updated)
+            void queryClient.invalidateQueries({ queryKey: invoicesKeys.all })
+            setEditing(false)
+          }}
+          onCancel={() => setEditing(false)}
+        />
+      </Stack>
+    )
   }
 
   const nextStatuses = INVOICE_TRANSITIONS[invoice.status]
@@ -107,6 +128,11 @@ export function InvoiceDetail() {
             {t('actions.transitionTo', { status: t(`status.${next}`) })}
           </Button>
         ))}
+        {invoice.status === 'draft' && (
+          <Button variant="subtle" onClick={() => setEditing(true)}>
+            {t('form.edit')}
+          </Button>
+        )}
       </Group>
     </Stack>
   )

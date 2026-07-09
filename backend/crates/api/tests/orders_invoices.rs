@@ -113,6 +113,28 @@ impl TestApp {
         (http_status, body)
     }
 
+    async fn update_invoice(
+        &self,
+        org_id: &str,
+        invoice_id: &str,
+        line_items: Value,
+    ) -> (StatusCode, Value) {
+        let response = self
+            .client
+            .put(format!("{}/api/invoices/{invoice_id}", self.base_url))
+            .bearer_auth(self.token_for(org_id))
+            .json(&json!({ "line_items": line_items }))
+            .send()
+            .await
+            .expect("update invoice request failed");
+        let status = response.status();
+        let body = response
+            .json()
+            .await
+            .expect("update invoice response was not JSON");
+        (status, body)
+    }
+
     async fn delete_customer(&self, org_id: &str, customer_id: &str) -> StatusCode {
         self.client
             .delete(format!("{}/api/customers/{customer_id}", self.base_url))
@@ -256,4 +278,69 @@ async fn deletes_are_blocked_by_references() {
 
     // Order now has an invoice -> delete blocked.
     assert_eq!(app.delete_order(org, &order_id).await, StatusCode::CONFLICT);
+}
+
+#[tokio::test]
+#[ignore]
+async fn draft_invoice_put_recomputes_totals() {
+    let app = TestApp::spawn().await;
+    let org = "org-edit-draft-invoice";
+
+    let customer = app.create_customer(org, "Acme").await;
+    let customer_id = customer["id"].as_str().unwrap().to_string();
+    let (_, order) = app.create_order(org, &customer_id).await;
+    let order_id = order["id"].as_str().unwrap().to_string();
+    app.set_order_status(org, &order_id, "confirmed").await;
+
+    let (_, invoice) = app.create_invoice_from_order(org, &order_id).await;
+    assert_eq!(invoice["status"], "draft");
+    // 3 * 250 + 2 * 1000 = 2750, per create_order's fixed line items.
+    assert_eq!(invoice["net_total"]["amount_minor"], 2750);
+    let invoice_id = invoice["id"].as_str().unwrap().to_string();
+
+    let (status, updated) = app
+        .update_invoice(
+            org,
+            &invoice_id,
+            json!([
+                { "description": "Business cards", "quantity": 10, "unit_price": { "amount_minor": 250, "currency": "EUR" } }
+            ]),
+        )
+        .await;
+    assert_eq!(status, StatusCode::OK);
+    assert_eq!(updated["line_items"].as_array().unwrap().len(), 1);
+    // 10 * 250 = 2500
+    assert_eq!(updated["net_total"]["amount_minor"], 2500);
+    // round(2500 * 1900 / 10000) = 475
+    assert_eq!(updated["tax_total"]["amount_minor"], 475);
+    assert_eq!(updated["gross_total"]["amount_minor"], 2500 + 475);
+}
+
+#[tokio::test]
+#[ignore]
+async fn issued_invoice_put_is_rejected() {
+    let app = TestApp::spawn().await;
+    let org = "org-edit-issued-invoice";
+
+    let customer = app.create_customer(org, "Acme").await;
+    let customer_id = customer["id"].as_str().unwrap().to_string();
+    let (_, order) = app.create_order(org, &customer_id).await;
+    let order_id = order["id"].as_str().unwrap().to_string();
+    app.set_order_status(org, &order_id, "confirmed").await;
+
+    let (_, invoice) = app.create_invoice_from_order(org, &order_id).await;
+    let invoice_id = invoice["id"].as_str().unwrap().to_string();
+    app.set_invoice_status(org, &invoice_id, "issued").await;
+
+    let (status, body) = app
+        .update_invoice(
+            org,
+            &invoice_id,
+            json!([
+                { "description": "Business cards", "quantity": 1, "unit_price": { "amount_minor": 250, "currency": "EUR" } }
+            ]),
+        )
+        .await;
+    assert_eq!(status, StatusCode::CONFLICT);
+    assert_eq!(body["error"]["code"], "conflict");
 }

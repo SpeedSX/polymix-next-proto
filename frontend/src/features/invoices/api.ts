@@ -1,5 +1,5 @@
 import type { useApi } from '../../lib/api'
-import type { Invoice, InvoiceListParams, InvoiceListResponse, InvoiceStatus } from './types'
+import type { Invoice, InvoiceListParams, InvoiceListResponse, InvoiceStatus, UpdateInvoice } from './types'
 
 type Api = ReturnType<typeof useApi>
 
@@ -19,4 +19,8 @@ export function fetchInvoice(api: Api, id: string) {
 
 export function setInvoiceStatus(api: Api, id: string, status: InvoiceStatus) {
   return api<Invoice>(`/api/invoices/${id}/status`, { method: 'POST', body: { status } })
+}
+
+export function updateInvoice(api: Api, id: string, data: UpdateInvoice) {
+  return api<Invoice>(`/api/invoices/${id}`, { method: 'PUT', body: data })
 }

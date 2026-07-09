@@ -247,6 +247,12 @@ async fn seed_customers(session: &Surreal<Any>, count: usize) -> anyhow::Result<
     Ok(ids)
 }
 
+#[derive(Debug, SurrealValue)]
+#[surreal(crate = "surrealdb::types")]
+struct CounterRow {
+    value: i64,
+}
+
 async fn seed_orders(
     session: &Surreal<Any>,
     customer_ids: &[String],
@@ -256,7 +262,17 @@ async fn seed_orders(
     let mut rng = rand::thread_rng();
     let mut remaining = count;
     let mut seeded = 0usize;
-    let mut number = 0u64;
+
+    // Re-running the seeder against an already-provisioned tenant must not
+    // restart numbering at ORD-000001: that would mint duplicates against
+    // existing orders and rewind the shared counter, colliding with the
+    // next API-created order.
+    let mut response = session
+        .query("SELECT `value` FROM counter:order")
+        .await?
+        .check()?;
+    let rows: Vec<CounterRow> = response.take(0)?;
+    let mut number = rows.first().map(|r| r.value).unwrap_or(0) as u64;
 
     while remaining > 0 {
         let batch_size = remaining.min(BATCH_SIZE);
@@ -295,9 +311,10 @@ async fn seed_orders(
     // Orders above were assigned sequential numbers directly (bulk insert,
     // not the one-row-at-a-time `next_number` path), so the shared counter
     // needs to be caught up here or the first order created afterwards
-    // through the API would collide with ORD-000001.
+    // through the API would collide. `math::max` guards against rewinding
+    // the counter below its pre-run value.
     session
-        .query("UPSERT counter:order SET value = $n")
+        .query("UPSERT counter:order SET `value` = math::max([`value` ?? 0, $n])")
         .bind(("n", number as i64))
         .await?
         .check()?;

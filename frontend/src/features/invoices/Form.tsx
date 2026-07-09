@@ -1,31 +1,31 @@
 import { useState } from 'react'
-import { ActionIcon, Alert, Button, Group, NumberInput, Stack, Table, Text, Textarea, TextInput } from '@mantine/core'
+import { ActionIcon, Alert, Button, Group, NumberInput, Stack, Table, Text, TextInput } from '@mantine/core'
 import { useForm, zodResolver } from '@mantine/form'
 import { useTranslation } from 'react-i18next'
 
 import { ApiError } from '../../lib/api'
 import { formatMoney, toMinorUnits } from '../../lib/money'
-import { mapApiErrorField, orderFormSchema, toNewOrder } from './types'
-import type { Order, OrderFormValues } from './types'
+import { invoiceFormSchema, mapApiErrorField, toUpdateInvoice } from './types'
+import type { Invoice, InvoiceFormValues } from './types'
 
-export interface OrderFormProps {
-  initialValues: OrderFormValues
-  onSubmit: (data: ReturnType<typeof toNewOrder>) => Promise<Order>
-  onSuccess: (order: Order) => void
+export interface InvoiceFormProps {
+  initialValues: InvoiceFormValues
+  currency: string
+  onSubmit: (data: ReturnType<typeof toUpdateInvoice>) => Promise<Invoice>
+  onSuccess: (invoice: Invoice) => void
   onCancel: () => void
 }
 
-export function OrderForm({ initialValues, onSubmit, onSuccess, onCancel }: OrderFormProps) {
-  const { t } = useTranslation('orders')
+export function InvoiceForm({ initialValues, currency, onSubmit, onSuccess, onCancel }: InvoiceFormProps) {
+  const { t } = useTranslation('invoices')
   const [submitting, setSubmitting] = useState(false)
   const [formError, setFormError] = useState<string | null>(null)
-  const form = useForm<OrderFormValues>({
+  const form = useForm<InvoiceFormValues>({
     initialValues,
-    validate: zodResolver(orderFormSchema),
+    validate: zodResolver(invoiceFormSchema),
   })
 
-  const currency = form.values.currency.toUpperCase()
-  const total = form.values.lineItems.reduce((sum, item) => {
+  const netTotal = form.values.lineItems.reduce((sum, item) => {
     const unitPriceMinor = toMinorUnits(item.unitPrice, currency)
     return sum + (Number.isFinite(unitPriceMinor) ? unitPriceMinor : 0) * (item.quantity || 0)
   }, 0)
@@ -34,8 +34,8 @@ export function OrderForm({ initialValues, onSubmit, onSuccess, onCancel }: Orde
     setFormError(null)
     setSubmitting(true)
     try {
-      const order = await onSubmit(toNewOrder(values))
-      onSuccess(order)
+      const invoice = await onSubmit(toUpdateInvoice(values, currency))
+      onSuccess(invoice)
     } catch (err) {
       if (err instanceof ApiError && err.code === 'validation_failed' && err.details) {
         const unmatched: string[] = []
@@ -62,10 +62,6 @@ export function OrderForm({ initialValues, onSubmit, onSuccess, onCancel }: Orde
     <form onSubmit={handleSubmit}>
       <Stack maw={720}>
         {formError && <Alert color="red">{formError}</Alert>}
-        <Group grow>
-          <TextInput label={t('fields.customerId')} withAsterisk {...form.getInputProps('customerId')} />
-          <TextInput label={t('fields.currency')} withAsterisk maxLength={3} {...form.getInputProps('currency')} />
-        </Group>
 
         <Table>
           <Table.Thead>
@@ -109,10 +105,9 @@ export function OrderForm({ initialValues, onSubmit, onSuccess, onCancel }: Orde
           >
             {t('form.addLine')}
           </Button>
-          <Text fw={600}>{t('fields.total')}: {formatMoney({ amount_minor: total, currency })}</Text>
+          <Text fw={600}>{t('fields.netTotal')}: {formatMoney({ amount_minor: netTotal, currency })}</Text>
         </Group>
 
-        <Textarea label={t('fields.notes')} {...form.getInputProps('notes')} />
         <Group justify="flex-end">
           <Button variant="subtle" onClick={onCancel} disabled={submitting}>
             {t('form.cancel')}

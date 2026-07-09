@@ -5,9 +5,11 @@ use domain::Paged;
 use domain::error::DomainError;
 use domain::invoice::{
     DEFAULT_TAX_RATE_BP, Invoice, InvoiceListQuery, InvoiceRepo, InvoiceStatus, NewInvoice,
-    compute_gross, compute_tax, due_date_from_issue, validate_transition,
+    UpdateInvoice, can_edit, compute_gross, compute_tax, due_date_from_issue, validate_transition,
 };
-use domain::order::{LineItem, OrderStatus, can_invoice};
+use domain::order::{
+    LineItem, OrderStatus, can_invoice, line_items_total, validate_line_item_currencies,
+};
 use surrealdb::Surreal;
 use surrealdb::engine::any::Any;
 use surrealdb::types::{RecordId, RecordIdKey, SurrealValue};
@@ -412,10 +414,49 @@ impl InvoiceRepo for SurrealInvoiceRepo {
             .ok_or_else(|| DomainError::Store("invoice create returned no row".to_string()))
     }
 
-    async fn update(&self, _id: &str, _data: NewInvoice) -> Result<Invoice, DomainError> {
-        Err(DomainError::Conflict(
-            "invoices cannot be edited; void and reissue instead".to_string(),
-        ))
+    async fn update(&self, id: &str, data: UpdateInvoice) -> Result<Invoice, DomainError> {
+        let existing = self.get(id).await?.ok_or(DomainError::NotFound)?;
+        if !can_edit(existing.status) {
+            return Err(DomainError::Conflict(
+                "invoice can only be edited while in draft status; void and reissue instead"
+                    .to_string(),
+            ));
+        }
+        validate_line_item_currencies(&data.line_items, &existing.currency)?;
+
+        let net_total = line_items_total(&data.line_items, &existing.currency);
+        let tax_total = compute_tax(&net_total, existing.tax_rate_bp);
+        let gross_total = compute_gross(&net_total, &tax_total);
+        let now = chrono::Utc::now().to_rfc3339();
+
+        let content = InvoiceContent {
+            number: existing.number,
+            order_id: existing.order_id,
+            customer_id: existing.customer_id,
+            status: status_to_str(existing.status).to_string(),
+            currency: existing.currency,
+            exchange_rate: existing.exchange_rate,
+            line_items: data.line_items.into_iter().map(LineItemRow::from).collect(),
+            net_total: net_total.into(),
+            tax_rate_bp: existing.tax_rate_bp,
+            tax_total: tax_total.into(),
+            gross_total: gross_total.into(),
+            issue_date: existing.issue_date,
+            due_date: existing.due_date,
+            created_at: existing.created_at,
+            updated_at: now,
+        };
+
+        let row: Option<InvoiceRow> = self
+            .session
+            .update((TABLE, id))
+            .content(content)
+            .await
+            .map_err(map_err)?;
+
+        row.map(Invoice::try_from)
+            .transpose()?
+            .ok_or(DomainError::NotFound)
     }
 
     async fn delete(&self, _id: &str) -> Result<(), DomainError> {
