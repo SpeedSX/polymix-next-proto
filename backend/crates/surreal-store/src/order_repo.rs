@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use std::sync::Arc;
 
 use async_trait::async_trait;
 use domain::Paged;
@@ -259,11 +260,11 @@ fn to_hit(row: SearchHitRow) -> domain::SearchHit {
 }
 
 pub struct SurrealOrderRepo {
-    session: Surreal<Any>,
+    session: Arc<Surreal<Any>>,
 }
 
 impl SurrealOrderRepo {
-    pub fn new(session: Surreal<Any>) -> Self {
+    pub fn new(session: Arc<Surreal<Any>>) -> Self {
         Self { session }
     }
 

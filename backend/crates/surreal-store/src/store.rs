@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use surrealdb::Surreal;
 use surrealdb::engine::any::Any;
 use surrealdb::opt::auth::Root;
@@ -20,6 +22,12 @@ const SYSTEM_DB: &str = "system";
 pub struct Store {
     root: Surreal<Any>,
     ns: String,
+    // Session setup (`root.clone()` + `use_ns`/`use_db`) measured at
+    // 25-40ms per call against a local SurrealDB (examples/perf_probe.rs),
+    // paid by every authenticated request — so sessions are cached per
+    // tenant, contra PLAN.md's original "sessions are cheap, do not cache"
+    // assumption. See docs/adr/0006-tenant-session-cache-and-search-split.md.
+    tenant_sessions: moka::future::Cache<String, Arc<Surreal<Any>>>,
 }
 
 impl Store {
@@ -63,6 +71,7 @@ impl Store {
         Ok(Self {
             root: db,
             ns: cfg.ns.clone(),
+            tenant_sessions: moka::future::Cache::builder().max_capacity(10_000).build(),
         })
     }
 
@@ -71,11 +80,26 @@ impl Store {
         self.root.clone()
     }
 
-    /// Independent session for one tenant db, per request. Sessions are
-    /// cheap — do not cache them per tenant.
-    pub async fn for_tenant(&self, tenant_db: &str) -> surrealdb::Result<Surreal<Any>> {
+    /// Session for one tenant db, cached across requests. The `Arc` is how
+    /// callers share it: cloning the `Arc` is free and safe, while calling
+    /// `.clone()` on the `Surreal` inside would create a second-generation
+    /// session clone, which hangs all queries (ADR 0002) — never unwrap and
+    /// re-clone it. Concurrent use of one session is safe here because the
+    /// repos only run self-contained statements (no session variables, no
+    /// interactive transactions).
+    pub async fn for_tenant(&self, tenant_db: &str) -> surrealdb::Result<Arc<Surreal<Any>>> {
+        if let Some(session) = self.tenant_sessions.get(tenant_db).await {
+            return Ok(session);
+        }
+        // Concurrent first requests may both build a session; `insert` lets
+        // one win and the loser's session just serves its own request once.
+        // Cheaper than single-flight plumbing for a benign race.
         let session = self.root.clone();
         session.use_ns(&self.ns).use_db(tenant_db).await?;
+        let session = Arc::new(session);
+        self.tenant_sessions
+            .insert(tenant_db.to_string(), Arc::clone(&session))
+            .await;
         Ok(session)
     }
 }
