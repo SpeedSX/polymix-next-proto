@@ -255,6 +255,45 @@ async fn order_list_search_matches_number_and_notes_but_not_line_items() {
 
 #[tokio::test]
 #[ignore]
+async fn order_number_search_matches_mid_number_substring() {
+    let app = TestApp::spawn().await;
+    let org = "org-search-order-infix";
+
+    let customer = app.create_customer(org, "Adamant Print GmbH").await;
+    let customer_id = customer["id"].as_str().unwrap();
+
+    // First order, so its number is deterministically "000001" (per-tenant
+    // counter starting at 1). Control order gets "000002".
+    let order = app.create_order(org, customer_id, None).await;
+    assert_eq!(order["number"], "000001");
+    app.create_order(org, customer_id, None).await;
+
+    // "0001" is a substring of "000001" starting at index 2 — not a prefix
+    // (the edge-ngram prefixes of "000001" are exactly "00", "000", "0000",
+    // "00000", "000001"; "0001" is none of those). Under the old
+    // `autocomplete` edge-ngram analyzer this returned zero rows — the bug
+    // this migration (0006_order_number_ngram) fixes. Non-anchored
+    // ngram(3,10) indexes "0001" as a real 4-gram, so it must now match.
+    let by_mid_substring = app.list_orders(org, "0001").await;
+    let numbers: Vec<&str> = by_mid_substring["items"]
+        .as_array()
+        .expect("items is an array")
+        .iter()
+        .map(|o| o["number"].as_str().unwrap())
+        .collect();
+    assert_eq!(numbers, vec!["000001"]);
+    assert_eq!(by_mid_substring["total"], 1);
+
+    // ngram(3,10) has a 3-character floor: queries shorter than that
+    // generate no indexed tokens, so a 2-character query must match nothing
+    // (this is the min=2->3 tradeoff, traded for a smaller index).
+    let by_too_short = app.list_orders(org, "00").await;
+    assert_eq!(by_too_short["total"], 0);
+    assert!(by_too_short["items"].as_array().unwrap().is_empty());
+}
+
+#[tokio::test]
+#[ignore]
 async fn omnibox_matches_order_and_invoice_hits() {
     let app = TestApp::spawn().await;
     let org = "org-search-omnibox-order-invoice";

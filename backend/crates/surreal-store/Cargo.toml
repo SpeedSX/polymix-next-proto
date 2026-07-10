@@ -13,6 +13,7 @@ thiserror.workspace = true
 ulid.workspace = true
 chrono.workspace = true
 async-trait.workspace = true
+futures.workspace = true
 tracing.workspace = true
 tokio = { workspace = true }
 moka.workspace = true
@@ -21,3 +22,4 @@ hex = "0.4"
 
 [dev-dependencies]
 anyhow.workspace = true
+testcontainers = "0.27"

@@ -80,6 +80,22 @@ impl Store {
         self.root.clone()
     }
 
+    /// Uncached, dedicated session for one tenant db — for long-lived
+    /// consumers (the WS hub's live queries) that must never share a
+    /// session with request traffic. Cloned from `root` (first-generation,
+    /// safe per ADR 0002), never from a cached tenant session. The caller
+    /// must keep the session alive for as long as its live queries run —
+    /// dropping it detaches the server-side session and silently ends
+    /// notification delivery (ADR 0008).
+    pub async fn dedicated_for_tenant(
+        &self,
+        tenant_db: &str,
+    ) -> surrealdb::Result<Arc<Surreal<Any>>> {
+        let session = self.root.clone();
+        session.use_ns(&self.ns).use_db(tenant_db).await?;
+        Ok(Arc::new(session))
+    }
+
     /// Session for one tenant db, cached across requests. The `Arc` is how
     /// callers share it: cloning the `Arc` is free and safe, while calling
     /// `.clone()` on the `Surreal` inside would create a second-generation

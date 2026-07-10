@@ -7,6 +7,7 @@ import { useApi } from '../../lib/api'
 import { customersKeys, deleteCustomer, fetchCustomer, updateCustomer } from './api'
 import { CustomerForm } from './Form'
 import { fromCustomer } from './types'
+import type { Customer, NewCustomer } from './types'
 
 export function CustomerDetail() {
   const { t } = useTranslation('customers')
@@ -22,6 +23,25 @@ export function CustomerDetail() {
   } = useQuery({
     queryKey: customersKeys.detail(id),
     queryFn: () => fetchCustomer(api, id),
+  })
+
+  const updateMutation = useMutation({
+    mutationFn: (data: NewCustomer) => updateCustomer(api, id, data),
+    onMutate: async (data) => {
+      await queryClient.cancelQueries({ queryKey: customersKeys.detail(id) })
+      const previous = queryClient.getQueryData<Customer>(customersKeys.detail(id))
+      if (previous) {
+        queryClient.setQueryData<Customer>(customersKeys.detail(id), { ...previous, ...data })
+      }
+      return { previous }
+    },
+    onSuccess: (updated) => queryClient.setQueryData(customersKeys.detail(id), updated),
+    onError: (_err, _data, context) => {
+      if (context?.previous) {
+        queryClient.setQueryData(customersKeys.detail(id), context.previous)
+      }
+    },
+    onSettled: () => void queryClient.invalidateQueries({ queryKey: customersKeys.all }),
   })
 
   const deleteMutation = useMutation({
@@ -56,12 +76,8 @@ export function CustomerDetail() {
       {deleteMutation.isError && <Alert color="red">{t('detail.deleteError')}</Alert>}
       <CustomerForm
         initialValues={fromCustomer(customer)}
-        onSubmit={(data) => updateCustomer(api, id, data)}
-        onSuccess={(updated) => {
-          queryClient.setQueryData(customersKeys.detail(id), updated)
-          void queryClient.invalidateQueries({ queryKey: customersKeys.all })
-          void navigate({ to: '/customers' })
-        }}
+        onSubmit={(data) => updateMutation.mutateAsync(data)}
+        onSuccess={() => void navigate({ to: '/customers' })}
         onCancel={() => navigate({ to: '/customers' })}
       />
     </Stack>

@@ -30,6 +30,7 @@ anyhow = "1"
 ulid = { version = "1", features = ["serde"] }
 validator = { version = "0.20", features = ["derive"] }
 async-trait = "0.1"
+futures = "0.3"
 chrono = { version = "0.4", features = ["serde"] }
 moka = { version = "0.12", features = ["future"] }
 

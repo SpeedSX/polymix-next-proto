@@ -9,7 +9,7 @@ import { formatMoney } from '../../lib/money'
 import { createInvoiceFromOrder, deleteOrder, fetchOrder, ordersKeys, setOrderStatus, updateOrder } from './api'
 import { OrderForm } from './Form'
 import { fromOrder, INVOICEABLE_STATUSES, ORDER_TRANSITIONS } from './types'
-import type { OrderStatus } from './types'
+import type { NewOrder, Order, OrderStatus } from './types'
 
 export function OrderDetail() {
   const { t, i18n } = useTranslation('orders')
@@ -27,12 +27,44 @@ export function OrderDetail() {
 
   const statusMutation = useMutation({
     mutationFn: (status: OrderStatus) => setOrderStatus(api, id, status),
+    onMutate: async (status) => {
+      await queryClient.cancelQueries({ queryKey: ordersKeys.detail(id) })
+      const previous = queryClient.getQueryData<Order>(ordersKeys.detail(id))
+      if (previous) {
+        queryClient.setQueryData<Order>(ordersKeys.detail(id), { ...previous, status })
+      }
+      return { previous }
+    },
     onSuccess: (updated) => {
       setActionError(null)
       queryClient.setQueryData(ordersKeys.detail(id), updated)
-      void queryClient.invalidateQueries({ queryKey: ordersKeys.all })
     },
-    onError: (err) => setActionError(err instanceof ApiError ? err.message : t('form.unexpectedError')),
+    onError: (err, _status, context) => {
+      if (context?.previous) {
+        queryClient.setQueryData(ordersKeys.detail(id), context.previous)
+      }
+      setActionError(err instanceof ApiError ? err.message : t('form.unexpectedError'))
+    },
+    onSettled: () => void queryClient.invalidateQueries({ queryKey: ordersKeys.all }),
+  })
+
+  const updateMutation = useMutation({
+    mutationFn: (data: NewOrder) => updateOrder(api, id, data),
+    onMutate: async (data) => {
+      await queryClient.cancelQueries({ queryKey: ordersKeys.detail(id) })
+      const previous = queryClient.getQueryData<Order>(ordersKeys.detail(id))
+      if (previous) {
+        queryClient.setQueryData<Order>(ordersKeys.detail(id), { ...previous, ...data })
+      }
+      return { previous }
+    },
+    onSuccess: (updated) => queryClient.setQueryData(ordersKeys.detail(id), updated),
+    onError: (_err, _data, context) => {
+      if (context?.previous) {
+        queryClient.setQueryData(ordersKeys.detail(id), context.previous)
+      }
+    },
+    onSettled: () => void queryClient.invalidateQueries({ queryKey: ordersKeys.all }),
   })
 
   const invoiceMutation = useMutation({
@@ -66,12 +98,8 @@ export function OrderDetail() {
         <Title order={2}>{order.number}</Title>
         <OrderForm
           initialValues={fromOrder(order, i18n.language)}
-          onSubmit={(data) => updateOrder(api, id, data)}
-          onSuccess={(updated) => {
-            queryClient.setQueryData(ordersKeys.detail(id), updated)
-            void queryClient.invalidateQueries({ queryKey: ordersKeys.all })
-            setEditing(false)
-          }}
+          onSubmit={(data) => updateMutation.mutateAsync(data)}
+          onSuccess={() => setEditing(false)}
           onCancel={() => setEditing(false)}
         />
       </Stack>

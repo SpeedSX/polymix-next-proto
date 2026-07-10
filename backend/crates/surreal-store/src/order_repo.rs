@@ -17,7 +17,7 @@ use ulid::Ulid;
 
 use crate::counter::next_number;
 
-const TABLE: &str = "order";
+pub(crate) const TABLE: &str = "order";
 const CUSTOMER_TABLE: &str = "customer";
 const INVOICE_TABLE: &str = "invoice";
 
@@ -110,7 +110,7 @@ fn status_from_str(value: &str) -> Result<OrderStatus, DomainError> {
 
 #[derive(Debug, SurrealValue)]
 #[surreal(crate = "surrealdb::types")]
-struct OrderRow {
+pub(crate) struct OrderRow {
     id: RecordId,
     number: String,
     customer_id: String,
@@ -172,6 +172,12 @@ fn customer_not_found_error() -> DomainError {
     let mut details = HashMap::new();
     details.insert("customer_id".to_string(), "customer not found".to_string());
     DomainError::Validation(details)
+}
+
+impl OrderRow {
+    pub(crate) fn key(&self) -> String {
+        record_key(&self.id)
+    }
 }
 
 impl TryFrom<OrderRow> for Order {

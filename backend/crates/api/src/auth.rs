@@ -12,22 +12,25 @@ use crate::error::ApiError;
 use crate::jwks::JwksCache;
 use crate::state::AppState;
 
-/// Verifies the bearer token and extracts the caller's identity. Split out
-/// from `require_auth` so it can be unit-tested without a `TenantProvisioner`
-/// (which requires a live database connection to construct).
-async fn authenticate(
-    headers: &HeaderMap,
-    jwks: &JwksCache,
-    config: &AppConfig,
-) -> Result<(String, String, String), ApiError> {
+fn bearer_token(headers: &HeaderMap) -> Result<&str, ApiError> {
     let header = headers
         .get(AUTHORIZATION)
         .and_then(|v| v.to_str().ok())
         .ok_or_else(|| ApiError::unauthorized("missing authorization header"))?;
-    let token = header
+    header
         .strip_prefix("Bearer ")
-        .ok_or_else(|| ApiError::unauthorized("invalid authorization header"))?;
+        .ok_or_else(|| ApiError::unauthorized("invalid authorization header"))
+}
 
+/// Verifies the token and extracts the caller's identity. Split out from
+/// `authenticate_token` so it can be unit-tested without a
+/// `TenantProvisioner` (which requires a live database connection to
+/// construct).
+async fn validate_token(
+    token: &str,
+    jwks: &JwksCache,
+    config: &AppConfig,
+) -> Result<(String, String, String), ApiError> {
     let header_data =
         jsonwebtoken::decode_header(token).map_err(|_| ApiError::unauthorized("invalid token"))?;
     let kid = header_data
@@ -69,13 +72,15 @@ async fn authenticate(
     Ok((user_id, org_id, display_name))
 }
 
-pub async fn require_auth(
-    State(state): State<AppState>,
-    mut req: Request<Body>,
-    next: Next,
-) -> Result<Response, ApiError> {
-    let (user_id, org_id, display_name) =
-        authenticate(req.headers(), &state.jwks, &state.config).await?;
+/// The header-independent auth core: JWT validation, org-claim check, and
+/// tenant resolution including auto-provisioning. `require_auth` reads the
+/// bearer header and calls this; the WS handler calls it directly with the
+/// `?token=` query parameter (browsers can't set headers on WS upgrades).
+pub async fn authenticate_token(
+    state: &AppState,
+    token: &str,
+) -> Result<(AuthContext, domain::Tenant), ApiError> {
+    let (user_id, org_id, display_name) = validate_token(token, &state.jwks, &state.config).await?;
 
     let tenant = state
         .provisioner
@@ -87,6 +92,17 @@ pub async fn require_auth(
         org_id,
         tenant_db: tenant.db_name.clone(),
     };
+    Ok((auth_ctx, tenant))
+}
+
+pub async fn require_auth(
+    State(state): State<AppState>,
+    mut req: Request<Body>,
+    next: Next,
+) -> Result<Response, ApiError> {
+    let token = bearer_token(req.headers())?;
+    let (auth_ctx, tenant) = authenticate_token(&state, token).await?;
+
     req.extensions_mut().insert(auth_ctx);
     req.extensions_mut().insert(tenant);
 
@@ -129,12 +145,7 @@ mod tests {
 
     #[tokio::test]
     async fn missing_header_is_unauthorized() {
-        let jwks = JwksCache::new("http://unused.invalid/jwks.json".to_string());
-        let config = test_config("issuer", "http://unused.invalid/jwks.json");
-
-        let err = authenticate(&HeaderMap::new(), &jwks, &config)
-            .await
-            .unwrap_err();
+        let err = bearer_token(&HeaderMap::new()).unwrap_err();
 
         assert_eq!(err.status, axum::http::StatusCode::UNAUTHORIZED);
         assert_eq!(err.message, "missing authorization header");
@@ -142,15 +153,13 @@ mod tests {
 
     #[tokio::test]
     async fn non_bearer_header_is_unauthorized() {
-        let jwks = JwksCache::new("http://unused.invalid/jwks.json".to_string());
-        let config = test_config("issuer", "http://unused.invalid/jwks.json");
         let mut headers = HeaderMap::new();
         headers.insert(
             AUTHORIZATION,
             HeaderValue::from_static("Basic dXNlcjpwYXNz"),
         );
 
-        let err = authenticate(&headers, &jwks, &config).await.unwrap_err();
+        let err = bearer_token(&headers).unwrap_err();
 
         assert_eq!(err.status, axum::http::StatusCode::UNAUTHORIZED);
         assert_eq!(err.message, "invalid authorization header");
@@ -160,12 +169,30 @@ mod tests {
     async fn malformed_token_is_unauthorized() {
         let jwks = JwksCache::new("http://unused.invalid/jwks.json".to_string());
         let config = test_config("issuer", "http://unused.invalid/jwks.json");
+
+        let err = validate_token("not-a-jwt", &jwks, &config)
+            .await
+            .unwrap_err();
+
+        assert_eq!(err.status, axum::http::StatusCode::UNAUTHORIZED);
+        assert_eq!(err.message, "invalid token");
+    }
+
+    /// Header extraction and token validation fail independently: a
+    /// well-formed Bearer header still yields the token even when the token
+    /// itself is garbage — the failure then comes from validation, not
+    /// header parsing.
+    #[tokio::test]
+    async fn header_extraction_is_independent_of_token_validity() {
+        let jwks = JwksCache::new("http://unused.invalid/jwks.json".to_string());
+        let config = test_config("issuer", "http://unused.invalid/jwks.json");
         let mut headers = HeaderMap::new();
         headers.insert(AUTHORIZATION, HeaderValue::from_static("Bearer not-a-jwt"));
 
-        let err = authenticate(&headers, &jwks, &config).await.unwrap_err();
+        let token = bearer_token(&headers).unwrap();
+        assert_eq!(token, "not-a-jwt");
 
-        assert_eq!(err.status, axum::http::StatusCode::UNAUTHORIZED);
+        let err = validate_token(token, &jwks, &config).await.unwrap_err();
         assert_eq!(err.message, "invalid token");
     }
 
@@ -182,13 +209,8 @@ mod tests {
                 "exp": (chrono::Utc::now() + chrono::Duration::hours(1)).timestamp(),
             }))
             .unwrap();
-        let mut headers = HeaderMap::new();
-        headers.insert(
-            AUTHORIZATION,
-            HeaderValue::from_str(&format!("Bearer {token}")).unwrap(),
-        );
 
-        let err = authenticate(&headers, &jwks, &config).await.unwrap_err();
+        let err = validate_token(&token, &jwks, &config).await.unwrap_err();
 
         assert_eq!(err.status, axum::http::StatusCode::FORBIDDEN);
         assert_eq!(err.message, "no active organization");
@@ -203,13 +225,8 @@ mod tests {
         let token = issuer
             .issue_token("test-issuer", "org_id", "user-1", "org-1")
             .unwrap();
-        let mut headers = HeaderMap::new();
-        headers.insert(
-            AUTHORIZATION,
-            HeaderValue::from_str(&format!("Bearer {token}")).unwrap(),
-        );
 
-        let (user_id, org_id, display_name) = authenticate(&headers, &jwks, &config).await.unwrap();
+        let (user_id, org_id, display_name) = validate_token(&token, &jwks, &config).await.unwrap();
 
         assert_eq!(user_id, "user-1");
         assert_eq!(org_id, "org-1");
@@ -231,13 +248,8 @@ mod tests {
                 "org_name": "Adamant Print GmbH",
             }))
             .unwrap();
-        let mut headers = HeaderMap::new();
-        headers.insert(
-            AUTHORIZATION,
-            HeaderValue::from_str(&format!("Bearer {token}")).unwrap(),
-        );
 
-        let (_, _, display_name) = authenticate(&headers, &jwks, &config).await.unwrap();
+        let (_, _, display_name) = validate_token(&token, &jwks, &config).await.unwrap();
 
         assert_eq!(display_name, "Adamant Print GmbH");
     }

@@ -9,6 +9,7 @@ import './index.css'
 
 import './lib/i18n'
 import { AuthProvider, isClerkMode } from './lib/auth'
+import { LiveUpdatesProvider } from './lib/ws'
 import { router } from './app/routes'
 
 const queryClient = new QueryClient()
@@ -17,7 +18,9 @@ const app = (
   <MantineProvider>
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
-        <RouterProvider router={router} />
+        <LiveUpdatesProvider>
+          <RouterProvider router={router} />
+        </LiveUpdatesProvider>
       </AuthProvider>
     </QueryClientProvider>
   </MantineProvider>

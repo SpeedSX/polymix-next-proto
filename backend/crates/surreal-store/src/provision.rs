@@ -112,7 +112,7 @@ impl TenantProvisioner {
             .for_tenant(&db_name)
             .await
             .map_err(|e| DomainError::Store(e.to_string()))?;
-        apply_migrations(&tenant_session)
+        apply_migrations(&tenant_session, &db_name)
             .await
             .map_err(|e| DomainError::Store(e.to_string()))?;
 

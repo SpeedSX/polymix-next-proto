@@ -10,7 +10,7 @@ import { convertedDisplay, formatMoney } from '../../lib/money'
 import { fetchInvoice, invoicesKeys, setInvoiceStatus, updateInvoice } from './api'
 import { InvoiceForm } from './Form'
 import { fromInvoice, INVOICE_TRANSITIONS } from './types'
-import type { InvoiceStatus } from './types'
+import type { Invoice, InvoiceStatus, UpdateInvoice } from './types'
 
 interface MeResponse {
   tenant: { default_currency: string }
@@ -35,12 +35,44 @@ export function InvoiceDetail() {
 
   const statusMutation = useMutation({
     mutationFn: (status: InvoiceStatus) => setInvoiceStatus(api, id, status),
+    onMutate: async (status) => {
+      await queryClient.cancelQueries({ queryKey: invoicesKeys.detail(id) })
+      const previous = queryClient.getQueryData<Invoice>(invoicesKeys.detail(id))
+      if (previous) {
+        queryClient.setQueryData<Invoice>(invoicesKeys.detail(id), { ...previous, status })
+      }
+      return { previous }
+    },
     onSuccess: (updated) => {
       setActionError(null)
       queryClient.setQueryData(invoicesKeys.detail(id), updated)
-      void queryClient.invalidateQueries({ queryKey: invoicesKeys.all })
     },
-    onError: (err) => setActionError(err instanceof ApiError ? err.message : t('form.unexpectedError')),
+    onError: (err, _status, context) => {
+      if (context?.previous) {
+        queryClient.setQueryData(invoicesKeys.detail(id), context.previous)
+      }
+      setActionError(err instanceof ApiError ? err.message : t('form.unexpectedError'))
+    },
+    onSettled: () => void queryClient.invalidateQueries({ queryKey: invoicesKeys.all }),
+  })
+
+  const updateMutation = useMutation({
+    mutationFn: (data: UpdateInvoice) => updateInvoice(api, id, data),
+    onMutate: async (data) => {
+      await queryClient.cancelQueries({ queryKey: invoicesKeys.detail(id) })
+      const previous = queryClient.getQueryData<Invoice>(invoicesKeys.detail(id))
+      if (previous) {
+        queryClient.setQueryData<Invoice>(invoicesKeys.detail(id), { ...previous, ...data })
+      }
+      return { previous }
+    },
+    onSuccess: (updated) => queryClient.setQueryData(invoicesKeys.detail(id), updated),
+    onError: (_err, _data, context) => {
+      if (context?.previous) {
+        queryClient.setQueryData(invoicesKeys.detail(id), context.previous)
+      }
+    },
+    onSettled: () => void queryClient.invalidateQueries({ queryKey: invoicesKeys.all }),
   })
 
   if (isLoading) {
@@ -57,12 +89,8 @@ export function InvoiceDetail() {
         <InvoiceForm
           initialValues={fromInvoice(invoice, i18n.language)}
           currency={invoice.currency}
-          onSubmit={(data) => updateInvoice(api, id, data)}
-          onSuccess={(updated) => {
-            queryClient.setQueryData(invoicesKeys.detail(id), updated)
-            void queryClient.invalidateQueries({ queryKey: invoicesKeys.all })
-            setEditing(false)
-          }}
+          onSubmit={(data) => updateMutation.mutateAsync(data)}
+          onSuccess={() => setEditing(false)}
           onCancel={() => setEditing(false)}
         />
       </Stack>

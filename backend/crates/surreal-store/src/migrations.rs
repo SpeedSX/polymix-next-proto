@@ -22,6 +22,10 @@ const MIGRATIONS: &[(&str, &str)] = &[
         "0005_exchange_rate",
         include_str!("../migrations/0005_exchange_rate.surql"),
     ),
+    (
+        "0006_order_number_ngram",
+        include_str!("../migrations/0006_order_number_ngram.surql"),
+    ),
 ];
 
 #[derive(Debug, SurrealValue)]
@@ -30,7 +34,7 @@ struct MigrationsMeta {
     version: i64,
 }
 
-pub async fn apply_migrations(session: &Surreal<Any>) -> surrealdb::Result<()> {
+pub async fn apply_migrations(session: &Surreal<Any>, db_name: &str) -> surrealdb::Result<()> {
     // SurrealDB 3.x errors "table does not exist" on SELECT against a table
     // that was never created — define it eagerly since this runs against a
     // brand-new tenant db where `meta` has never been touched.
@@ -46,7 +50,7 @@ pub async fn apply_migrations(session: &Surreal<Any>) -> surrealdb::Result<()> {
         if version <= applied {
             continue;
         }
-        tracing::info!(migration = name, "applying migration");
+        tracing::info!(migration = name, db = db_name, "applying migration");
         session.query(*sql).await?.check()?;
         session
             .upsert::<Option<MigrationsMeta>>(("meta", "migrations"))

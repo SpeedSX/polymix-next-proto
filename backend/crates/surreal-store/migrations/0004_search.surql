@@ -16,6 +16,8 @@ DEFINE INDEX IF NOT EXISTS customer_search_email ON customer
 DEFINE INDEX IF NOT EXISTS customer_search_city ON customer
   FIELDS address.city FULLTEXT ANALYZER autocomplete BM25 HIGHLIGHTS;
 
+-- Superseded by migrations/0006_order_number_ngram.surql, which overwrites
+-- this index with an ngram analyzer for infix matching.
 DEFINE INDEX IF NOT EXISTS order_search_number ON `order`
   FIELDS number FULLTEXT ANALYZER autocomplete BM25 HIGHLIGHTS;
 DEFINE INDEX IF NOT EXISTS order_search_notes ON `order`

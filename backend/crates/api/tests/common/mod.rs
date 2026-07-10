@@ -15,8 +15,29 @@ use testcontainers::{ContainerAsync, GenericImage, ImageExt};
 use tokio::sync::OnceCell;
 
 pub struct SharedDb {
-    _container: ContainerAsync<GenericImage>,
+    container: ContainerAsync<GenericImage>,
     url: String,
+}
+
+impl SharedDb {
+    /// Freezes the SurrealDB process (state and connections preserved) —
+    /// for resilience tests only. Pausing affects every test in the same
+    /// binary; a test that calls this must live in its own test file.
+    #[allow(dead_code)]
+    pub async fn pause(&self) {
+        self.container
+            .pause()
+            .await
+            .expect("failed to pause surrealdb container");
+    }
+
+    #[allow(dead_code)]
+    pub async fn unpause(&self) {
+        self.container
+            .unpause()
+            .await
+            .expect("failed to unpause surrealdb container");
+    }
 }
 
 static DB: OnceCell<SharedDb> = OnceCell::const_new();
@@ -43,7 +64,7 @@ pub async fn shared_db() -> &'static SharedDb {
             .await
             .expect("failed to read mapped surrealdb port");
         SharedDb {
-            _container: container,
+            container,
             url: format!("ws://127.0.0.1:{port}"),
         }
     })

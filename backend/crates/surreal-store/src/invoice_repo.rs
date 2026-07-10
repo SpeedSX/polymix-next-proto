@@ -21,7 +21,7 @@ use crate::counter::next_number;
 use crate::exchange_rate::lookup_rate;
 use crate::order_repo::{LineItemRow, MoneyRow};
 
-const TABLE: &str = "invoice";
+pub(crate) const TABLE: &str = "invoice";
 const ORDER_TABLE: &str = "order";
 
 const ALLOWED_SORT_FIELDS: &[&str] = &[
@@ -81,7 +81,7 @@ struct OrderSnapshotRow {
 
 #[derive(Debug, SurrealValue)]
 #[surreal(crate = "surrealdb::types")]
-struct InvoiceRow {
+pub(crate) struct InvoiceRow {
     id: RecordId,
     number: String,
     order_id: String,
@@ -157,6 +157,12 @@ fn record_key(id: &RecordId) -> String {
 
 fn map_err(err: surrealdb::Error) -> DomainError {
     DomainError::Store(err.to_string())
+}
+
+impl InvoiceRow {
+    pub(crate) fn key(&self) -> String {
+        record_key(&self.id)
+    }
 }
 
 impl TryFrom<InvoiceRow> for Invoice {

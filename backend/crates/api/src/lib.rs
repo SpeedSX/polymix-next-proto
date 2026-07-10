@@ -5,6 +5,7 @@ pub mod error;
 pub mod jwks;
 pub mod routes;
 pub mod state;
+pub mod ws;
 
 use std::sync::Arc;
 
@@ -39,7 +40,7 @@ pub async fn build_state(config: AppConfig) -> anyhow::Result<AppState> {
     let tenants = SurrealTenantRepo::new(store.system()).list_all().await?;
     for tenant in tenants {
         let session = store.for_tenant(&tenant.db_name).await?;
-        migrations::apply_migrations(&session).await?;
+        migrations::apply_migrations(&session, &tenant.db_name).await?;
     }
     let provisioner = Arc::new(TenantProvisioner::new(store.clone()));
     let jwks = Arc::new(JwksCache::new(config.auth_jwks_url.clone()));
@@ -49,17 +50,24 @@ pub async fn build_state(config: AppConfig) -> anyhow::Result<AppState> {
         None
     };
 
+    let hub = Arc::new(ws::hub::Hub::new(store.clone()));
+
     Ok(AppState {
         config: Arc::new(config),
         store,
         provisioner,
         jwks,
         dev_issuer,
+        hub,
     })
 }
 
 pub fn build_router(state: AppState) -> Router {
-    let mut router = Router::new().route("/api/health", get(routes::health::health));
+    // `/api/ws` sits outside the `require_auth` layer: it authenticates
+    // itself from the `?token=` query parameter (see `ws::handler`).
+    let mut router = Router::new()
+        .route("/api/health", get(routes::health::health))
+        .route("/api/ws", get(ws::handler::ws));
     if state.config.auth_dev_mode {
         router = router
             .route("/dev/jwks.json", get(routes::dev::jwks))

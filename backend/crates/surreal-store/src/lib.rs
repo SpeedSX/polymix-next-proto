@@ -2,6 +2,7 @@ pub mod counter;
 pub mod customer_repo;
 pub mod exchange_rate;
 pub mod invoice_repo;
+pub mod live;
 pub mod migrations;
 pub mod order_repo;
 pub mod provision;
@@ -10,6 +11,7 @@ pub mod tenant_repo;
 
 pub use customer_repo::SurrealCustomerRepo;
 pub use invoice_repo::SurrealInvoiceRepo;
+pub use live::{ChangeAction, ChangeEvent, LiveChange, live_changes};
 pub use order_repo::SurrealOrderRepo;
 pub use provision::TenantProvisioner;
 pub use store::{DbConfig, Store};

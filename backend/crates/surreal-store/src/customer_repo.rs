@@ -9,7 +9,7 @@ use surrealdb::engine::any::Any;
 use surrealdb::types::{RecordId, RecordIdKey, SurrealValue};
 use ulid::Ulid;
 
-const TABLE: &str = "customer";
+pub(crate) const TABLE: &str = "customer";
 const ORDER_TABLE: &str = "order";
 
 // Whitelisted, not bound as a query parameter: SurrealQL identifiers (unlike
@@ -57,7 +57,7 @@ impl From<AddressRow> for Address {
 
 #[derive(Debug, SurrealValue)]
 #[surreal(crate = "surrealdb::types")]
-struct CustomerRow {
+pub(crate) struct CustomerRow {
     id: RecordId,
     name: String,
     contact_name: Option<String>,
@@ -102,6 +102,12 @@ fn record_key(id: &RecordId) -> String {
     match &id.key {
         RecordIdKey::String(key) => key.clone(),
         other => format!("{other:?}"),
+    }
+}
+
+impl CustomerRow {
+    pub(crate) fn key(&self) -> String {
+        record_key(&self.id)
     }
 }
 
