@@ -4,7 +4,7 @@
   "list.loadError": "Не вдалося завантажити замовлення.",
   "list.empty": "Замовлень ще немає.",
   "list.searchPlaceholder": "Пошук замовлень…",
-  "list.filterCustomer": "Фільтр за ідентифікатором клієнта",
+  "list.filterCustomer": "Фільтр за клієнтом…",
   "list.filterStatus": "Фільтр за статусом",
   "create.title": "Нове замовлення",
   "detail.loadError": "Не вдалося завантажити замовлення.",

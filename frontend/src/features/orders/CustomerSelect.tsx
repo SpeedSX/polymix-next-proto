@@ -17,17 +17,29 @@ export interface CustomerSelectProps {
   error?: ReactNode
   onFocus?: () => void
   onBlur?: () => void
+  label?: ReactNode
+  placeholder?: string
+  required?: boolean
   'data-path'?: string
 }
 
 /**
- * Searchable customer picker for the order form — resolves to a `customer_id`,
- * backed by the customer FTS list endpoint (`GET /api/customers?q=`) instead
- * of manual id entry (PLAN.md M4.1). Also resolves the current value's label
- * via a detail fetch so an existing order's customer still shows a name even
- * when it falls outside the current search results.
+ * Searchable customer picker — resolves to a `customer_id`, backed by the
+ * customer FTS list endpoint (`GET /api/customers?q=`) instead of manual id
+ * entry (PLAN.md M4.1). Also resolves the current value's label via a detail
+ * fetch so a pre-selected customer still shows a name even when it falls
+ * outside the current search results. Used both for the order form's
+ * required customer field and the orders list's optional customer filter.
  */
-export function CustomerSelect({ value = '', onChange, error, ...rest }: CustomerSelectProps) {
+export function CustomerSelect({
+  value = '',
+  onChange,
+  error,
+  label,
+  placeholder,
+  required = true,
+  ...rest
+}: CustomerSelectProps) {
   const { t } = useTranslation('orders')
   const api = useApi()
   const [search, setSearch] = useState('')
@@ -55,11 +67,11 @@ export function CustomerSelect({ value = '', onChange, error, ...rest }: Custome
 
   return (
     <Select
-      label={t('fields.customer')}
-      withAsterisk
+      label={label === undefined ? t('fields.customer') : label}
+      withAsterisk={required}
       searchable
       clearable
-      placeholder={t('fields.customerSearchPlaceholder')}
+      placeholder={placeholder ?? t('fields.customerSearchPlaceholder')}
       nothingFoundMessage={t('fields.customerNothingFound')}
       filter={({ options: opts }) => opts}
       searchValue={search}

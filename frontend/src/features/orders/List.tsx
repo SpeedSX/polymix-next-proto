@@ -10,6 +10,7 @@ import { useTranslation } from 'react-i18next'
 import { useApi } from '../../lib/api'
 import { formatMoney } from '../../lib/money'
 import { fetchOrders, ordersKeys } from './api'
+import { CustomerSelect } from './CustomerSelect'
 import { ORDER_STATUSES } from './types'
 import type { Order, OrderStatus } from './types'
 
@@ -114,11 +115,13 @@ export function OrderList() {
             setPage(1)
           }}
         />
-        <TextInput
+        <CustomerSelect
+          label={null}
+          required={false}
           placeholder={t('list.filterCustomer')}
           value={customerId}
-          onChange={(event) => {
-            setCustomerId(event.currentTarget.value)
+          onChange={(next) => {
+            setCustomerId(next)
             setPage(1)
           }}
         />

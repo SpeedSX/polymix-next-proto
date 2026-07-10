@@ -161,16 +161,16 @@ fn non_empty_q(q: &Option<String>) -> Option<&str> {
     q.as_deref().filter(|s| !s.is_empty())
 }
 
-// The four searchable fields, matching migrations/0004_search.surql's
-// per-field FULLTEXT indexes. Each field is queried as its OWN statement
-// (all sent in one request) and the results merged in Rust, instead of one
+// The searchable fields, matching migrations/0004_search.surql's per-field
+// FULLTEXT indexes. Each field is queried as its OWN statement (all sent in
+// one request) and the results merged in Rust, instead of one
 // `field1 @0@ $q OR field2 @1@ $q ...` query: the OR form costs ~105ms
 // server-side for a common prefix on the seeded 50k-customer tenant, while
-// the same four predicates as separate statements cost ~10-20ms each —
+// the same predicates as separate statements cost ~10-20ms each —
 // SurrealDB 3.2 can push the LIMIT into a single-index FullTextScan but not
 // into a multi-index OR. Measured in examples/perf_probe.rs; see
 // docs/adr/0006-tenant-session-cache-and-search-split.md.
-const SEARCH_FIELDS: &[&str] = &["name", "contact_name", "email", "address.city"];
+const SEARCH_FIELDS: &[&str] = &["name", "contact_name", "email"];
 
 /// Caps how many rows each per-field search statement returns for the
 /// paged list: deep pagination over merged rankings would otherwise force
@@ -340,8 +340,8 @@ impl CustomerRepo for SurrealCustomerRepo {
     async fn search(&self, q: &str, limit: u32) -> Result<Vec<domain::SearchHit>, DomainError> {
         // One statement per field, merged in Rust — see SEARCH_FIELDS.
         // `search::highlight(..., 0)` in each statement highlights that
-        // statement's own field, so a contact_name/email/city match shows
-        // the matched fragment instead of falling back to the plain label.
+        // statement's own field, so a contact_name/email match shows the
+        // matched fragment instead of falling back to the plain label.
         let mut statements = String::new();
         for field in SEARCH_FIELDS {
             statements.push_str(&format!(

@@ -21,18 +21,18 @@ const TERMS: &[&str] = &[
 ];
 
 const CUSTOMER_HIT_QUERY: &str = "SELECT id, name AS label, search::highlight('<b>', '</b>', 0) AS highlight, \
-     (search::score(0) + search::score(1) + search::score(2) + search::score(3)) AS score \
+     (search::score(0) + search::score(1) + search::score(2)) AS score \
      FROM customer \
-     WHERE name @0@ $q OR contact_name @1@ $q OR email @2@ $q OR address.city @3@ $q \
+     WHERE name @0@ $q OR contact_name @1@ $q OR email @2@ $q \
      ORDER BY score DESC LIMIT 5";
 
-const CUSTOMER_LIST_QUERY: &str = "SELECT *, (search::score(0) + search::score(1) + search::score(2) + search::score(3)) AS score \
+const CUSTOMER_LIST_QUERY: &str = "SELECT *, (search::score(0) + search::score(1) + search::score(2)) AS score \
      FROM customer \
-     WHERE name @0@ $q OR contact_name @1@ $q OR email @2@ $q OR address.city @3@ $q \
+     WHERE name @0@ $q OR contact_name @1@ $q OR email @2@ $q \
      ORDER BY score DESC LIMIT 25 START 0";
 
 const CUSTOMER_COUNT_QUERY: &str = "SELECT count() FROM (SELECT id FROM customer \
-     WHERE name @0@ $q OR contact_name @1@ $q OR email @2@ $q OR address.city @3@ $q) GROUP ALL";
+     WHERE name @0@ $q OR contact_name @1@ $q OR email @2@ $q) GROUP ALL";
 
 const ORDER_HIT_QUERY: &str = "SELECT id, number AS label, search::highlight('<b>', '</b>', 0) AS highlight, \
      (search::score(0) + search::score(1)) AS score \
@@ -138,7 +138,7 @@ async fn main() -> anyhow::Result<()> {
         CUSTOMER_COUNT_QUERY,
     )
     .await?;
-    for field in ["name", "contact_name", "email", "address.city"] {
+    for field in ["name", "contact_name", "email"] {
         bench_query(
             &format!("E: single field: {field} (warm)"),
             &warm,

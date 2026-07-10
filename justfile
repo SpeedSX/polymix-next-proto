@@ -9,9 +9,9 @@ container_runtime := `command -v docker >/dev/null 2>&1 && echo docker || echo p
 # and re-fires it — the resulting self-signal re-entrancy is what crashes
 # MSYS2's runtime into a stackdump on Windows.
 dev:
-    {{container_runtime}} compose -f deploy/compose.yaml up -d --wait
+    {{container_runtime}} compose -f deploy/compose.rocksdb.yaml up -d --wait
     trap 'kill $(jobs -p) 2>/dev/null' EXIT INT TERM; \
-    (cd backend && AUTH_DEV_MODE=true PORT=8080 cargo run -p api) & \
+    (cd backend && AUTH_DEV_MODE=true PORT=8080 SURREALDB_URL=ws://localhost:8001 cargo run -p api) & \
     (cd frontend && npm run dev) & \
     wait
 
