@@ -1,11 +1,12 @@
 import { useState } from 'react'
-import { ActionIcon, Alert, Button, Group, NumberInput, Stack, Table, Text, Textarea, TextInput } from '@mantine/core'
+import { ActionIcon, Alert, Button, Group, NumberInput, Select, Stack, Table, Text, Textarea, TextInput } from '@mantine/core'
 import { useForm, zodResolver } from '@mantine/form'
 import { useTranslation } from 'react-i18next'
 
 import { ApiError } from '../../lib/api'
 import { formatMoney, toMinorUnits } from '../../lib/money'
-import { mapApiErrorField, orderFormSchema, toNewOrder } from './types'
+import { CustomerSelect } from './CustomerSelect'
+import { CURRENCY_OPTIONS, mapApiErrorField, orderFormSchema, toNewOrder } from './types'
 import type { Order, OrderFormValues } from './types'
 
 export interface OrderFormProps {
@@ -25,6 +26,9 @@ export function OrderForm({ initialValues, onSubmit, onSuccess, onCancel }: Orde
   })
 
   const currency = form.values.currency.toUpperCase()
+  const currencyOptions = CURRENCY_OPTIONS.includes(currency as (typeof CURRENCY_OPTIONS)[number])
+    ? CURRENCY_OPTIONS
+    : [...CURRENCY_OPTIONS, currency]
   const total = form.values.lineItems.reduce((sum, item) => {
     const unitPriceMinor = toMinorUnits(item.unitPrice, currency, i18n.language)
     return sum + (Number.isFinite(unitPriceMinor) ? unitPriceMinor : 0) * (item.quantity || 0)
@@ -63,8 +67,13 @@ export function OrderForm({ initialValues, onSubmit, onSuccess, onCancel }: Orde
       <Stack maw={720}>
         {formError && <Alert color="red">{formError}</Alert>}
         <Group grow>
-          <TextInput label={t('fields.customerId')} withAsterisk {...form.getInputProps('customerId')} />
-          <TextInput label={t('fields.currency')} withAsterisk maxLength={3} {...form.getInputProps('currency')} />
+          <CustomerSelect {...form.getInputProps('customerId')} />
+          <Select
+            label={t('fields.currency')}
+            withAsterisk
+            data={[...currencyOptions]}
+            {...form.getInputProps('currency')}
+          />
         </Group>
 
         <Table>

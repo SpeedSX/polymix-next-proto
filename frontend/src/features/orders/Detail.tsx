@@ -89,7 +89,7 @@ export function OrderDetail() {
       </Group>
       {actionError && <Alert color="red">{actionError}</Alert>}
       <Text>
-        {t('fields.customer')}: {order.customer_id}
+        {t('fields.customer')}: {order.customer_name ?? order.customer_id}
       </Text>
 
       <Table>

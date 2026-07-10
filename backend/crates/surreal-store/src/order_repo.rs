@@ -114,6 +114,7 @@ struct OrderRow {
     id: RecordId,
     number: String,
     customer_id: String,
+    customer_name: Option<String>,
     status: String,
     currency: String,
     line_items: Vec<LineItemRow>,
@@ -181,6 +182,7 @@ impl TryFrom<OrderRow> for Order {
             id: record_key(&row.id),
             number: row.number,
             customer_id: row.customer_id,
+            customer_name: row.customer_name,
             status: status_from_str(&row.status)?,
             currency: row.currency,
             line_items: row.line_items.into_iter().map(LineItem::from).collect(),
@@ -223,6 +225,11 @@ fn non_empty_q(q: &Option<String>) -> Option<&str> {
 // see docs/adr/0003-order-search-excludes-line-items.md.
 const SEARCH_CONDITION: &str = "(number @0@ $q OR notes @1@ $q)";
 const SEARCH_SCORE: &str = "(search::score(0) + search::score(1))";
+
+// `customer_id` is a plain string key, not a record link, so it must be
+// re-formed into a record id before the name can be dereferenced.
+const CUSTOMER_NAME_PROJECTION: &str =
+    "type::record('customer', customer_id).name AS customer_name";
 
 /// Builds the `WHERE` clause shared by the list and count queries. Returns
 /// an empty string when no filters apply.
@@ -300,12 +307,12 @@ impl OrderRepo for SurrealOrderRepo {
 
         let mut list_query = if q.is_some() {
             self.session.query(format!(
-                "SELECT *, {SEARCH_SCORE} AS score FROM type::table($table) {filters} ORDER BY score DESC LIMIT $limit START $start"
+                "SELECT *, {CUSTOMER_NAME_PROJECTION}, {SEARCH_SCORE} AS score FROM type::table($table) {filters} ORDER BY score DESC LIMIT $limit START $start"
             ))
         } else {
             let order = sort_clause(&query.sort)?;
             self.session.query(format!(
-                "SELECT * FROM type::table($table) {filters} ORDER BY {order} LIMIT $limit START $start"
+                "SELECT *, {CUSTOMER_NAME_PROJECTION} FROM type::table($table) {filters} ORDER BY {order} LIMIT $limit START $start"
             ))
         }
         .bind(("table", TABLE))
@@ -363,8 +370,17 @@ impl OrderRepo for SurrealOrderRepo {
     }
 
     async fn get(&self, id: &str) -> Result<Option<Order>, DomainError> {
-        let row: Option<OrderRow> = self.session.select((TABLE, id)).await.map_err(map_err)?;
-        row.map(Order::try_from).transpose()
+        let mut response = self
+            .session
+            .query(format!(
+                "SELECT *, {CUSTOMER_NAME_PROJECTION} FROM type::record($table, $id)"
+            ))
+            .bind(("table", TABLE))
+            .bind(("id", id.to_string()))
+            .await
+            .map_err(map_err)?;
+        let rows: Vec<OrderRow> = response.take(0).map_err(map_err)?;
+        rows.into_iter().next().map(Order::try_from).transpose()
     }
 
     async fn create(&self, data: NewOrder, tenant: &Tenant) -> Result<Order, DomainError> {
@@ -388,15 +404,18 @@ impl OrderRepo for SurrealOrderRepo {
             updated_at: now,
         };
 
-        let row: Option<OrderRow> = self
+        // Mutations return the stored row, which lacks the read-time
+        // customer_name join — re-fetch through `get` for the full shape.
+        let row: Option<IdOnly> = self
             .session
-            .create((TABLE, id))
+            .create((TABLE, id.clone()))
             .content(content)
             .await
             .map_err(map_err)?;
+        row.ok_or_else(|| DomainError::Store("order create returned no row".to_string()))?;
 
-        row.map(Order::try_from)
-            .transpose()?
+        self.get(&id)
+            .await?
             .ok_or_else(|| DomainError::Store("order create returned no row".to_string()))
     }
 
@@ -420,16 +439,15 @@ impl OrderRepo for SurrealOrderRepo {
             updated_at: now,
         };
 
-        let row: Option<OrderRow> = self
+        let row: Option<IdOnly> = self
             .session
             .update((TABLE, id))
             .content(content)
             .await
             .map_err(map_err)?;
+        row.ok_or(DomainError::NotFound)?;
 
-        row.map(Order::try_from)
-            .transpose()?
-            .ok_or(DomainError::NotFound)
+        self.get(id).await?.ok_or(DomainError::NotFound)
     }
 
     async fn delete(&self, id: &str) -> Result<(), DomainError> {
@@ -438,7 +456,7 @@ impl OrderRepo for SurrealOrderRepo {
                 "order has an invoice and cannot be deleted".to_string(),
             ));
         }
-        let row: Option<OrderRow> = self.session.delete((TABLE, id)).await.map_err(map_err)?;
+        let row: Option<IdOnly> = self.session.delete((TABLE, id)).await.map_err(map_err)?;
         row.map(|_| ()).ok_or(DomainError::NotFound)
     }
 
@@ -450,16 +468,15 @@ impl OrderRepo for SurrealOrderRepo {
             status: status_to_str(status).to_string(),
             updated_at: chrono::Utc::now().to_rfc3339(),
         };
-        let row: Option<OrderRow> = self
+        let row: Option<IdOnly> = self
             .session
             .update((TABLE, id))
             .merge(patch)
             .await
             .map_err(map_err)?;
+        row.ok_or(DomainError::NotFound)?;
 
-        row.map(Order::try_from)
-            .transpose()?
-            .ok_or(DomainError::NotFound)
+        self.get(id).await?.ok_or(DomainError::NotFound)
     }
 
     async fn search(&self, q: &str, limit: u32) -> Result<Vec<domain::SearchHit>, DomainError> {

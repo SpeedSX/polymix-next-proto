@@ -59,7 +59,11 @@ export function OrderList() {
   const columns = useMemo(
     () => [
       columnHelper.accessor('number', { header: t('fields.number') }),
-      columnHelper.accessor('customer_id', { header: t('fields.customer') }),
+      columnHelper.accessor((row) => row.customer_name ?? row.customer_id, {
+        id: 'customer_name',
+        header: t('fields.customer'),
+        enableSorting: false,
+      }),
       columnHelper.accessor('status', {
         header: t('fields.status'),
         cell: (info) => <Badge>{t(`status.${info.getValue()}`)}</Badge>,

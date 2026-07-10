@@ -5,6 +5,12 @@ import { fromMinorUnits, MONEY_DECIMAL_PATTERN, toMinorUnits } from '../../lib/m
 export const ORDER_STATUSES = ['draft', 'confirmed', 'in_production', 'completed', 'cancelled'] as const
 export type OrderStatus = (typeof ORDER_STATUSES)[number]
 
+// Currencies the seeded `exchange_rate` table (surreal-store/src/exchange_rate.rs)
+// carries snapshots for — the only ones worth offering, since any other ISO
+// 4217 code would price fine but never show a converted amount (M4's
+// "informational only" rate snapshot).
+export const CURRENCY_OPTIONS = ['EUR', 'USD', 'GBP', 'UAH'] as const
+
 // Mirrors domain::order::validate_transition — kept in sync manually since
 // the frontend has no access to the Rust domain crate.
 export const ORDER_TRANSITIONS: Record<OrderStatus, OrderStatus[]> = {
@@ -33,6 +39,7 @@ export interface Order {
   id: string
   number: string
   customer_id: string
+  customer_name: string | null
   status: OrderStatus
   currency: string
   line_items: LineItem[]

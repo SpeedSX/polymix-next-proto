@@ -111,7 +111,10 @@ mod tests {
     fn inverting_base_and_quote_round_trips() {
         let eur_to_uah: f64 = compute_rate("EUR", "UAH").unwrap().parse().unwrap();
         let uah_to_eur: f64 = compute_rate("UAH", "EUR").unwrap().parse().unwrap();
-        assert!((eur_to_uah * uah_to_eur - 1.0).abs() < 1e-6);
+        // Rates are stored to 4 decimal places, so a round trip through the
+        // inverse pair carries that rounding error twice (~1.25e-3 for the
+        // EUR/UAH magnitude) — 1e-6 is tighter than the format can deliver.
+        assert!((eur_to_uah * uah_to_eur - 1.0).abs() < 3e-3);
     }
 
     #[test]

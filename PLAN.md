@@ -499,15 +499,19 @@ Each milestone ends runnable and demoable, with explicit acceptance criteria.
    `ua` locale files for every namespace; language switcher; all dates/numbers locale-formatted; invoice in a non-default currency with rate snapshot from the seeded `exchange_rate` table; display-only converted amount ("≈ UAH 1,234.56") on the invoice detail; Order and Invoice table prefixes are configured at organization level - default is empty so no prefix displayed, just number; admin prefix edit out-of-scope; create and seed database 100 customers, 1000 orders with ukrainian names.
    **Done when:** switching to `ua` translates every screen (no raw keys, no leftover English in the main flows) and reformats dates/numbers; an invoice created in USD on a EUR tenant stores the rate snapshot and renders both amounts; money round-trips through forms without losing cents (unit tests on the minor-units conversion).
 
-6. **M5 — Live updates.**
+6. **M4.1 — Order screen: customer & currency selection.**
+   Order create/edit form gets an explicit **customer selector** (searchable Mantine `Select`/autocomplete backed by the customer FTS from M3 — type-ahead, shows name, resolves to `customer_id`; required, validated) and a **currency selector** (ISO 4217 options; defaults to the tenant default currency, editable per order; line-item unit prices and the computed total render in the chosen currency). No new backend fields — `order.customer_id` and `order.currency` already exist in the data model; this wires the UI to set them deliberately instead of relying on defaults.
+   **Done when:** creating an order lets the user search and pick a customer (no manual id entry) and pick a currency other than the tenant default; the selected currency drives money formatting on the form and the saved order; validation rejects an order with no customer selected; existing order CRUD and totals tests stay green.
+
+7. **M5 — Live updates.**
    Hub + live queries per the WS spec; frontend WS client with reconnect + invalidate-on-reconnect; optimistic updates on edit/transition mutations. Build order, module layout, and per-step tests: see **M5 work breakdown (Live updates)** above.
    **Done when:** two browsers on one tenant — an edit in one appears in the other within 1 s without user action, on both list and detail views; a browser on a second tenant sees nothing (integration test: WS client of tenant B receives no event for tenant A's mutation — mandatory); killing and restarting SurrealDB recovers live updates without a page reload.
 
-7. **M6 — Cloud + perf pass.**
+8. **M6 — Cloud + perf pass.**
    Dockerfiles (multi-stage; frontend served by nginx); fly.toml for api + SurrealDB (volume-backed) + static frontend; the three items in **Operational hardening (M6)** — startup retry, CORS from config, readiness endpoint; k6 scripts for search, list pagination, and mutation fan-out with 100 concurrent WS clients; numbers recorded in `/docs/perf.md` against the NFR targets.
    **Done when:** the demo runs on Fly.io URLs end-to-end including Clerk sign-in; starting the API before SurrealDB recovers without manual intervention (integration test); `/api/ready` flips 503 ↔ 200 as the DB goes down/up (integration test); a non-dev start without `CORS_ALLOWED_ORIGINS` fails with a clear error, and a preflight from an unlisted origin gets no `Access-Control-Allow-Origin` header; k6 runs are scripted (`/deploy/k6/`), repeatable, and their p95s are written to `/docs/perf.md` with a pass/fail verdict per NFR.
 
-8. **M7 — Customer portal + instant quote** (post-prototype candidate): public product configurator with a parametric pricing engine. This is the first item of the post-prototype roadmap below; its design is already written (`docs/instant-quote.md`, `docs/product-configuration.md`, and the normative `docs/quote-engine-spec.md`).
+9. **M7 — Customer portal + instant quote** (post-prototype candidate): public product configurator with a parametric pricing engine. This is the first item of the post-prototype roadmap below; its design is already written (`docs/instant-quote.md`, `docs/product-configuration.md`, and the normative `docs/quote-engine-spec.md`).
 
 ## Testing
 

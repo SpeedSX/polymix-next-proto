@@ -95,6 +95,9 @@ pub struct Order {
     pub id: String,
     pub number: String,
     pub customer_id: String,
+    /// Resolved from the customer record at read time — not stored on the
+    /// order. `None` when the referenced customer no longer exists.
+    pub customer_name: Option<String>,
     pub status: OrderStatus,
     pub currency: String,
     pub line_items: Vec<LineItem>,

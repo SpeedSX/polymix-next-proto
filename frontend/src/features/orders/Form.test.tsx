@@ -1,26 +1,54 @@
 import { fireEvent, render, screen } from '@testing-library/react'
 import { MantineProvider } from '@mantine/core'
-import { describe, expect, it, vi } from 'vitest'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import '../../lib/i18n'
 import { ApiError } from '../../lib/api'
+import { AuthContext } from '../../lib/auth/context'
+import type { Customer } from '../customers/types'
 import { OrderForm } from './Form'
 import { emptyOrderFormValues } from './types'
+
+vi.mock('../customers/api', () => ({
+  fetchCustomers: vi.fn(),
+  fetchCustomer: vi.fn(),
+}))
+
+const { fetchCustomer, fetchCustomers } = await import('../customers/api')
+
+const CUSTOMER: Customer = {
+  id: 'customer1',
+  name: 'Acme Print',
+  contact_name: null,
+  email: null,
+  phone: null,
+  address: null,
+  notes: null,
+  created_at: '2026-01-01T00:00:00Z',
+  updated_at: '2026-01-01T00:00:00Z',
+}
 
 function renderForm(props: Partial<React.ComponentProps<typeof OrderForm>> = {}) {
   const onSubmit = vi.fn()
   const onSuccess = vi.fn()
   const onCancel = vi.fn()
 
+  const queryClient = new QueryClient()
+
   const { container } = render(
     <MantineProvider>
-      <OrderForm
-        initialValues={emptyOrderFormValues('USD')}
-        onSubmit={onSubmit}
-        onSuccess={onSuccess}
-        onCancel={onCancel}
-        {...props}
-      />
+      <QueryClientProvider client={queryClient}>
+        <AuthContext.Provider value={{ mode: 'dev', orgId: 'org1', getToken: async () => 'token', signOut: () => {} }}>
+          <OrderForm
+            initialValues={emptyOrderFormValues('USD')}
+            onSubmit={onSubmit}
+            onSuccess={onSuccess}
+            onCancel={onCancel}
+            {...props}
+          />
+        </AuthContext.Provider>
+      </QueryClientProvider>
     </MantineProvider>,
   )
 
@@ -29,11 +57,47 @@ function renderForm(props: Partial<React.ComponentProps<typeof OrderForm>> = {})
   return { onSubmit, onSuccess, onCancel, getField }
 }
 
+async function selectCustomer(getField: (path: string) => HTMLInputElement) {
+  const input = getField('customerId')
+  fireEvent.click(input)
+  fireEvent.focus(input)
+  fireEvent.click(await screen.findByText('Acme Print'))
+}
+
 describe('OrderForm', () => {
+  beforeEach(() => {
+    vi.mocked(fetchCustomers).mockResolvedValue({ items: [CUSTOMER], total: 1, page: 1, limit: 20 })
+    vi.mocked(fetchCustomer).mockResolvedValue(CUSTOMER)
+  })
+
+  it('lets the user search and pick a customer instead of typing an id', async () => {
+    const onSubmit = vi.fn().mockResolvedValue({})
+    const { getField } = renderForm({ onSubmit })
+
+    await selectCustomer(getField)
+    fireEvent.change(getField('lineItems.0.description'), { target: { value: 'Business cards' } })
+    fireEvent.change(getField('lineItems.0.unitPrice'), { target: { value: '10.00' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Save' }))
+
+    await vi.waitFor(() => expect(onSubmit).toHaveBeenCalled())
+    expect(onSubmit.mock.calls[0][0]).toMatchObject({ customer_id: 'customer1' })
+  })
+
+  it('rejects submission when no customer is selected', async () => {
+    const { onSubmit, getField } = renderForm()
+
+    fireEvent.change(getField('lineItems.0.description'), { target: { value: 'Business cards' } })
+    fireEvent.change(getField('lineItems.0.unitPrice'), { target: { value: '10.00' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Save' }))
+
+    expect(await screen.findByText('String must contain at least 1 character(s)')).toBeInTheDocument()
+    expect(onSubmit).not.toHaveBeenCalled()
+  })
+
   it('blocks submission when unit price is not a decimal amount', async () => {
     const { onSubmit, getField } = renderForm()
 
-    fireEvent.change(getField('customerId'), { target: { value: 'customer1' } })
+    await selectCustomer(getField)
     fireEvent.change(getField('lineItems.0.description'), { target: { value: 'Business cards' } })
     fireEvent.change(getField('lineItems.0.unitPrice'), { target: { value: 'abc' } })
     fireEvent.click(screen.getByRole('button', { name: 'Save' }))
@@ -52,7 +116,7 @@ describe('OrderForm', () => {
     )
     const { getField } = renderForm({ onSubmit })
 
-    fireEvent.change(getField('customerId'), { target: { value: 'customer1' } })
+    await selectCustomer(getField)
     fireEvent.change(getField('lineItems.0.description'), { target: { value: 'Business cards' } })
     fireEvent.change(getField('lineItems.0.unitPrice'), { target: { value: '10.00' } })
     fireEvent.click(screen.getByRole('button', { name: 'Save' }))
@@ -70,7 +134,7 @@ describe('OrderForm', () => {
     )
     const { getField } = renderForm({ onSubmit })
 
-    fireEvent.change(getField('customerId'), { target: { value: 'customer1' } })
+    await selectCustomer(getField)
     fireEvent.change(getField('lineItems.0.description'), { target: { value: 'Business cards' } })
     fireEvent.change(getField('lineItems.0.unitPrice'), { target: { value: '10.00' } })
     fireEvent.click(screen.getByRole('button', { name: 'Save' }))
@@ -88,7 +152,7 @@ describe('OrderForm', () => {
     )
     const { getField } = renderForm({ onSubmit })
 
-    fireEvent.change(getField('customerId'), { target: { value: 'customer1' } })
+    await selectCustomer(getField)
     fireEvent.change(getField('lineItems.0.description'), { target: { value: 'Business cards' } })
     fireEvent.change(getField('lineItems.0.unitPrice'), { target: { value: '10.00' } })
     fireEvent.click(screen.getByRole('button', { name: 'Save' }))
