@@ -97,7 +97,7 @@ pub struct Invoice {
 
 #[derive(Debug, Clone, Deserialize, Validate)]
 pub struct NewInvoice {
-    #[validate(length(min = 1, message = "must not be empty"))]
+    #[validate(length(min = 1, code = "required"))]
     pub order_id: String,
     /// Optional currency override — must equal the order's own currency, the
     /// only value accepted (multi-currency accounting beyond the
@@ -119,7 +119,7 @@ impl NewInvoice {
 /// Rejected with `409` unless the invoice is still a draft.
 #[derive(Debug, Clone, Deserialize, Validate)]
 pub struct UpdateInvoice {
-    #[validate(length(min = 1, message = "must have at least one line item"), nested)]
+    #[validate(length(min = 1, code = "min_line_items"), nested)]
     pub line_items: Vec<LineItem>,
 }
 

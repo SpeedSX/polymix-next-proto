@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use serde::{Deserialize, Serialize};
 use validator::Validate;
 
-use crate::error::{ConflictReason, DomainError};
+use crate::error::{ConflictReason, DomainError, FieldError};
 use crate::money::Money;
 use crate::tenant::Tenant;
 
@@ -49,9 +49,9 @@ pub fn validate_transition(current: OrderStatus, target: OrderStatus) -> Result<
 
 #[derive(Debug, Clone, Serialize, Deserialize, Validate)]
 pub struct LineItem {
-    #[validate(length(min = 1, message = "must not be empty"))]
+    #[validate(length(min = 1, code = "required"))]
     pub description: String,
-    #[validate(range(min = 1, message = "must be greater than zero"))]
+    #[validate(range(min = 1, code = "positive_quantity"))]
     pub quantity: u32,
     #[validate(nested)]
     pub unit_price: Money,
@@ -84,7 +84,10 @@ pub fn validate_line_item_currencies(
         let mut details = HashMap::new();
         details.insert(
             "line_items".to_string(),
-            format!("unit_price currency must match the order currency ({currency})"),
+            FieldError::with_params(
+                "currency_mismatch",
+                HashMap::from([("currency".to_string(), currency.to_string())]),
+            ),
         );
         return Err(DomainError::Validation(details));
     }
@@ -110,10 +113,10 @@ pub struct Order {
 
 #[derive(Debug, Clone, Deserialize, Validate)]
 pub struct NewOrder {
-    #[validate(length(min = 1, message = "must not be empty"))]
+    #[validate(length(min = 1, code = "required"))]
     pub customer_id: String,
     pub currency: Option<String>,
-    #[validate(length(min = 1, message = "must have at least one line item"), nested)]
+    #[validate(length(min = 1, code = "min_line_items"), nested)]
     pub line_items: Vec<LineItem>,
     pub notes: Option<String>,
 }

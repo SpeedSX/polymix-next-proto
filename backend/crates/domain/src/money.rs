@@ -3,9 +3,9 @@ use validator::Validate;
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Validate)]
 pub struct Money {
-    #[validate(range(min = 0, message = "must not be negative"))]
+    #[validate(range(min = 0, code = "not_negative"))]
     pub amount_minor: i64,
-    #[validate(length(equal = 3, message = "must be an ISO 4217 code"))]
+    #[validate(length(equal = 3, code = "invalid_currency_code"))]
     pub currency: String,
 }
 

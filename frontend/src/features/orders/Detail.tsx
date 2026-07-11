@@ -46,8 +46,8 @@ export function OrderDetail() {
       if (err instanceof ApiError && err.code === 'order_status_transition' && err.details) {
         setActionError(
           t('errors.order_status_transition', {
-            from: t(`status.${err.details.from}`),
-            to: t(`status.${err.details.to}`),
+            from: t(`status.${String(err.details.from)}`),
+            to: t(`status.${String(err.details.to)}`),
           }),
         )
       } else {

@@ -3,7 +3,7 @@ use std::sync::Arc;
 
 use async_trait::async_trait;
 use domain::Paged;
-use domain::error::{ConflictReason, DomainError};
+use domain::error::{ConflictReason, DomainError, FieldError};
 use domain::money::Money;
 use domain::order::{
     LineItem, NewOrder, Order, OrderListQuery, OrderRepo, OrderStatus, line_items_total,
@@ -170,7 +170,7 @@ fn map_err(err: surrealdb::Error) -> DomainError {
 
 fn customer_not_found_error() -> DomainError {
     let mut details = HashMap::new();
-    details.insert("customer_id".to_string(), "customer not found".to_string());
+    details.insert("customer_id".to_string(), FieldError::code("not_found"));
     DomainError::Validation(details)
 }
 
@@ -207,7 +207,10 @@ fn sort_clause(sort: &str) -> Result<String, DomainError> {
     };
     if !ALLOWED_SORT_FIELDS.contains(&field) {
         let mut details = HashMap::new();
-        details.insert("sort".to_string(), format!("unknown sort field: {field}"));
+        details.insert(
+            "sort".to_string(),
+            FieldError::with_params("unknown_sort_field", HashMap::from([("field".to_string(), field.to_string())])),
+        );
         return Err(DomainError::Validation(details));
     }
     Ok(format!("{field} {dir}"))

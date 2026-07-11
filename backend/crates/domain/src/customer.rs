@@ -8,7 +8,7 @@ pub struct Address {
     pub street: Option<String>,
     pub zip: Option<String>,
     pub city: Option<String>,
-    #[validate(length(equal = 2, message = "must be an ISO 3166-1 alpha-2 code"))]
+    #[validate(length(equal = 2, code = "invalid_country_code"))]
     pub country: Option<String>,
 }
 
@@ -27,10 +27,10 @@ pub struct Customer {
 
 #[derive(Debug, Clone, Deserialize, Validate)]
 pub struct NewCustomer {
-    #[validate(length(min = 1, message = "must not be empty"))]
+    #[validate(length(min = 1, code = "required"))]
     pub name: String,
     pub contact_name: Option<String>,
-    #[validate(email(message = "must be a valid email"))]
+    #[validate(email(code = "invalid_email"))]
     pub email: Option<String>,
     pub phone: Option<String>,
     #[validate(nested)]

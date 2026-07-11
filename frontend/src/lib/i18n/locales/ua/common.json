@@ -12,5 +12,15 @@
   "auth.selectOrganization": "Оберіть організацію, щоб продовжити",
   "lang.label": "Мова",
   "lang.en": "English",
-  "lang.ua": "Українська"
+  "lang.ua": "Українська",
+  "validation.required": "Це поле обов'язкове.",
+  "validation.invalid_email": "Введіть дійсну електронну адресу.",
+  "validation.invalid_country_code": "Має бути кодом країни ISO 3166-1 alpha-2.",
+  "validation.invalid_currency_code": "Має бути кодом валюти ISO 4217.",
+  "validation.not_negative": "Не може бути від'ємним.",
+  "validation.positive_quantity": "Має бути більше нуля.",
+  "validation.min_line_items": "Має містити принаймні одну позицію.",
+  "validation.not_found": "Цей запис не знайдено.",
+  "validation.unknown_sort_field": "Невідоме поле сортування: {field}.",
+  "validation.currency_mismatch": "Має відповідати валюті замовлення ({currency})."
 }

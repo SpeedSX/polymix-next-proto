@@ -3,7 +3,7 @@ import { ActionIcon, Alert, Button, Group, NumberInput, Stack, Table, Text, Text
 import { useForm, zodResolver } from '@mantine/form'
 import { useTranslation } from 'react-i18next'
 
-import { ApiError, apiErrorMessage } from '../../lib/api'
+import { ApiError, apiErrorMessage, validationMessage } from '../../lib/api'
 import { formatMoney, toMinorUnits } from '../../lib/money'
 import { invoiceFormSchema, mapApiErrorField, toUpdateInvoice } from './types'
 import type { Invoice, InvoiceFormValues } from './types'
@@ -39,8 +39,9 @@ export function InvoiceForm({ initialValues, currency, onSubmit, onSuccess, onCa
     } catch (err) {
       if (err instanceof ApiError && err.code === 'validation_failed' && err.details) {
         const unmatched: string[] = []
-        for (const [field, message] of Object.entries(err.details)) {
+        for (const [field, fieldError] of Object.entries(err.details)) {
           const mappedField = mapApiErrorField(field)
+          const message = validationMessage(fieldError, t)
           if (mappedField) {
             form.setFieldError(mappedField, message)
           } else {

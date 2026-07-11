@@ -12,5 +12,15 @@
   "auth.selectOrganization": "Select an organization to continue",
   "lang.label": "Language",
   "lang.en": "English",
-  "lang.ua": "Ukrainian"
+  "lang.ua": "Ukrainian",
+  "validation.required": "This field is required.",
+  "validation.invalid_email": "Must be a valid email address.",
+  "validation.invalid_country_code": "Must be an ISO 3166-1 alpha-2 country code.",
+  "validation.invalid_currency_code": "Must be an ISO 4217 currency code.",
+  "validation.not_negative": "Must not be negative.",
+  "validation.positive_quantity": "Must be greater than zero.",
+  "validation.min_line_items": "Must have at least one line item.",
+  "validation.not_found": "This record could not be found.",
+  "validation.unknown_sort_field": "Unknown sort field: {field}.",
+  "validation.currency_mismatch": "Must match the order's currency ({currency})."
 }

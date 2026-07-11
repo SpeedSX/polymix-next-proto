@@ -54,8 +54,8 @@ export function InvoiceDetail() {
       if (err instanceof ApiError && err.code === 'invoice_status_transition' && err.details) {
         setActionError(
           t('errors.invoice_status_transition', {
-            from: t(`status.${err.details.from}`),
-            to: t(`status.${err.details.to}`),
+            from: t(`status.${String(err.details.from)}`),
+            to: t(`status.${String(err.details.to)}`),
           }),
         )
       } else {

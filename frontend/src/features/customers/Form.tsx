@@ -3,7 +3,7 @@ import { Alert, Button, Group, Stack, Textarea, TextInput } from '@mantine/core'
 import { useForm, zodResolver } from '@mantine/form'
 import { useTranslation } from 'react-i18next'
 
-import { ApiError, apiErrorMessage } from '../../lib/api'
+import { ApiError, apiErrorMessage, validationMessage } from '../../lib/api'
 import { customerFormSchema, mapApiErrorField, toNewCustomer } from './types'
 import type { Customer, CustomerFormValues } from './types'
 
@@ -31,8 +31,8 @@ export function CustomerForm({ initialValues, onSubmit, onSuccess, onCancel }: C
       onSuccess(customer)
     } catch (err) {
       if (err instanceof ApiError && err.code === 'validation_failed' && err.details) {
-        for (const [field, message] of Object.entries(err.details)) {
-          form.setFieldError(mapApiErrorField(field), message)
+        for (const [field, fieldError] of Object.entries(err.details)) {
+          form.setFieldError(mapApiErrorField(field), validationMessage(fieldError, t))
         }
       } else {
         setFormError(apiErrorMessage(err, t, 'form.unexpectedError'))

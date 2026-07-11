@@ -3,7 +3,7 @@ use std::sync::Arc;
 
 use async_trait::async_trait;
 use domain::customer::{Address, Customer, CustomerRepo, ListQuery, NewCustomer, Paged};
-use domain::error::{ConflictReason, DomainError};
+use domain::error::{ConflictReason, DomainError, FieldError};
 use surrealdb::Surreal;
 use surrealdb::engine::any::Any;
 use surrealdb::types::{RecordId, RecordIdKey, SurrealValue};
@@ -151,7 +151,13 @@ fn sort_clause(sort: &str) -> Result<String, DomainError> {
     };
     if !ALLOWED_SORT_FIELDS.contains(&field) {
         let mut details = std::collections::HashMap::new();
-        details.insert("sort".to_string(), format!("unknown sort field: {field}"));
+        details.insert(
+            "sort".to_string(),
+            FieldError::with_params(
+                "unknown_sort_field",
+                std::collections::HashMap::from([("field".to_string(), field.to_string())]),
+            ),
+        );
         return Err(DomainError::Validation(details));
     }
     Ok(format!("{field} {dir}"))

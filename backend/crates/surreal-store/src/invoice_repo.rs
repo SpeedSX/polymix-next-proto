@@ -3,7 +3,7 @@ use std::sync::Arc;
 
 use async_trait::async_trait;
 use domain::Paged;
-use domain::error::{ConflictReason, DomainError};
+use domain::error::{ConflictReason, DomainError, FieldError};
 use domain::invoice::{
     DEFAULT_TAX_RATE_BP, Invoice, InvoiceListQuery, InvoiceRepo, InvoiceStatus, NewInvoice,
     UpdateInvoice, can_edit, compute_gross, compute_tax, due_date_from_issue, validate_transition,
@@ -197,7 +197,10 @@ fn sort_clause(sort: &str) -> Result<String, DomainError> {
     };
     if !ALLOWED_SORT_FIELDS.contains(&field) {
         let mut details = HashMap::new();
-        details.insert("sort".to_string(), format!("unknown sort field: {field}"));
+        details.insert(
+            "sort".to_string(),
+            FieldError::with_params("unknown_sort_field", HashMap::from([("field".to_string(), field.to_string())])),
+        );
         return Err(DomainError::Validation(details));
     }
     Ok(format!("{field} {dir}"))
@@ -232,7 +235,7 @@ fn where_clause(query: &InvoiceListQuery) -> String {
 
 fn order_not_found_error() -> DomainError {
     let mut details = HashMap::new();
-    details.insert("order_id".to_string(), "order not found".to_string());
+    details.insert("order_id".to_string(), FieldError::code("not_found"));
     DomainError::Validation(details)
 }
 
@@ -240,8 +243,9 @@ fn currency_mismatch_error(order_currency: &str) -> DomainError {
     let mut details = HashMap::new();
     details.insert(
         "currency".to_string(),
-        format!(
-            "must match the order's currency ({order_currency}); multi-currency invoices are not yet supported"
+        FieldError::with_params(
+            "currency_mismatch",
+            HashMap::from([("currency".to_string(), order_currency.to_string())]),
         ),
     );
     DomainError::Validation(details)

@@ -11,11 +11,33 @@ pub enum DomainError {
     #[error("not found")]
     NotFound,
     #[error("validation failed")]
-    Validation(HashMap<String, String>),
+    Validation(HashMap<String, FieldError>),
     #[error("conflict: {0}")]
     Conflict(ConflictReason),
     #[error("store error: {0}")]
     Store(String),
+}
+
+/// Stable, localization-friendly reason a single field failed validation —
+/// the field-level analogue of [`ConflictReason`]. `code` is what the
+/// frontend keys off of to pick a translated message; `params` carries any
+/// dynamic data (e.g. the invalid value) the translated message needs to
+/// interpolate, so nothing English-specific has to travel over the wire.
+#[derive(Debug, Clone, Serialize)]
+pub struct FieldError {
+    pub code: String,
+    #[serde(skip_serializing_if = "HashMap::is_empty")]
+    pub params: HashMap<String, String>,
+}
+
+impl FieldError {
+    pub fn code(code: impl Into<String>) -> Self {
+        Self { code: code.into(), params: HashMap::new() }
+    }
+
+    pub fn with_params(code: impl Into<String>, params: HashMap<String, String>) -> Self {
+        Self { code: code.into(), params }
+    }
 }
 
 /// Stable, localization-friendly reason for a [`DomainError::Conflict`].
@@ -114,7 +136,7 @@ impl From<validator::ValidationErrors> for DomainError {
 fn flatten_validation_errors(
     prefix: &str,
     errors: &validator::ValidationErrors,
-    out: &mut HashMap<String, String>,
+    out: &mut HashMap<String, FieldError>,
 ) {
     for (field, kind) in errors.errors() {
         let key = if prefix.is_empty() {
@@ -125,12 +147,7 @@ fn flatten_validation_errors(
         match kind {
             validator::ValidationErrorsKind::Field(errs) => {
                 if let Some(err) = errs.first() {
-                    let message = err
-                        .message
-                        .clone()
-                        .map(|m| m.to_string())
-                        .unwrap_or_else(|| err.code.to_string());
-                    out.insert(key, message);
+                    out.insert(key, FieldError::code(err.code.to_string()));
                 }
             }
             validator::ValidationErrorsKind::Struct(nested) => {

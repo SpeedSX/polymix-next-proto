@@ -3,7 +3,7 @@ import { ActionIcon, Alert, Button, Group, NumberInput, Select, Stack, Table, Te
 import { useForm, zodResolver } from '@mantine/form'
 import { useTranslation } from 'react-i18next'
 
-import { ApiError, apiErrorMessage } from '../../lib/api'
+import { ApiError, apiErrorMessage, validationMessage } from '../../lib/api'
 import { formatMoney, toMinorUnits } from '../../lib/money'
 import { CustomerSelect } from './CustomerSelect'
 import { CURRENCY_OPTIONS, mapApiErrorField, orderFormSchema, toNewOrder } from './types'
@@ -43,8 +43,9 @@ export function OrderForm({ initialValues, onSubmit, onSuccess, onCancel }: Orde
     } catch (err) {
       if (err instanceof ApiError && err.code === 'validation_failed' && err.details) {
         const unmatched: string[] = []
-        for (const [field, message] of Object.entries(err.details)) {
+        for (const [field, fieldError] of Object.entries(err.details)) {
           const mappedField = mapApiErrorField(field)
+          const message = validationMessage(fieldError, t)
           if (mappedField) {
             form.setFieldError(mappedField, message)
           } else {
