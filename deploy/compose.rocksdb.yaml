@@ -1,6 +1,6 @@
 services:
   surrealdb-rocksdb:
-    image: surrealdb/surrealdb:v3.2
+    image: surrealdb/surrealdb:v3.2.1
     # See deploy/compose.yaml for why this runs as root.
     user: "0:0"
     command:
