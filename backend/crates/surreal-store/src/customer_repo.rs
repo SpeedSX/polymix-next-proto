@@ -3,7 +3,7 @@ use std::sync::Arc;
 
 use async_trait::async_trait;
 use domain::customer::{Address, Customer, CustomerRepo, ListQuery, NewCustomer, Paged};
-use domain::error::DomainError;
+use domain::error::{ConflictReason, DomainError};
 use surrealdb::Surreal;
 use surrealdb::engine::any::Any;
 use surrealdb::types::{RecordId, RecordIdKey, SurrealValue};
@@ -412,9 +412,7 @@ impl CustomerRepo for SurrealCustomerRepo {
 
     async fn delete(&self, id: &str) -> Result<(), DomainError> {
         if self.has_orders(id).await? {
-            return Err(DomainError::Conflict(
-                "customer has orders and cannot be deleted".to_string(),
-            ));
+            return Err(DomainError::Conflict(ConflictReason::CustomerHasOrders));
         }
         let row: Option<CustomerRow> = self.session.delete((TABLE, id)).await.map_err(map_err)?;
         row.map(|_| ()).ok_or(DomainError::NotFound)

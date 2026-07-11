@@ -20,5 +20,6 @@
   "fields.city": "City",
   "fields.country": "Country",
   "fields.notes": "Notes",
-  "fields.createdAt": "Created"
+  "fields.createdAt": "Created",
+  "errors.customer_has_orders": "This customer has orders and cannot be deleted."
 }

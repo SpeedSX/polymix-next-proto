@@ -3,7 +3,7 @@ use std::sync::Arc;
 
 use async_trait::async_trait;
 use domain::Paged;
-use domain::error::DomainError;
+use domain::error::{ConflictReason, DomainError};
 use domain::money::Money;
 use domain::order::{
     LineItem, NewOrder, Order, OrderListQuery, OrderRepo, OrderStatus, line_items_total,
@@ -458,9 +458,7 @@ impl OrderRepo for SurrealOrderRepo {
 
     async fn delete(&self, id: &str) -> Result<(), DomainError> {
         if self.has_invoice(id).await? {
-            return Err(DomainError::Conflict(
-                "order has an invoice and cannot be deleted".to_string(),
-            ));
+            return Err(DomainError::Conflict(ConflictReason::OrderHasInvoice));
         }
         let row: Option<IdOnly> = self.session.delete((TABLE, id)).await.map_err(map_err)?;
         row.map(|_| ()).ok_or(DomainError::NotFound)

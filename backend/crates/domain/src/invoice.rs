@@ -2,7 +2,7 @@ use chrono::{Duration, NaiveDate};
 use serde::{Deserialize, Serialize};
 use validator::Validate;
 
-use crate::error::DomainError;
+use crate::error::{ConflictReason, DomainError};
 use crate::money::{Money, round_half_up};
 use crate::order::LineItem;
 use crate::tenant::Tenant;
@@ -39,9 +39,10 @@ pub fn validate_transition(
     if allowed {
         Ok(())
     } else {
-        Err(DomainError::Conflict(format!(
-            "cannot transition invoice from {current:?} to {target:?}"
-        )))
+        Err(DomainError::Conflict(ConflictReason::InvoiceStatusTransition {
+            from: current,
+            to: target,
+        }))
     }
 }
 

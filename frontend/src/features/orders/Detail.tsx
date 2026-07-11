@@ -4,7 +4,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useNavigate, useParams } from '@tanstack/react-router'
 import { useTranslation } from 'react-i18next'
 
-import { ApiError, useApi } from '../../lib/api'
+import { ApiError, apiErrorMessage, useApi } from '../../lib/api'
 import { formatMoney } from '../../lib/money'
 import { createInvoiceFromOrder, deleteOrder, fetchOrder, ordersKeys, setOrderStatus, updateOrder } from './api'
 import { OrderForm } from './Form'
@@ -43,7 +43,16 @@ export function OrderDetail() {
       if (context?.previous) {
         queryClient.setQueryData(ordersKeys.detail(id), context.previous)
       }
-      setActionError(err instanceof ApiError ? err.message : t('form.unexpectedError'))
+      if (err instanceof ApiError && err.code === 'order_status_transition' && err.details) {
+        setActionError(
+          t('errors.order_status_transition', {
+            from: t(`status.${err.details.from}`),
+            to: t(`status.${err.details.to}`),
+          }),
+        )
+      } else {
+        setActionError(apiErrorMessage(err, t, 'form.unexpectedError'))
+      }
     },
     onSettled: () => void queryClient.invalidateQueries({ queryKey: ordersKeys.all }),
   })
@@ -73,7 +82,7 @@ export function OrderDetail() {
       setActionError(null)
       void navigate({ to: '/invoices/$id', params: { id: invoice.id } })
     },
-    onError: (err) => setActionError(err instanceof ApiError ? err.message : t('form.unexpectedError')),
+    onError: (err) => setActionError(apiErrorMessage(err, t, 'form.unexpectedError')),
   })
 
   const deleteMutation = useMutation({
@@ -82,7 +91,7 @@ export function OrderDetail() {
       void queryClient.invalidateQueries({ queryKey: ordersKeys.all })
       void navigate({ to: '/orders' })
     },
-    onError: (err) => setActionError(err instanceof ApiError ? err.message : t('detail.deleteError')),
+    onError: (err) => setActionError(apiErrorMessage(err, t, 'detail.deleteError')),
   })
 
   if (isLoading) {

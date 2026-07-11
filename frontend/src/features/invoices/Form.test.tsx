@@ -93,7 +93,7 @@ describe('InvoiceForm', () => {
   it('shows a form-level alert for a conflict error instead of dropping it silently', async () => {
     const onSubmit = vi.fn().mockRejectedValue(
       new ApiError(409, {
-        code: 'conflict',
+        code: 'invoice_not_draft',
         message: 'invoice can only be edited while in draft status; void and reissue instead',
       }),
     )
@@ -103,7 +103,7 @@ describe('InvoiceForm', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Save' }))
 
     expect(
-      await screen.findByText('invoice can only be edited while in draft status; void and reissue instead'),
+      await screen.findByText('This invoice can only be edited while in draft status; void and reissue it instead.'),
     ).toBeInTheDocument()
   })
 })

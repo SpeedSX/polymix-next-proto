@@ -3,7 +3,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useNavigate, useParams } from '@tanstack/react-router'
 import { useTranslation } from 'react-i18next'
 
-import { useApi } from '../../lib/api'
+import { apiErrorMessage, useApi } from '../../lib/api'
 import { customersKeys, deleteCustomer, fetchCustomer, updateCustomer } from './api'
 import { CustomerForm } from './Form'
 import { fromCustomer } from './types'
@@ -73,7 +73,9 @@ export function CustomerDetail() {
           {t('detail.delete')}
         </Button>
       </Group>
-      {deleteMutation.isError && <Alert color="red">{t('detail.deleteError')}</Alert>}
+      {deleteMutation.isError && (
+        <Alert color="red">{apiErrorMessage(deleteMutation.error, t, 'detail.deleteError')}</Alert>
+      )}
       <CustomerForm
         initialValues={fromCustomer(customer)}
         onSubmit={(data) => updateMutation.mutateAsync(data)}

@@ -28,5 +28,8 @@
   "status.issued": "Issued",
   "status.paid": "Paid",
   "status.void": "Void",
-  "detail.convertedGrossTotal": "≈ {amount}"
+  "detail.convertedGrossTotal": "≈ {amount}",
+  "errors.invoice_not_draft": "This invoice can only be edited while in draft status; void and reissue it instead.",
+  "errors.invoice_cannot_be_deleted": "Invoices cannot be deleted; void them instead.",
+  "errors.invoice_status_transition": "Cannot change the invoice status from {from} to {to}."
 }

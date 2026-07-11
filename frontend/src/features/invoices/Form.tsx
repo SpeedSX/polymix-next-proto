@@ -3,7 +3,7 @@ import { ActionIcon, Alert, Button, Group, NumberInput, Stack, Table, Text, Text
 import { useForm, zodResolver } from '@mantine/form'
 import { useTranslation } from 'react-i18next'
 
-import { ApiError } from '../../lib/api'
+import { ApiError, apiErrorMessage } from '../../lib/api'
 import { formatMoney, toMinorUnits } from '../../lib/money'
 import { invoiceFormSchema, mapApiErrorField, toUpdateInvoice } from './types'
 import type { Invoice, InvoiceFormValues } from './types'
@@ -51,7 +51,7 @@ export function InvoiceForm({ initialValues, currency, onSubmit, onSuccess, onCa
           setFormError(unmatched.join(' '))
         }
       } else {
-        setFormError(err instanceof ApiError ? err.message : t('form.unexpectedError'))
+        setFormError(apiErrorMessage(err, t, 'form.unexpectedError'))
       }
     } finally {
       setSubmitting(false)

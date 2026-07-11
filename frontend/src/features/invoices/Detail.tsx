@@ -4,7 +4,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useParams } from '@tanstack/react-router'
 import { useTranslation } from 'react-i18next'
 
-import { ApiError, useApi } from '../../lib/api'
+import { ApiError, apiErrorMessage, useApi } from '../../lib/api'
 import { formatDate } from '../../lib/dates'
 import { convertedDisplay, formatMoney } from '../../lib/money'
 import { fetchInvoice, invoicesKeys, setInvoiceStatus, updateInvoice } from './api'
@@ -51,7 +51,16 @@ export function InvoiceDetail() {
       if (context?.previous) {
         queryClient.setQueryData(invoicesKeys.detail(id), context.previous)
       }
-      setActionError(err instanceof ApiError ? err.message : t('form.unexpectedError'))
+      if (err instanceof ApiError && err.code === 'invoice_status_transition' && err.details) {
+        setActionError(
+          t('errors.invoice_status_transition', {
+            from: t(`status.${err.details.from}`),
+            to: t(`status.${err.details.to}`),
+          }),
+        )
+      } else {
+        setActionError(apiErrorMessage(err, t, 'form.unexpectedError'))
+      }
     },
     onSettled: () => void queryClient.invalidateQueries({ queryKey: invoicesKeys.all }),
   })

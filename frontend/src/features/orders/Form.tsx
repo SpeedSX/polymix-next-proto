@@ -3,7 +3,7 @@ import { ActionIcon, Alert, Button, Group, NumberInput, Select, Stack, Table, Te
 import { useForm, zodResolver } from '@mantine/form'
 import { useTranslation } from 'react-i18next'
 
-import { ApiError } from '../../lib/api'
+import { ApiError, apiErrorMessage } from '../../lib/api'
 import { formatMoney, toMinorUnits } from '../../lib/money'
 import { CustomerSelect } from './CustomerSelect'
 import { CURRENCY_OPTIONS, mapApiErrorField, orderFormSchema, toNewOrder } from './types'
@@ -55,7 +55,7 @@ export function OrderForm({ initialValues, onSubmit, onSuccess, onCancel }: Orde
           setFormError(unmatched.join(' '))
         }
       } else {
-        setFormError(err instanceof ApiError ? err.message : t('form.unexpectedError'))
+        setFormError(apiErrorMessage(err, t, 'form.unexpectedError'))
       }
     } finally {
       setSubmitting(false)

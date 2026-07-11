@@ -3,7 +3,7 @@ import { Alert, Button, Group, Stack, Textarea, TextInput } from '@mantine/core'
 import { useForm, zodResolver } from '@mantine/form'
 import { useTranslation } from 'react-i18next'
 
-import { ApiError } from '../../lib/api'
+import { ApiError, apiErrorMessage } from '../../lib/api'
 import { customerFormSchema, mapApiErrorField, toNewCustomer } from './types'
 import type { Customer, CustomerFormValues } from './types'
 
@@ -35,7 +35,7 @@ export function CustomerForm({ initialValues, onSubmit, onSuccess, onCancel }: C
           form.setFieldError(mapApiErrorField(field), message)
         }
       } else {
-        setFormError(err instanceof ApiError ? err.message : t('form.unexpectedError'))
+        setFormError(apiErrorMessage(err, t, 'form.unexpectedError'))
       }
     } finally {
       setSubmitting(false)

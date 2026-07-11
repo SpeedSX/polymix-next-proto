@@ -1,5 +1,6 @@
 export { ApiError } from './ApiError'
 export type { ApiErrorBody } from './ApiError'
+export { apiErrorMessage } from './apiErrorMessage'
 export { fetchJson } from './fetchJson'
 export type { FetchJsonOptions } from './fetchJson'
 export { useApi } from './useApi'

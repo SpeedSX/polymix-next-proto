@@ -32,5 +32,9 @@
   "status.confirmed": "Підтверджено",
   "status.in_production": "У виробництві",
   "status.completed": "Завершено",
-  "status.cancelled": "Скасовано"
+  "status.cancelled": "Скасовано",
+  "errors.order_has_invoice": "У цього замовлення є рахунок, тому його не можна видалити.",
+  "errors.order_not_confirmed_for_invoice": "Замовлення потрібно підтвердити, перш ніж виставляти рахунок.",
+  "errors.order_already_invoiced": "На це замовлення вже виставлено рахунок.",
+  "errors.order_status_transition": "Неможливо змінити статус замовлення з «{from}» на «{to}»."
 }

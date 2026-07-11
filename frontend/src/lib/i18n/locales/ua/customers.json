@@ -20,5 +20,6 @@
   "fields.city": "Місто",
   "fields.country": "Країна",
   "fields.notes": "Примітки",
-  "fields.createdAt": "Створено"
+  "fields.createdAt": "Створено",
+  "errors.customer_has_orders": "У цього клієнта є замовлення, тому його не можна видалити."
 }

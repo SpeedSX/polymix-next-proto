@@ -28,5 +28,8 @@
   "status.issued": "Видано",
   "status.paid": "Оплачено",
   "status.void": "Анульовано",
-  "detail.convertedGrossTotal": "≈ {amount}"
+  "detail.convertedGrossTotal": "≈ {amount}",
+  "errors.invoice_not_draft": "Цей рахунок можна редагувати лише в статусі чернетки; натомість анулюйте його та виставте новий.",
+  "errors.invoice_cannot_be_deleted": "Рахунки не можна видаляти; натомість анулюйте їх.",
+  "errors.invoice_status_transition": "Неможливо змінити статус рахунку з «{from}» на «{to}»."
 }

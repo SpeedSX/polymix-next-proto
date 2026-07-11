@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use serde::{Deserialize, Serialize};
 use validator::Validate;
 
-use crate::error::DomainError;
+use crate::error::{ConflictReason, DomainError};
 use crate::money::Money;
 use crate::tenant::Tenant;
 
@@ -40,9 +40,10 @@ pub fn validate_transition(current: OrderStatus, target: OrderStatus) -> Result<
     if allowed {
         Ok(())
     } else {
-        Err(DomainError::Conflict(format!(
-            "cannot transition order from {current:?} to {target:?}"
-        )))
+        Err(DomainError::Conflict(ConflictReason::OrderStatusTransition {
+            from: current,
+            to: target,
+        }))
     }
 }
 

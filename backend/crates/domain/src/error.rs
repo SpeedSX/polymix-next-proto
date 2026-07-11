@@ -1,4 +1,10 @@
 use std::collections::HashMap;
+use std::fmt;
+
+use serde::Serialize;
+
+use crate::invoice::InvoiceStatus;
+use crate::order::OrderStatus;
 
 #[derive(Debug, Clone, thiserror::Error)]
 pub enum DomainError {
@@ -7,9 +13,91 @@ pub enum DomainError {
     #[error("validation failed")]
     Validation(HashMap<String, String>),
     #[error("conflict: {0}")]
-    Conflict(String),
+    Conflict(ConflictReason),
     #[error("store error: {0}")]
     Store(String),
+}
+
+/// Stable, localization-friendly reason for a [`DomainError::Conflict`].
+/// `code()` is what the API and frontend key off of to pick a translated
+/// message; `Display` (below) stays English-only and backs the API's
+/// `message` field and server logs, not the UI.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ConflictReason {
+    CustomerHasOrders,
+    OrderHasInvoice,
+    OrderNotConfirmedForInvoice,
+    OrderAlreadyInvoiced,
+    InvoiceNotDraft,
+    InvoiceCannotBeDeleted,
+    OrderStatusTransition { from: OrderStatus, to: OrderStatus },
+    InvoiceStatusTransition { from: InvoiceStatus, to: InvoiceStatus },
+}
+
+impl ConflictReason {
+    pub fn code(&self) -> &'static str {
+        match self {
+            Self::CustomerHasOrders => "customer_has_orders",
+            Self::OrderHasInvoice => "order_has_invoice",
+            Self::OrderNotConfirmedForInvoice => "order_not_confirmed_for_invoice",
+            Self::OrderAlreadyInvoiced => "order_already_invoiced",
+            Self::InvoiceNotDraft => "invoice_not_draft",
+            Self::InvoiceCannotBeDeleted => "invoice_cannot_be_deleted",
+            Self::OrderStatusTransition { .. } => "order_status_transition",
+            Self::InvoiceStatusTransition { .. } => "invoice_status_transition",
+        }
+    }
+
+    /// Machine-readable payload for codes carrying dynamic data — lets the
+    /// frontend render a fully localized message (e.g. via its own
+    /// status-label translations) instead of parsing status names out of
+    /// the English `message` string.
+    pub fn details(&self) -> Option<HashMap<String, String>> {
+        match self {
+            Self::OrderStatusTransition { from, to } => Some(HashMap::from([
+                ("from".to_string(), status_code(from)),
+                ("to".to_string(), status_code(to)),
+            ])),
+            Self::InvoiceStatusTransition { from, to } => Some(HashMap::from([
+                ("from".to_string(), status_code(from)),
+                ("to".to_string(), status_code(to)),
+            ])),
+            _ => None,
+        }
+    }
+}
+
+fn status_code<T: Serialize>(value: &T) -> String {
+    serde_json::to_value(value)
+        .ok()
+        .and_then(|v| v.as_str().map(str::to_string))
+        .unwrap_or_default()
+}
+
+impl fmt::Display for ConflictReason {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::CustomerHasOrders => write!(f, "customer has orders and cannot be deleted"),
+            Self::OrderHasInvoice => write!(f, "order has an invoice and cannot be deleted"),
+            Self::OrderNotConfirmedForInvoice => {
+                write!(f, "order must be confirmed before it can be invoiced")
+            }
+            Self::OrderAlreadyInvoiced => write!(f, "order already has an invoice"),
+            Self::InvoiceNotDraft => write!(
+                f,
+                "invoice can only be edited while in draft status; void and reissue instead"
+            ),
+            Self::InvoiceCannotBeDeleted => {
+                write!(f, "invoices cannot be deleted; void them instead")
+            }
+            Self::OrderStatusTransition { from, to } => {
+                write!(f, "cannot transition order from {from:?} to {to:?}")
+            }
+            Self::InvoiceStatusTransition { from, to } => {
+                write!(f, "cannot transition invoice from {from:?} to {to:?}")
+            }
+        }
+    }
 }
 
 impl From<validator::ValidationErrors> for DomainError {

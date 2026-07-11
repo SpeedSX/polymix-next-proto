@@ -3,7 +3,7 @@ use std::sync::Arc;
 
 use async_trait::async_trait;
 use domain::Paged;
-use domain::error::DomainError;
+use domain::error::{ConflictReason, DomainError};
 use domain::invoice::{
     DEFAULT_TAX_RATE_BP, Invoice, InvoiceListQuery, InvoiceRepo, InvoiceStatus, NewInvoice,
     UpdateInvoice, can_edit, compute_gross, compute_tax, due_date_from_issue, validate_transition,
@@ -371,14 +371,10 @@ impl InvoiceRepo for SurrealInvoiceRepo {
 
         let order_status = order_status_from_str(&order.status)?;
         if !can_invoice(order_status) {
-            return Err(DomainError::Conflict(
-                "order must be confirmed before it can be invoiced".to_string(),
-            ));
+            return Err(DomainError::Conflict(ConflictReason::OrderNotConfirmedForInvoice));
         }
         if self.invoice_exists_for_order(&data.order_id).await? {
-            return Err(DomainError::Conflict(
-                "order already has an invoice".to_string(),
-            ));
+            return Err(DomainError::Conflict(ConflictReason::OrderAlreadyInvoiced));
         }
         if let Some(requested) = &data.currency
             && requested != &order.currency
@@ -437,10 +433,7 @@ impl InvoiceRepo for SurrealInvoiceRepo {
     async fn update(&self, id: &str, data: UpdateInvoice) -> Result<Invoice, DomainError> {
         let existing = self.get(id).await?.ok_or(DomainError::NotFound)?;
         if !can_edit(existing.status) {
-            return Err(DomainError::Conflict(
-                "invoice can only be edited while in draft status; void and reissue instead"
-                    .to_string(),
-            ));
+            return Err(DomainError::Conflict(ConflictReason::InvoiceNotDraft));
         }
         validate_line_item_currencies(&data.line_items, &existing.currency)?;
 
@@ -480,9 +473,7 @@ impl InvoiceRepo for SurrealInvoiceRepo {
     }
 
     async fn delete(&self, _id: &str) -> Result<(), DomainError> {
-        Err(DomainError::Conflict(
-            "invoices cannot be deleted; void them instead".to_string(),
-        ))
+        Err(DomainError::Conflict(ConflictReason::InvoiceCannotBeDeleted))
     }
 
     async fn set_status(&self, id: &str, status: InvoiceStatus) -> Result<Invoice, DomainError> {

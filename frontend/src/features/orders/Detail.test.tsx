@@ -80,11 +80,20 @@ describe('OrderDetail status transition', () => {
     expect(queryClient.getQueryData<Order>(ordersKeys.detail('o1'))?.status).toBe('confirmed')
 
     respondToStatus(
-      new Response(JSON.stringify({ error: { code: 'conflict', message: 'invalid transition' } }), { status: 409 }),
+      new Response(
+        JSON.stringify({
+          error: {
+            code: 'order_status_transition',
+            message: 'cannot transition order from Draft to InProduction',
+            details: { from: 'draft', to: 'in_production' },
+          },
+        }),
+        { status: 409 },
+      ),
     )
 
     expect(await screen.findByText('Draft')).toBeInTheDocument()
-    expect(await screen.findByText('invalid transition')).toBeInTheDocument()
+    expect(await screen.findByText('Cannot change the order status from Draft to In production.')).toBeInTheDocument()
     expect(queryClient.getQueryData<Order>(ordersKeys.detail('o1'))?.status).toBe('draft')
   })
 })

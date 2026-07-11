@@ -135,24 +135,36 @@ impl TestApp {
         (status, body)
     }
 
-    async fn delete_customer(&self, org_id: &str, customer_id: &str) -> StatusCode {
-        self.client
+    async fn delete_customer(&self, org_id: &str, customer_id: &str) -> (StatusCode, Value) {
+        let response = self
+            .client
             .delete(format!("{}/api/customers/{customer_id}", self.base_url))
             .bearer_auth(self.token_for(org_id))
             .send()
             .await
-            .expect("delete customer request failed")
-            .status()
+            .expect("delete customer request failed");
+        let status = response.status();
+        let body = response
+            .json()
+            .await
+            .expect("delete customer response was not JSON");
+        (status, body)
     }
 
-    async fn delete_order(&self, org_id: &str, order_id: &str) -> StatusCode {
-        self.client
+    async fn delete_order(&self, org_id: &str, order_id: &str) -> (StatusCode, Value) {
+        let response = self
+            .client
             .delete(format!("{}/api/orders/{order_id}", self.base_url))
             .bearer_auth(self.token_for(org_id))
             .send()
             .await
-            .expect("delete order request failed")
-            .status()
+            .expect("delete order request failed");
+        let status = response.status();
+        let body = response
+            .json()
+            .await
+            .expect("delete order response was not JSON");
+        (status, body)
     }
 }
 
@@ -214,7 +226,9 @@ async fn invalid_order_transition_is_rejected() {
     // draft -> in_production skips confirmed; must be rejected.
     let (status, body) = app.set_order_status(org, &order_id, "in_production").await;
     assert_eq!(status, StatusCode::CONFLICT);
-    assert_eq!(body["error"]["code"], "conflict");
+    assert_eq!(body["error"]["code"], "order_status_transition");
+    assert_eq!(body["error"]["details"]["from"], "draft");
+    assert_eq!(body["error"]["details"]["to"], "in_production");
 }
 
 #[tokio::test]
@@ -234,7 +248,7 @@ async fn ordering_an_invoice_twice_is_rejected() {
 
     let (second_status, second_body) = app.create_invoice_from_order(org, &order_id).await;
     assert_eq!(second_status, StatusCode::CONFLICT);
-    assert_eq!(second_body["error"]["code"], "conflict");
+    assert_eq!(second_body["error"]["code"], "order_already_invoiced");
 }
 
 #[tokio::test]
@@ -251,7 +265,7 @@ async fn uninvoiceable_order_status_is_rejected() {
     // Order is still "draft" — invoicing must be rejected.
     let (status, body) = app.create_invoice_from_order(org, &order_id).await;
     assert_eq!(status, StatusCode::CONFLICT);
-    assert_eq!(body["error"]["code"], "conflict");
+    assert_eq!(body["error"]["code"], "order_not_confirmed_for_invoice");
 }
 
 #[tokio::test]
@@ -266,10 +280,10 @@ async fn deletes_are_blocked_by_references() {
     let order_id = order["id"].as_str().unwrap().to_string();
 
     // Customer has an order -> delete blocked.
-    assert_eq!(
-        app.delete_customer(org, &customer_id).await,
-        StatusCode::CONFLICT
-    );
+    let (customer_delete_status, customer_delete_body) =
+        app.delete_customer(org, &customer_id).await;
+    assert_eq!(customer_delete_status, StatusCode::CONFLICT);
+    assert_eq!(customer_delete_body["error"]["code"], "customer_has_orders");
 
     app.set_order_status(org, &order_id, "confirmed").await;
     let (invoice_status, invoice) = app.create_invoice_from_order(org, &order_id).await;
@@ -277,7 +291,9 @@ async fn deletes_are_blocked_by_references() {
     let _ = invoice;
 
     // Order now has an invoice -> delete blocked.
-    assert_eq!(app.delete_order(org, &order_id).await, StatusCode::CONFLICT);
+    let (order_delete_status, order_delete_body) = app.delete_order(org, &order_id).await;
+    assert_eq!(order_delete_status, StatusCode::CONFLICT);
+    assert_eq!(order_delete_body["error"]["code"], "order_has_invoice");
 }
 
 #[tokio::test]
@@ -342,5 +358,5 @@ async fn issued_invoice_put_is_rejected() {
         )
         .await;
     assert_eq!(status, StatusCode::CONFLICT);
-    assert_eq!(body["error"]["code"], "conflict");
+    assert_eq!(body["error"]["code"], "invoice_not_draft");
 }

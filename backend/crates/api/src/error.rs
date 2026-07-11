@@ -77,8 +77,10 @@ impl From<DomainError> for ApiError {
                 api_err.details = Some(serde_json::to_value(details).unwrap_or_default());
                 api_err
             }
-            DomainError::Conflict(message) => {
-                ApiError::new(StatusCode::CONFLICT, "conflict", message)
+            DomainError::Conflict(reason) => {
+                let mut api_err = ApiError::new(StatusCode::CONFLICT, reason.code(), reason.to_string());
+                api_err.details = reason.details().map(|d| serde_json::to_value(d).unwrap_or_default());
+                api_err
             }
             DomainError::Store(message) => {
                 tracing::error!(error = %message, "store error");
