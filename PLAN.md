@@ -525,7 +525,7 @@ The first integration test (tenant isolation) arrives in M1, so the harness and 
 **Test conventions**
 
 - Integration tests are `#[tokio::test]` + `#[ignore]` in `tests/` directories of `surreal-store` and `api`. `cargo test --workspace` (inside `just check`) therefore stays DB-free and fast; `just test-int` (`cargo test --workspace -- --ignored`) runs the real thing. Never gate on an env var instead of `#[ignore]` — a skipped-by-default test that silently never runs anywhere is the failure mode to avoid.
-- **One SurrealDB container per test binary, not per test.** Start `surrealdb/surrealdb:v3.2` (same tag as compose — keep them in lockstep) once via testcontainers behind a `tokio::sync::OnceCell`; every test gets the shared connection.
+- **One SurrealDB container per test binary, not per test.** Start `surrealdb/surrealdb:v3.2.1` (same tag as compose — keep them in lockstep) once via testcontainers behind a `tokio::sync::OnceCell`; every test gets the shared connection.
 - **Isolation between tests comes from the db-per-tenant design itself:** each test provisions its own tenant(s) with a unique org id (`test_<ulid>`), which yields a fresh database. No truncation, no ordering dependencies, tests run in parallel. The `system` db is shared — tests must not assert on global registry counts, only on rows they created.
 - `api`-level tests boot the real router (dev issuer enabled) via `axum_test`/`tower::ServiceExt::oneshot` against the shared container, mint tokens from the dev issuer, and exercise real HTTP — the tenant-isolation test creates a customer as org A and asserts org B's list is empty and org B's `GET /api/customers/{id}` is 404 **through the API**, not the store.
 
