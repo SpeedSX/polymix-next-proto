@@ -326,7 +326,7 @@ The staff-first build order and what each step actually requires:
 | Step | Scope | Needs |
 |---|---|---|
 | 1 | Engine core: §1 money, §2 `PriceModel`, §6 pricing (+ deltas 1–4) | nothing — pure crate, golden-fixture-testable from day one |
-| 2 | Minimal catalog admin: CRUD for `format`, `material`, `machine`, `operation`, `pricing_policy` (+ `pricelist_version` stamping, snapshot rebuild) | step 1. This is the small slice of A2 — no template editor, no linter |
+| 2 | Minimal catalog admin: CRUD for `format`, `material`, `machine`, `operation`, `pricing_policy` (+ `pricelist_version` stamping, snapshot rebuild) | step 1. This is the small slice of A2 — no template editor, no linter. Task-level breakdown: `docs/pricing-admin-plan.md` phase A2a |
 | 3 | Quote entity + API + tier 2/3 UI | steps 1–2, RBAC (B1) for the permission gates |
 | 4 | Templates: §3–§5 (effects, resolution, rules) + template editor + lint → tier 1 | steps 1–3 |
 | 5 | Portal (A3) | step 4 — and by now the engine, catalog, rules and even the parameter-rendering UI are battle-tested by staff use |
