@@ -401,7 +401,7 @@ Success `200`:
   "ladder": [ { "qty": 100, "total_minor": 29030, "unit_minor": 290 }, ... ] }
 ```
 
-The authenticated back-office variant additionally returns `breakdown` per qty (component and operation rows with `cost_micro`, chosen machine, sheet counts). **Never** in the public portal response.
+The authenticated back-office variant additionally returns `breakdown` per qty (component and operation rows with `cost_micro`, chosen machine, sheet counts). **Never** in the public portal response. Staff quoting (`docs/staff-quoting.md`) adds a direct-JobSpec entry point and three small engine deltas (normative JobSpec wire format, per-component machine pin, margin-override input, breakdown schema) — to be folded into §4/§6/§7 when implemented.
 
 Errors (JSON body `{ "error": <CODE>, ... }`):
 
