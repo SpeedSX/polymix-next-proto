@@ -23,7 +23,8 @@ dev:
 # docs/adr/0011-surrealdb-hosting-cloud-free-tier-instead-of-fly.md.
 dev-cloud:
     test -f backend/.env.cloud.local || { echo "Missing backend/.env.cloud.local — copy backend/.env.cloud.local.example and fill in your SurrealDB Cloud credentials first."; exit 1; }
-    set -a; . ./backend/.env.cloud.local; set +a; \
+    set -a; . ./backend/.env.cloud.local; status=$?; set +a; \
+    test "$status" -eq 0 || { echo "Failed to load backend/.env.cloud.local"; exit "$status"; }; \
     trap 'kill $(jobs -p) 2>/dev/null' EXIT INT TERM; \
     (cd backend && PORT=8080 cargo run -p api) & \
     (cd frontend && npm run dev) & \

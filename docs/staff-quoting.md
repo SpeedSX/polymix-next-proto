@@ -171,9 +171,9 @@ EnginePricing = {
 }
 
 Adjustment =                          // at most one per line, v1
-  | MarginOverride { multiplier_bp: u32 }      // replaces the policy band multiplier
-  | Discount       { percent_bp: u32 }         // off engine_total_minor
-  | PriceOverride  { total_minor: i64 }        // manual final price, engine price kept for reference
+  | MarginOverride { multiplier_bp: u32 }      // must be > 0; replaces the policy band multiplier
+  | Discount       { percent_bp: u32 }         // 0..=10_000; off engine_total_minor
+  | PriceOverride  { total_minor: i64 }        // must be >= 0; manual final price, engine price kept
 -- each with { reason: option<string> }
 ```
 
@@ -191,9 +191,9 @@ margin report consumes later.
 
 ```
 draft ──► sent ──► accepted ──► (order created)
-  │          │
+  │          │          │
   │          ├──► declined
-  │          └──► expired        (valid_until passed; set lazily on read/list)
+  │          └──► expired ◄──────┘  (valid_until passed)
   └──► (deleted — drafts only)
 ```
 
@@ -205,18 +205,34 @@ draft ──► sent ──► accepted ──► (order created)
 - `accepted` — records acceptance (v1: staff clicks it, notes how the
   customer accepted). Conversion to order is a separate explicit action,
   so a tenant can accept without converting yet.
+- Reads/lists may mark overdue `sent` or `accepted` quotes as `expired`
+  lazily. More importantly, acceptance and order conversion each
+  re-evaluate `valid_until` against database time inside their transaction.
+  If it has passed, the transaction marks the quote `expired` and commits
+  without accepting it or creating an order; the endpoint then returns
+  409. This check and the requested action are atomic, so a concurrent
+  request cannot accept or convert an expired quote.
 - Invalid transitions → 409, same `validate_transition` pattern as
   `OrderStatus`.
 
 ### Quote → order
 
-`POST /api/quotes/{id}/order` (quote must be `accepted`, not already
-converted):
+`POST /api/quotes/{id}/order` (quote must be `accepted`, unexpired, and not
+already converted; the transactional expiry check above always runs):
 
-- Creates a draft `Order` for the quote's customer; each quote line
-  becomes an order `LineItem` — `description` (template/spec lines
-  synthesize one from the product name + key parameters), `quantity`,
-  `unit_price` derived from `final_total_minor`.
+- Creates a draft `Order` for the quote's customer. Manual quote lines
+  become one order `LineItem` with their quoted quantity and unit price.
+  For an engine-priced line with quantity `q`, divide `final_total_minor`
+  as `q * base_minor + remainder`, where `0 <= remainder < q`: create a
+  line of quantity `q - remainder` at `base_minor` per unit and, when the
+  remainder is non-zero, a second line with the same description of
+  quantity `remainder` at `base_minor + 1`. This allocates each residual
+  minor unit without changing the accepted price. Template/spec lines
+  synthesize their description from the product name + key parameters.
+  The resulting order total must equal the sum of the accepted quote's
+  manual line totals and engine-priced `final_total_minor` values exactly;
+  conversion fails rather than creating an order if that invariant does
+  not hold.
 - Order gains `quote: option<record<quote>>`; quote gains `order:
   option<record<order>>`. One order per quote (v1).
 - The engine-priced lines' `job_spec` + `breakdown` snapshots stay on

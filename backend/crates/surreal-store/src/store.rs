@@ -59,7 +59,8 @@ impl Store {
             match Self::try_connect(cfg).await {
                 Ok(store) => return Ok(store),
                 Err(err) => {
-                    if start.elapsed() >= CONNECT_DEADLINE {
+                    let remaining = CONNECT_DEADLINE.saturating_sub(start.elapsed());
+                    if remaining.is_zero() {
                         return Err(err);
                     }
                     tracing::warn!(
@@ -67,7 +68,7 @@ impl Store {
                         error = %err,
                         "surrealdb connect attempt failed, retrying"
                     );
-                    tokio::time::sleep(backoff).await;
+                    tokio::time::sleep(backoff.min(remaining)).await;
                     backoff = (backoff * 2).min(CONNECT_MAX_BACKOFF);
                     attempt += 1;
                 }
