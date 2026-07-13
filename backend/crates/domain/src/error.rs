@@ -32,11 +32,17 @@ pub struct FieldError {
 
 impl FieldError {
     pub fn code(code: impl Into<String>) -> Self {
-        Self { code: code.into(), params: HashMap::new() }
+        Self {
+            code: code.into(),
+            params: HashMap::new(),
+        }
     }
 
     pub fn with_params(code: impl Into<String>, params: HashMap<String, String>) -> Self {
-        Self { code: code.into(), params }
+        Self {
+            code: code.into(),
+            params,
+        }
     }
 }
 
@@ -52,8 +58,14 @@ pub enum ConflictReason {
     OrderAlreadyInvoiced,
     InvoiceNotDraft,
     InvoiceCannotBeDeleted,
-    OrderStatusTransition { from: OrderStatus, to: OrderStatus },
-    InvoiceStatusTransition { from: InvoiceStatus, to: InvoiceStatus },
+    OrderStatusTransition {
+        from: OrderStatus,
+        to: OrderStatus,
+    },
+    InvoiceStatusTransition {
+        from: InvoiceStatus,
+        to: InvoiceStatus,
+    },
 }
 
 impl ConflictReason {

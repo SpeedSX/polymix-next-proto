@@ -209,7 +209,10 @@ fn sort_clause(sort: &str) -> Result<String, DomainError> {
         let mut details = HashMap::new();
         details.insert(
             "sort".to_string(),
-            FieldError::with_params("unknown_sort_field", HashMap::from([("field".to_string(), field.to_string())])),
+            FieldError::with_params(
+                "unknown_sort_field",
+                HashMap::from([("field".to_string(), field.to_string())]),
+            ),
         );
         return Err(DomainError::Validation(details));
     }

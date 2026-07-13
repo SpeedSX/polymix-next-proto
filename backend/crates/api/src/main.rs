@@ -3,6 +3,14 @@ use api::{build_router, build_state};
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
+    // reqwest's rustls-tls and surrealdb's wss:// engine each pull in a
+    // different rustls crypto backend (aws-lc-rs / ring) — rustls 0.23 won't
+    // guess between them, so pin one explicitly before any TLS connection is
+    // opened (only exercised once SURREALDB_URL is wss://, e.g. SurrealDB Cloud).
+    rustls::crypto::aws_lc_rs::default_provider()
+        .install_default()
+        .expect("no CryptoProvider installed yet");
+
     tracing_subscriber::fmt()
         .with_env_filter(
             tracing_subscriber::EnvFilter::try_from_default_env()

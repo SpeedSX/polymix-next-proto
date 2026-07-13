@@ -40,10 +40,12 @@ pub fn validate_transition(current: OrderStatus, target: OrderStatus) -> Result<
     if allowed {
         Ok(())
     } else {
-        Err(DomainError::Conflict(ConflictReason::OrderStatusTransition {
-            from: current,
-            to: target,
-        }))
+        Err(DomainError::Conflict(
+            ConflictReason::OrderStatusTransition {
+                from: current,
+                to: target,
+            },
+        ))
     }
 }
 
