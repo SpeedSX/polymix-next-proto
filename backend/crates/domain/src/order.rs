@@ -1,20 +1,72 @@
 use std::collections::HashMap;
 
 use serde::{Deserialize, Serialize};
+use serde::de::Error as _;
 use validator::Validate;
 
 use crate::error::{ConflictReason, DomainError, FieldError};
 use crate::money::Money;
 use crate::tenant::Tenant;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(rename_all = "snake_case")]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum OrderStatus {
     Draft,
     Confirmed,
     InProduction,
     Completed,
     Cancelled,
+}
+
+impl OrderStatus {
+    pub const fn code(self) -> u8 {
+        match self {
+            Self::Draft => 0,
+            Self::Confirmed => 1,
+            Self::InProduction => 2,
+            Self::Completed => 3,
+            Self::Cancelled => 4,
+        }
+    }
+
+    pub const fn key(self) -> &'static str {
+        match self {
+            Self::Draft => "draft",
+            Self::Confirmed => "confirmed",
+            Self::InProduction => "in_production",
+            Self::Completed => "completed",
+            Self::Cancelled => "cancelled",
+        }
+    }
+
+    pub const fn from_code(code: u8) -> Option<Self> {
+        match code {
+            0 => Some(Self::Draft),
+            1 => Some(Self::Confirmed),
+            2 => Some(Self::InProduction),
+            3 => Some(Self::Completed),
+            4 => Some(Self::Cancelled),
+            _ => None,
+        }
+    }
+}
+
+impl Serialize for OrderStatus {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        serializer.serialize_u8(self.code())
+    }
+}
+
+impl<'de> Deserialize<'de> for OrderStatus {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        let code = u8::deserialize(deserializer)?;
+        Self::from_code(code).ok_or_else(|| D::Error::custom(format!("invalid order status code: {code}")))
+    }
 }
 
 /// Whether `status` allows an invoice to be raised against the order — used
@@ -127,8 +179,7 @@ impl NewOrder {
     }
 
     /// Fills `currency` from the tenant's default when the client omitted
-    /// it, per PLAN.md ("currency ... defaults to tenant default
-    /// currency"). Call before `validate_domain`/`line_items_total` so both
+    /// it. Call before `validate_domain`/`line_items_total` so both
     /// see the resolved value.
     pub fn resolve_currency(&mut self, tenant_default_currency: &str) {
         if self.currency.is_none() {
@@ -144,8 +195,8 @@ pub struct OrderListQuery {
     pub sort: String,
     pub customer_id: Option<String>,
     pub status: Option<OrderStatus>,
-    /// Full-text filter (M3). When present, results are ranked by BM25
-    /// score and `sort` is ignored, per PLAN.md's list-parameters contract.
+    /// Full-text filter. When present, results are ranked by BM25
+    /// score and `sort` is ignored.
     pub q: Option<String>,
 }
 
@@ -153,12 +204,12 @@ pub struct OrderListQuery {
 pub trait OrderRepo: Send + Sync {
     async fn list(&self, query: OrderListQuery) -> Result<crate::Paged<Order>, DomainError>;
     async fn get(&self, id: &str) -> Result<Option<Order>, DomainError>;
-    /// `tenant` supplies `order_prefix` for the assigned number (PLAN.md M4).
+    /// `tenant` supplies `order_prefix` for the assigned number.
     async fn create(&self, data: NewOrder, tenant: &Tenant) -> Result<Order, DomainError>;
     async fn update(&self, id: &str, data: NewOrder) -> Result<Order, DomainError>;
     async fn delete(&self, id: &str) -> Result<(), DomainError>;
     async fn set_status(&self, id: &str, status: OrderStatus) -> Result<Order, DomainError>;
-    /// Top BM25-ranked hits for the global omnibox (M3). `q` is assumed
+    /// Top BM25-ranked hits for the global omnibox. `q` is assumed
     /// non-empty — callers filter that out before calling.
     async fn search(&self, q: &str, limit: u32) -> Result<Vec<crate::SearchHit>, DomainError>;
 }

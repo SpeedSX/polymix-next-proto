@@ -30,6 +30,10 @@ const MIGRATIONS: &[(&str, &str)] = &[
         "0007_drop_unused_search_indexes",
         include_str!("../migrations/0007_drop_unused_search_indexes.surql"),
     ),
+    (
+        "0008_order_status_int",
+        include_str!("../migrations/0008_order_status_int.surql"),
+    ),
 ];
 
 #[derive(Debug, SurrealValue)]

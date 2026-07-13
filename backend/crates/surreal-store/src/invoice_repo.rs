@@ -9,7 +9,7 @@ use domain::invoice::{
     UpdateInvoice, can_edit, compute_gross, compute_tax, due_date_from_issue, validate_transition,
 };
 use domain::order::{
-    LineItem, OrderStatus, can_invoice, line_items_total, validate_line_item_currencies,
+    LineItem, can_invoice, line_items_total, validate_line_item_currencies,
 };
 use domain::tenant::Tenant;
 use surrealdb::Surreal;
@@ -20,6 +20,7 @@ use ulid::Ulid;
 use crate::counter::next_number;
 use crate::exchange_rate::lookup_rate;
 use crate::order_repo::{LineItemRow, MoneyRow};
+use crate::status::order_status_from_db;
 
 pub(crate) const TABLE: &str = "invoice";
 const ORDER_TABLE: &str = "order";
@@ -55,25 +56,11 @@ fn status_from_str(value: &str) -> Result<InvoiceStatus, DomainError> {
     }
 }
 
-/// Duplicated from `order_repo`'s equivalent rather than shared: this is the
-/// only place `invoice_repo` needs to interpret an *order's* status, and it
-/// only ever reads (never writes) it.
-fn order_status_from_str(value: &str) -> Result<OrderStatus, DomainError> {
-    match value {
-        "draft" => Ok(OrderStatus::Draft),
-        "confirmed" => Ok(OrderStatus::Confirmed),
-        "in_production" => Ok(OrderStatus::InProduction),
-        "completed" => Ok(OrderStatus::Completed),
-        "cancelled" => Ok(OrderStatus::Cancelled),
-        other => Err(DomainError::Store(format!("unknown order status: {other}"))),
-    }
-}
-
 #[derive(Debug, SurrealValue)]
 #[surreal(crate = "surrealdb::types")]
 struct OrderSnapshotRow {
     customer_id: String,
-    status: String,
+    status: i64,
     currency: String,
     line_items: Vec<LineItemRow>,
     total: MoneyRow,
@@ -373,7 +360,7 @@ impl InvoiceRepo for SurrealInvoiceRepo {
             .map_err(map_err)?;
         let order = order.ok_or_else(order_not_found_error)?;
 
-        let order_status = order_status_from_str(&order.status)?;
+        let order_status = order_status_from_db(order.status)?;
         if !can_invoice(order_status) {
             return Err(DomainError::Conflict(ConflictReason::OrderNotConfirmedForInvoice));
         }

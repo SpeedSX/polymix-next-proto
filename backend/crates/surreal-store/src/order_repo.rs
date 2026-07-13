@@ -16,6 +16,7 @@ use surrealdb::types::{RecordId, RecordIdKey, SurrealValue};
 use ulid::Ulid;
 
 use crate::counter::next_number;
+use crate::status::order_status_from_db;
 
 pub(crate) const TABLE: &str = "order";
 const CUSTOMER_TABLE: &str = "customer";
@@ -87,27 +88,6 @@ impl From<LineItemRow> for LineItem {
     }
 }
 
-fn status_to_str(status: OrderStatus) -> &'static str {
-    match status {
-        OrderStatus::Draft => "draft",
-        OrderStatus::Confirmed => "confirmed",
-        OrderStatus::InProduction => "in_production",
-        OrderStatus::Completed => "completed",
-        OrderStatus::Cancelled => "cancelled",
-    }
-}
-
-fn status_from_str(value: &str) -> Result<OrderStatus, DomainError> {
-    match value {
-        "draft" => Ok(OrderStatus::Draft),
-        "confirmed" => Ok(OrderStatus::Confirmed),
-        "in_production" => Ok(OrderStatus::InProduction),
-        "completed" => Ok(OrderStatus::Completed),
-        "cancelled" => Ok(OrderStatus::Cancelled),
-        other => Err(DomainError::Store(format!("unknown order status: {other}"))),
-    }
-}
-
 #[derive(Debug, SurrealValue)]
 #[surreal(crate = "surrealdb::types")]
 pub(crate) struct OrderRow {
@@ -115,7 +95,7 @@ pub(crate) struct OrderRow {
     number: String,
     customer_id: String,
     customer_name: Option<String>,
-    status: String,
+    status: i64,
     currency: String,
     line_items: Vec<LineItemRow>,
     total: MoneyRow,
@@ -129,7 +109,7 @@ pub(crate) struct OrderRow {
 struct OrderContent {
     number: String,
     customer_id: String,
-    status: String,
+    status: i64,
     currency: String,
     line_items: Vec<LineItemRow>,
     total: MoneyRow,
@@ -141,7 +121,7 @@ struct OrderContent {
 #[derive(Debug, SurrealValue)]
 #[surreal(crate = "surrealdb::types")]
 struct StatusPatch {
-    status: String,
+    status: i64,
     updated_at: String,
 }
 
@@ -189,7 +169,7 @@ impl TryFrom<OrderRow> for Order {
             number: row.number,
             customer_id: row.customer_id,
             customer_name: row.customer_name,
-            status: status_from_str(&row.status)?,
+            status: order_status_from_db(row.status)?,
             currency: row.currency,
             line_items: row.line_items.into_iter().map(LineItem::from).collect(),
             total: row.total.into(),
@@ -331,7 +311,7 @@ impl OrderRepo for SurrealOrderRepo {
             list_query = list_query.bind(("customer_id", customer_id.clone()));
         }
         if let Some(status) = query.status {
-            list_query = list_query.bind(("status", status_to_str(status)));
+            list_query = list_query.bind(("status", status.code() as i64));
         }
         if let Some(q) = q {
             list_query = list_query.bind(("q", q.to_string()));
@@ -356,7 +336,7 @@ impl OrderRepo for SurrealOrderRepo {
             count_query = count_query.bind(("customer_id", customer_id.clone()));
         }
         if let Some(status) = query.status {
-            count_query = count_query.bind(("status", status_to_str(status)));
+            count_query = count_query.bind(("status", status.code() as i64));
         }
         if let Some(q) = q {
             count_query = count_query.bind(("q", q.to_string()));
@@ -404,7 +384,7 @@ impl OrderRepo for SurrealOrderRepo {
         let content = OrderContent {
             number,
             customer_id: data.customer_id,
-            status: status_to_str(OrderStatus::Draft).to_string(),
+            status: OrderStatus::Draft.code() as i64,
             currency,
             line_items: data.line_items.into_iter().map(LineItemRow::from).collect(),
             total: total.into(),
@@ -439,7 +419,7 @@ impl OrderRepo for SurrealOrderRepo {
         let content = OrderContent {
             number: existing.number,
             customer_id: data.customer_id,
-            status: status_to_str(existing.status).to_string(),
+            status: existing.status.code() as i64,
             currency,
             line_items: data.line_items.into_iter().map(LineItemRow::from).collect(),
             total: total.into(),
@@ -472,7 +452,7 @@ impl OrderRepo for SurrealOrderRepo {
         validate_transition(existing.status, status)?;
 
         let patch = StatusPatch {
-            status: status_to_str(status).to_string(),
+            status: status.code() as i64,
             updated_at: chrono::Utc::now().to_rfc3339(),
         };
         let row: Option<IdOnly> = self

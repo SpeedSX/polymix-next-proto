@@ -92,7 +92,15 @@ impl ConflictReason {
 fn status_code<T: Serialize>(value: &T) -> String {
     serde_json::to_value(value)
         .ok()
-        .and_then(|v| v.as_str().map(str::to_string))
+        .and_then(|v| {
+            if let Some(s) = v.as_str() {
+                return Some(s.to_string());
+            }
+            if let Some(n) = v.as_i64() {
+                return Some(n.to_string());
+            }
+            None
+        })
         .unwrap_or_default()
 }
 

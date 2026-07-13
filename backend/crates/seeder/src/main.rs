@@ -119,7 +119,7 @@ struct OrderSeedRow {
     id: RecordId,
     number: String,
     customer_id: String,
-    status: String,
+    status: i64,
     currency: String,
     line_items: Vec<LineItemRow>,
     total: MoneyRow,
@@ -137,16 +137,6 @@ fn env_count(key: &str, default: usize) -> usize {
         .ok()
         .and_then(|v| v.parse().ok())
         .unwrap_or(default)
-}
-
-fn status_str(status: OrderStatus) -> &'static str {
-    match status {
-        OrderStatus::Draft => "draft",
-        OrderStatus::Confirmed => "confirmed",
-        OrderStatus::InProduction => "in_production",
-        OrderStatus::Completed => "completed",
-        OrderStatus::Cancelled => "cancelled",
-    }
 }
 
 fn random_status(rng: &mut impl Rng) -> OrderStatus {
@@ -344,7 +334,7 @@ async fn seed_orders(
                 // tenant's `order_prefix` defaults to empty (PLAN.md M4).
                 number: format!("{number:06}"),
                 customer_id,
-                status: status_str(status).to_string(),
+                status: status.code() as i64,
                 currency: currency.to_string(),
                 line_items: line_items.into_iter().map(LineItemRow::from).collect(),
                 total: total.into(),

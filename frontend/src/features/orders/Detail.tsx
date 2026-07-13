@@ -8,8 +8,9 @@ import { ApiError, apiErrorMessage, useApi } from '../../lib/api'
 import { formatMoney } from '../../lib/money'
 import { createInvoiceFromOrder, deleteOrder, fetchOrder, ordersKeys, setOrderStatus, updateOrder } from './api'
 import { OrderForm } from './Form'
-import { fromOrder, INVOICEABLE_STATUSES, ORDER_TRANSITIONS } from './types'
-import type { NewOrder, Order, OrderStatus } from './types'
+import { fromOrder, ORDER_STATUS } from './types'
+import type { NewOrder, Order, OrderStatusId } from './types'
+import { useOrderStatusDictionary } from './useOrderStatusDictionary'
 
 export function OrderDetail() {
   const { t, i18n } = useTranslation('orders')
@@ -17,6 +18,7 @@ export function OrderDetail() {
   const navigate = useNavigate()
   const api = useApi()
   const queryClient = useQueryClient()
+  const statusDict = useOrderStatusDictionary()
   const [editing, setEditing] = useState(false)
   const [actionError, setActionError] = useState<string | null>(null)
 
@@ -26,7 +28,7 @@ export function OrderDetail() {
   })
 
   const statusMutation = useMutation({
-    mutationFn: (status: OrderStatus) => setOrderStatus(api, id, status),
+    mutationFn: (status: OrderStatusId) => setOrderStatus(api, id, status),
     onMutate: async (status) => {
       await queryClient.cancelQueries({ queryKey: ordersKeys.detail(id) })
       const previous = queryClient.getQueryData<Order>(ordersKeys.detail(id))
@@ -44,10 +46,12 @@ export function OrderDetail() {
         queryClient.setQueryData(ordersKeys.detail(id), context.previous)
       }
       if (err instanceof ApiError && err.code === 'order_status_transition' && err.details) {
+        const from = Number(err.details.from) as OrderStatusId
+        const to = Number(err.details.to) as OrderStatusId
         setActionError(
           t('errors.order_status_transition', {
-            from: t(`status.${String(err.details.from)}`),
-            to: t(`status.${String(err.details.to)}`),
+            from: statusDict.labelFor(from),
+            to: statusDict.labelFor(to),
           }),
         )
       } else {
@@ -115,14 +119,15 @@ export function OrderDetail() {
     )
   }
 
-  const nextStatuses = ORDER_TRANSITIONS[order.status]
-  const canInvoice = INVOICEABLE_STATUSES.includes(order.status)
+  const meta = statusDict.byId.get(order.status)
+  const nextStatuses = meta?.allowed_targets ?? []
+  const canInvoice = meta?.invoiceable ?? false
 
   return (
     <Stack>
       <Group justify="space-between">
         <Title order={2}>{order.number}</Title>
-        <Badge>{t(`status.${order.status}`)}</Badge>
+        <Badge color={meta?.color}>{statusDict.labelFor(order.status)}</Badge>
       </Group>
       {actionError && <Alert color="red">{actionError}</Alert>}
       <Text>
@@ -159,7 +164,7 @@ export function OrderDetail() {
             loading={statusMutation.isPending}
             onClick={() => statusMutation.mutate(next)}
           >
-            {t(`actions.transitionTo`, { status: t(`status.${next}`) })}
+            {t(`actions.transitionTo`, { status: statusDict.labelFor(next) })}
           </Button>
         ))}
         {canInvoice && (
@@ -167,7 +172,7 @@ export function OrderDetail() {
             {t('actions.generateInvoice')}
           </Button>
         )}
-        {order.status === 'draft' && (
+        {order.status === ORDER_STATUS.Draft && (
           <Button variant="subtle" onClick={() => setEditing(true)}>
             {t('form.edit')}
           </Button>

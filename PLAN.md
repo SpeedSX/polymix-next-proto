@@ -142,7 +142,7 @@ order {
   id: ulid,
   number: string,                 // "ORD-000123", unique per tenant
   customer_id: ulid (required, must exist),
-  status: "draft" | "confirmed" | "in_production" | "completed" | "cancelled",
+  status: 0 | 1 | 2 | 3 | 4,       // order status id (see /api/dictionaries/order-statuses)
   currency: string,               // defaults to tenant default currency
   line_items: [                   // 1..n
     { description: string, quantity: int > 0, unit_price: money }
@@ -181,8 +181,8 @@ counter { id: "order" | "invoice", value: int }
 
 Status transitions (service-enforced; invalid transition → `409 conflict`):
 
-- order: `draft → confirmed → in_production → completed`; `cancelled` reachable from `draft|confirmed`; no other moves.
-- invoice: `draft → issued → paid`; `void` reachable from `draft|issued`. An invoice can be created only from an order with status `confirmed` or later; one invoice per order (second attempt → `409`).
+- order: `0 → 1 → 2 → 3`; `4` reachable from `0|1`; no other moves.
+- invoice: `draft → issued → paid`; `void` reachable from `draft|issued`. An invoice can be created only from an order with status `1|2|3`; one invoice per order (second attempt → `409`).
 - Deleting: customers with orders and orders with invoices cannot be deleted (`409`). Invoices are never deleted — void them.
 
 ### SurrealDB definitions (in `/crates/surreal-store/migrations/*.surql`)
@@ -224,11 +224,12 @@ Base path `/api`, JSON everywhere. All routes except `/api/health` require `Auth
 | `PUT /api/customers/{id}` | full update (no PATCH in the prototype) |
 | `DELETE /api/customers/{id}` | delete (409 if referenced) |
 | same five routes | `/api/orders`, `/api/invoices` |
-| `POST /api/orders/{id}/status` | body `{ "status": "confirmed" }` — transition |
+| `POST /api/orders/{id}/status` | body `{ "status": 1 }` — transition |
 | `POST /api/orders/{id}/invoice` | create invoice from order; body `{ currency?: string }` |
 | `POST /api/invoices/{id}/status` | body `{ "status": "issued" }` |
 | `GET /api/search?q=` | global omnibox (M3), shape below |
 | `GET /api/ws?token=<jwt>` | WebSocket upgrade (M5) |
+| `GET /api/dictionaries/order-statuses` | order status metadata (ids, labels, transitions, invoiceability) |
 
 **List parameters:** `page` (1-based, default 1), `limit` (default 25, max 100), `sort` (field name, prefix `-` for desc, default `-created_at`), `q` (FTS filter, M3+; when present results are ranked by score and `sort` is ignored). Orders/invoices additionally accept `customer_id` and `status` filters.
 

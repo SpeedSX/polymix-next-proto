@@ -1,6 +1,13 @@
 import type { useApi } from '../../lib/api'
 import type { Invoice } from '../invoices/types'
-import type { NewOrder, Order, OrderListParams, OrderListResponse, OrderStatus } from './types'
+import type {
+  NewOrder,
+  Order,
+  OrderListParams,
+  OrderListResponse,
+  OrderStatusDictionaryResponse,
+  OrderStatusId,
+} from './types'
 
 type Api = ReturnType<typeof useApi>
 
@@ -8,6 +15,7 @@ export const ordersKeys = {
   all: ['orders'] as const,
   list: (params: OrderListParams) => ['orders', params] as const,
   detail: (id: string) => ['orders', id] as const,
+  statusDictionary: () => ['dictionaries', 'order-statuses'] as const,
 }
 
 export function fetchOrders(api: Api, params: OrderListParams) {
@@ -30,8 +38,12 @@ export function deleteOrder(api: Api, id: string) {
   return api<void>(`/api/orders/${id}`, { method: 'DELETE' })
 }
 
-export function setOrderStatus(api: Api, id: string, status: OrderStatus) {
+export function setOrderStatus(api: Api, id: string, status: OrderStatusId) {
   return api<Order>(`/api/orders/${id}/status`, { method: 'POST', body: { status } })
+}
+
+export function fetchOrderStatusDictionary(api: Api) {
+  return api<OrderStatusDictionaryResponse>('/api/dictionaries/order-statuses')
 }
 
 export function createInvoiceFromOrder(api: Api, orderId: string) {

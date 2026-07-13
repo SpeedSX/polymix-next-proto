@@ -77,6 +77,10 @@ pub fn build_router(state: AppState) -> Router {
     let protected = Router::new()
         .route("/api/me", get(routes::me::me))
         .route(
+            "/api/dictionaries/order-statuses",
+            get(routes::dictionaries::order_statuses),
+        )
+        .route(
             "/api/customers",
             get(routes::customers::list).post(routes::customers::create),
         )
