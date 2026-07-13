@@ -3,7 +3,7 @@
 # docs/adr/0011-surrealdb-hosting-cloud-free-tier-instead-of-fly.md): zero
 # cost, root-auth-compatible with our existing Store::connect, no volume to
 # provision. That free tier caps out at 1GB storage though, which the small
-# `ua` demo tenant fits comfortably but the 50k-customer/200k-order perf-seed
+# `ua` demo tenant fits comfortably but larger perf-seed
 # tenant does not — when real M6 perf testing (k6, NFR targets) needs that
 # scale, or if SurrealDB Cloud otherwise stops fitting, this config is the
 # self-hosted fallback: still valid, still the way to get a bigger volume

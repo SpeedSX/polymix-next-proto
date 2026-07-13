@@ -157,11 +157,17 @@ Tagged union mirroring the three tiers:
 
 ```
 QuoteLine =
-  | Template { template: record<product_template>, selection: map, qty: u32,
+  | Template { template: record<product_template>,
+               selection: map, 
+               qty: u32,  // >= 1
                pricing: EnginePricing }
-  | Spec     { job_spec: JobSpec, description: string, qty: u32,
+  | Spec     { job_spec: JobSpec, 
+                description: string, 
+                qty: u32,  // >= 1
                pricing: EnginePricing }        // qty duplicated from job_spec.quantity for uniform reads
-  | Manual   { description: string, qty: u32, unit_minor: i64 }
+  | Manual   { description: string, 
+              qty: u32,  // >= 1
+              unit_minor: i64 }
 
 EnginePricing = {
   breakdown: Breakdown,              // snapshot: component/operation rows, machines, sheets, cost_micro

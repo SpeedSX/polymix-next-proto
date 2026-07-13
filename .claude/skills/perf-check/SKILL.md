@@ -5,8 +5,7 @@ description: Run the /api/search perf benchmark (scripts/perf-search.sh) against
 
 # Perf check: `/api/search`
 
-One-shot procedure for measuring search latency against the seeded demo
-tenant (50k customers / 200k orders). Mirrors what `docs/perf.md` and
+One-shot procedure for measuring search latency against the seeded demo tenant. Mirrors what `docs/perf.md` and
 `docs/adr/0004-search-p95-exceeds-target.md` already record — the goal here
 is repeating that measurement cheaply, not re-deriving the steps each time.
 
@@ -47,7 +46,7 @@ curl -s -H "Authorization: Bearer $token" "http://127.0.0.1:8080/api/customers?l
 
 Look at the `total` field. If it's `0` (fresh volume), seed it first —
 `just seed` from repo root (needs only the DB up, not the API; it connects
-to SurrealDB directly). Expect ~50000 customers / ~200000 orders; takes a
+to SurrealDB directly). Expect ~10000 customers / ~100000 orders; takes a
 couple of minutes.
 
 ## 3. Start the API

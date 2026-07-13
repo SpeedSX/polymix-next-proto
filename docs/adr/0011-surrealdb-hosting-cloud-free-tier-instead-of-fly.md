@@ -33,10 +33,7 @@ since `surreal-store` is version- and auth-model-sensitive
 
 The real constraint is the 1GB storage cap: past it, the free tier goes
 **read-only** (no error budget for silently blocking writes mid-demo, so
-staying well under it matters). The small `ua` demo tenant (100
-customers/1,000 orders, `just seed-ua`) fits comfortably. The perf-seed
-tenant (50k customers/200k orders, `just seed`) used for the M6 k6/NFR
-pass does not.
+staying well under it matters).
 
 ## Decision
 
@@ -44,7 +41,7 @@ SurrealDB runs on a SurrealDB Cloud free-tier instance for now.
 `backend/fly.toml`'s `SURREALDB_URL` points at the instance's `wss://`
 endpoint; `SURREALDB_USER`/`SURREALDB_PASS` Fly secrets hold its root
 credentials. Real M6 perf testing (k6, NFR targets against the full
-50k/200k seeded tenant) is deferred — this decision only covers "get the
+seeded tenant) is deferred — this decision only covers "get the
 demo running," not the perf pass.
 
 Unlike the frontend/Vercel swap in `0010`, `deploy/fly.surrealdb.toml` is

@@ -52,11 +52,11 @@ test-int:
     if [ -n "$ids" ]; then {{container_runtime}} rm -f $ids; fi; \
     exit $code
 
-# Seeder against the local dev tenant (50k customers, 200k orders).
+# Full-scale seeder against the local dev tenant.
 seed:
     cd backend && cargo run -p seeder
 
-# Seeder against the Ukrainian demo tenant (100 customers, 1000 orders,
+# Small-scale seeder against the Ukrainian demo tenant,
 # default language `ua`, default currency UAH) — PLAN.md M4.
 seed-ua:
     cd backend && SEED_LOCALE=ua cargo run -p seeder

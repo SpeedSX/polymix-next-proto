@@ -26,7 +26,7 @@ rather than through `just dev`, e.g. via the Bash tool's
 `run_in_background`: `cd backend && AUTH_DEV_MODE=true PORT=8080 cargo run
 -p api`.
 
-`just seed` loads the 50k-customer/200k-order demo tenant used for perf
+`just seed` loads the 10k-customer/100k-order demo tenant used for perf
 testing (`docs/perf.md`, `scripts/perf-search.sh`) — it connects to
 SurrealDB directly (`Store::connect`), so it only needs the DB up, not the
 API.
@@ -109,7 +109,7 @@ then:
 3. `fly deploy --config backend/fly.toml backend` to pick up the new URL.
 
 1GB comfortably fits the small `ua` demo tenant (`just seed-ua` — 100
-customers/1,000 orders) but not the 50k/200k perf-seed tenant (`just
+customers/1,000 orders) but not the 10k/100k perf-seed tenant (`just
 seed`) — that needs the self-hosted Fly fallback in
 `deploy/fly.surrealdb.toml` (kept, not deleted — see its header comment)
 when real M6 perf testing happens.
