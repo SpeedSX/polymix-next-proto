@@ -127,6 +127,10 @@ permission pair, and two tenants' catalogs are proven isolated.
 Per-tenant `Arc<PriceModel>` built from the tables, cached keyed by
 `(tenant_db, pricelist_version)`; the pricing endpoints (staff
 `/api/estimate`, later the portal) consume the snapshot, never the DB.
+On a cache miss, load the catalog and its version from one transaction
+snapshot. If the store cannot provide that guarantee, read the version
+before and after loading every catalog table; when they differ, discard
+the model and retry, and only cache it under the stable version.
 v1 invalidation: compare the cached version against `meta:pricing` per
 request (one cheap point-read) — the SurrealDB live-query rebuild from
 `instant-quote.md` is an optimization to add when the portal's request

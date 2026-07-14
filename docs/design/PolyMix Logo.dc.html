@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="_ds/industry-f55ac2e4-5883-4ee1-bd54-f25a24f294d6/styles.css">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fira+Sans:wght@400;500;600&family=Fira+Sans+Condensed:wght@500;600&display=swap">
+  <meta name="design_doc_mode" content="canvas">
+  <style>
+    /* Cyrillic-capable swap for Barlow (heading/body) — keeps the condensed grotesque character */
+    :root {
+      --font-heading: "Fira Sans Condensed", "Barlow Condensed", system-ui, sans-serif;
+      --font-heading-weight: 600;
+      --font-body: "Fira Sans", "Barlow", system-ui, sans-serif;
+    }
+    body { margin: 0; background: var(--color-bg); }
+    a { color: var(--color-accent); }
+    a:hover { color: var(--color-accent-700); }
+    .lockup-name { font-family: var(--font-heading); font-weight: 600; letter-spacing: -0.02em; line-height: 0.92; }
+    .tagline { font-family: var(--font-body); text-transform: uppercase; letter-spacing: 0.2em; color: color-mix(in srgb, var(--color-text) 52%, transparent); }
+    .opt-badge { font-family: var(--font-heading); font-size: 12px; letter-spacing: 0.06em; color: var(--color-bg); background: var(--color-accent); padding: 2px 9px; }
+  </style>
+</helmet>
+
+<div style="display:flex; flex-wrap:wrap; gap:44px; align-items:flex-start; padding:60px;">
+
+  <!-- ============ 2a — Application screen ============ -->
+  <section id="2a" style="display:flex; flex-direction:column; gap:16px; width:1440px; flex:none;">
+    <div style="display:flex; align-items:center; gap:8px;">
+      <span class="opt-badge">2a</span>
+      <span class="tagline" style="font-size:10px;">application &mdash; production jobs</span>
+    </div>
+
+    <div class="blueprint" style="background:var(--color-bg); display:flex; height:840px; overflow:hidden;">
+      <i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i>
+
+      <!-- ── Left toolbar ── -->
+      <aside style="width:212px; flex:none; background:var(--color-accent-900); color:#e8eef5; display:flex; flex-direction:column; padding:20px 0;">
+        <!-- brand -->
+        <div style="display:flex; align-items:center; gap:11px; padding:0 20px 22px;">
+          <svg width="30" height="30" viewBox="0 0 120 120" aria-label="PolyMix">
+            <rect x="8"  y="8"  width="48" height="48" rx="15" fill="#94bce3"/>
+            <rect x="64" y="8"  width="48" height="48" rx="15" fill="#cfe4fa"/>
+            <rect x="8"  y="64" width="48" height="48" rx="15" fill="#7e9cb8"/>
+            <rect x="64" y="64" width="48" height="48" rx="15" fill="#b5d9fd"/>
+          </svg>
+          <span style="font-family:var(--font-heading); font-weight:600; font-size:20px; letter-spacing:-0.02em; color:#ffffff;">Poly<span style="color:#b5d9fd;">Mix</span></span>
+        </div>
+
+        <div style="height:1px; background:rgba(255,255,255,0.12); margin:0 20px 14px;"></div>
+
+        <!-- nav -->
+        <nav style="display:flex; flex-direction:column; gap:2px; padding:0 12px; font-family:var(--font-heading); font-weight:600; font-size:14px;">
+          <a href="#" style="display:flex; align-items:center; gap:11px; padding:9px 12px; color:#c4d2e0; text-decoration:none;">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9"/><rect x="14" y="3" width="7" height="5"/><rect x="14" y="12" width="7" height="9"/><rect x="3" y="16" width="7" height="5"/></svg>
+            Dashboard
+          </a>
+          <a href="#" aria-current="page" style="display:flex; align-items:center; gap:11px; padding:9px 12px; color:#ffffff; text-decoration:none; background:rgba(148,188,227,0.18); box-shadow:inset 2px 0 0 #94bce3;">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="1"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/></svg>
+            Production jobs
+          </a>
+          <a href="#" style="display:flex; align-items:center; gap:11px; padding:9px 12px; color:#c4d2e0; text-decoration:none;">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7V4h16v3"/><path d="M9 20h6"/><path d="M12 4v16"/></svg>
+            Typesetting
+          </a>
+          <a href="#" style="display:flex; align-items:center; gap:11px; padding:9px 12px; color:#c4d2e0; text-decoration:none;">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/></svg>
+            Clients
+          </a>
+          <a href="#" style="display:flex; align-items:center; gap:11px; padding:9px 12px; color:#c4d2e0; text-decoration:none;">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><rect x="7" y="10" width="3" height="7"/><rect x="13" y="6" width="3" height="11"/></svg>
+            Reports
+          </a>
+          <a href="#" style="display:flex; align-items:center; gap:11px; padding:9px 12px; color:#c4d2e0; text-decoration:none;">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 7H4"/><path d="M20 12H4"/><path d="M20 17H4"/></svg>
+            Inventory
+          </a>
+        </nav>
+
+        <div style="margin-top:auto; padding:0 12px;">
+          <a href="#" style="display:flex; align-items:center; gap:11px; padding:9px 12px; color:#c4d2e0; text-decoration:none; font-family:var(--font-heading); font-weight:600; font-size:14px;">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+            Settings
+          </a>
+        </div>
+      </aside>
+
+      <!-- ── Main ── -->
+      <div style="flex:1; display:flex; flex-direction:column; min-width:0;">
+
+        <!-- top bar -->
+        <header style="display:flex; align-items:center; gap:16px; padding:18px 26px; border-bottom:1px solid var(--color-divider);">
+          <div style="min-width:0;">
+            <h3 style="margin:0; font-size:24px;">Production jobs</h3>
+            <span class="text-muted" style="font-size:12px;">126 active &middot; 6 due today</span>
+          </div>
+          <!-- search -->
+          <div class="input" style="display:flex; align-items:center; gap:8px; width:260px; margin-left:auto; min-height:36px;">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--color-accent)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+            <span class="text-muted" style="font-size:13px;">Search jobs, clients&hellip;</span>
+          </div>
+          <button class="btn btn-secondary">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 3H2l8 9.46V19l4 2v-8.54L22 3z"/></svg>
+            Filter
+          </button>
+          <button class="btn btn-secondary">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            Export
+          </button>
+          <button class="btn btn-primary">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14"/><path d="M5 12h14"/></svg>
+            New job
+          </button>
+        </header>
+
+        <!-- filter tabs -->
+        <div style="display:flex; align-items:center; gap:22px; padding:12px 26px; border-bottom:1px solid var(--color-divider); font-family:var(--font-heading); font-weight:600; font-size:13px;">
+          <span style="color:var(--color-accent); box-shadow:inset 0 -2px 0 var(--color-accent); padding-bottom:12px; margin-bottom:-12px;">All jobs <span class="text-muted">126</span></span>
+          <span class="text-muted">Prepress <span>18</span></span>
+          <span class="text-muted">In press <span>24</span></span>
+          <span class="text-muted">Finishing <span>11</span></span>
+          <span class="text-muted">Shipped <span>73</span></span>
+        </div>
+
+        <!-- table -->
+        <div style="flex:1; overflow:auto; padding:8px 26px 26px;">
+          <table class="table">
+            <thead>
+              <tr>
+                <th style="width:34px;"></th>
+                <th style="width:120px;">Job</th>
+                <th>Client</th>
+                <th>Product</th>
+                <th style="text-align:right; width:96px;">Qty</th>
+                <th style="width:120px;">Due</th>
+                <th style="width:132px;">Stage</th>
+                <th style="text-align:right; width:110px;">Value</th>
+              </tr>
+            </thead>
+            <tbody style="font-variant-numeric:tabular-nums;">
+              <tr>
+                <td><input type="checkbox" style="accent-color:var(--color-accent);"></td>
+                <td style="font-family:var(--font-heading); font-weight:600; color:var(--color-accent-700);">JOB-4820</td>
+                <td>Meridian Press</td>
+                <td>Softcover book &middot; 148pp</td>
+                <td style="text-align:right;">2,500</td>
+                <td>Jul 15</td>
+                <td><span class="tag tag-accent">In press</span></td>
+                <td style="text-align:right;">&pound;8,240</td>
+              </tr>
+              <tr>
+                <td><input type="checkbox" style="accent-color:var(--color-accent);"></td>
+                <td style="font-family:var(--font-heading); font-weight:600; color:var(--color-accent-700);">JOB-4819</td>
+                <td>Northgate Retail</td>
+                <td>Folded flyer &middot; A5</td>
+                <td style="text-align:right;">12,000</td>
+                <td>Jul 14</td>
+                <td><span class="tag tag-outline">Prepress</span></td>
+                <td style="text-align:right;">&pound;3,180</td>
+              </tr>
+              <tr>
+                <td><input type="checkbox" style="accent-color:var(--color-accent);"></td>
+                <td style="font-family:var(--font-heading); font-weight:600; color:var(--color-accent-700);">JOB-4817</td>
+                <td>Aria Studio</td>
+                <td>Business cards &middot; duplex</td>
+                <td style="text-align:right;">1,000</td>
+                <td>Jul 14</td>
+                <td><span class="tag tag-accent">Ready</span></td>
+                <td style="text-align:right;">&pound;420</td>
+              </tr>
+              <tr>
+                <td><input type="checkbox" style="accent-color:var(--color-accent);"></td>
+                <td style="font-family:var(--font-heading); font-weight:600; color:var(--color-accent-700);">JOB-4815</td>
+                <td>Civic Library</td>
+                <td>Perfect-bound journal</td>
+                <td style="text-align:right;">800</td>
+                <td>Jul 16</td>
+                <td><span class="tag tag-neutral">Typesetting</span></td>
+                <td style="text-align:right;">&pound;5,600</td>
+              </tr>
+              <tr>
+                <td><input type="checkbox" style="accent-color:var(--color-accent);"></td>
+                <td style="font-family:var(--font-heading); font-weight:600; color:var(--color-accent-700);">JOB-4812</td>
+                <td>Hollis &amp; Vane</td>
+                <td>Poster &middot; A1</td>
+                <td style="text-align:right;">250</td>
+                <td>Jul 13</td>
+                <td><span class="tag tag-neutral">Shipped</span></td>
+                <td style="text-align:right;">&pound;980</td>
+              </tr>
+              <tr>
+                <td><input type="checkbox" style="accent-color:var(--color-accent);"></td>
+                <td style="font-family:var(--font-heading); font-weight:600; color:var(--color-accent-700);">JOB-4808</td>
+                <td>Beacon School</td>
+                <td>Yearbook &middot; hardcover</td>
+                <td style="text-align:right;">600</td>
+                <td>Jul 18</td>
+                <td><span class="tag tag-outline">On hold</span></td>
+                <td style="text-align:right;">&pound;7,150</td>
+              </tr>
+              <tr>
+                <td><input type="checkbox" style="accent-color:var(--color-accent);"></td>
+                <td style="font-family:var(--font-heading); font-weight:600; color:var(--color-accent-700);">JOB-4804</td>
+                <td>Fenwick Wines</td>
+                <td>Bottle labels &middot; die-cut</td>
+                <td style="text-align:right;">9,000</td>
+                <td>Jul 17</td>
+                <td><span class="tag tag-accent">In press</span></td>
+                <td style="text-align:right;">&pound;2,340</td>
+              </tr>
+              <tr>
+                <td><input type="checkbox" style="accent-color:var(--color-accent);"></td>
+                <td style="font-family:var(--font-heading); font-weight:600; color:var(--color-accent-700);">JOB-4801</td>
+                <td>Orchard &amp; Co</td>
+                <td>Menu &middot; laminated</td>
+                <td style="text-align:right;">1,500</td>
+                <td>Jul 19</td>
+                <td><span class="tag tag-neutral">Typesetting</span></td>
+                <td style="text-align:right;">&pound;1,120</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- footer / pagination -->
+        <footer style="display:flex; align-items:center; gap:12px; padding:12px 26px; border-top:1px solid var(--color-divider); font-size:12px;">
+          <span class="text-muted">Showing 1&ndash;8 of 126 jobs</span>
+          <div style="margin-left:auto; display:flex; gap:6px;">
+            <button class="btn btn-secondary btn-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg></button>
+            <button class="btn btn-secondary btn-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></button>
+          </div>
+        </footer>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ 1a — Rounded pixel quad ============ -->
+  <section id="1a" style="display:flex; flex-direction:column; gap:22px; width:520px;">
+    <div style="display:flex; align-items:center; gap:8px;">
+      <span class="opt-badge">1a</span>
+      <span class="tagline" style="font-size:10px;">rounded pixel quad</span>
+    </div>
+
+    <div class="blueprint" style="background:#ffffff; padding:44px 36px;">
+      <i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i>
+      <div style="display:flex; align-items:center; gap:22px;">
+        <svg width="76" height="76" viewBox="0 0 120 120" aria-label="PolyMix mark">
+          <rect x="8"  y="8"  width="48" height="48" rx="15" fill="#597ea3"/>
+          <rect x="64" y="8"  width="48" height="48" rx="15" fill="#94bce3"/>
+          <rect x="8"  y="64" width="48" height="48" rx="15" fill="#7e9cb8"/>
+          <rect x="64" y="64" width="48" height="48" rx="15" fill="#b5d9fd"/>
+        </svg>
+        <div style="display:flex; flex-direction:column; gap:10px;">
+          <div class="lockup-name" style="font-size:44px; color:var(--color-text);">Poly<span style="color:var(--color-accent);">Mix</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- scale strip -->
+    <div style="display:flex; align-items:center; gap:26px; padding-left:2px;">
+      <div style="display:flex; align-items:center; gap:9px;">
+        <svg width="26" height="26" viewBox="0 0 120 120">
+          <rect x="8"  y="8"  width="48" height="48" rx="15" fill="#597ea3"/>
+          <rect x="64" y="8"  width="48" height="48" rx="15" fill="#94bce3"/>
+          <rect x="8"  y="64" width="48" height="48" rx="15" fill="#7e9cb8"/>
+          <rect x="64" y="64" width="48" height="48" rx="15" fill="#b5d9fd"/>
+        </svg>
+        <span class="lockup-name" style="font-size:18px; color:var(--color-text);">Poly<span style="color:var(--color-accent);">Mix</span></span>
+      </div>
+      <div style="width:42px; height:42px; background:var(--color-accent); display:flex; align-items:center; justify-content:center;">
+        <svg width="24" height="24" viewBox="0 0 120 120">
+          <rect x="8"  y="8"  width="48" height="48" rx="15" fill="#ffffff"/>
+          <rect x="64" y="8"  width="48" height="48" rx="15" fill="#cfe4fa"/>
+          <rect x="8"  y="64" width="48" height="48" rx="15" fill="#cfe4fa"/>
+          <rect x="64" y="64" width="48" height="48" rx="15" fill="#ffffff"/>
+        </svg>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ 1b — Pixel P monogram ============ -->
+  <section id="1b" style="display:flex; flex-direction:column; gap:22px; width:520px;">
+    <div style="display:flex; align-items:center; gap:8px;">
+      <span class="opt-badge">1b</span>
+      <span class="tagline" style="font-size:10px;">pixel P monogram</span>
+    </div>
+
+    <div class="blueprint" style="background:#ffffff; padding:44px 36px;">
+      <i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i>
+      <div style="display:flex; align-items:center; gap:22px;">
+        <svg width="76" height="76" viewBox="0 0 120 120" aria-label="PolyMix P mark">
+          <rect x="12" y="12" width="24" height="24" rx="7" fill="#416180"/>
+          <rect x="40" y="12" width="24" height="24" rx="7" fill="#597ea3"/>
+          <rect x="68" y="12" width="24" height="24" rx="7" fill="#94bce3"/>
+          <rect x="12" y="40" width="24" height="24" rx="7" fill="#416180"/>
+          <rect x="68" y="40" width="24" height="24" rx="7" fill="#9ebbd8"/>
+          <rect x="12" y="68" width="24" height="24" rx="7" fill="#416180"/>
+          <rect x="40" y="68" width="24" height="24" rx="7" fill="#597ea3"/>
+          <rect x="68" y="68" width="24" height="24" rx="7" fill="#749dc4"/>
+          <rect x="12" y="96" width="24" height="24" rx="7" fill="#416180"/>
+        </svg>
+        <div style="display:flex; flex-direction:column; gap:10px;">
+          <div class="lockup-name" style="font-size:44px; color:var(--color-text);">Poly<span style="color:var(--color-accent);">Mix</span></div>
+          <div class="tagline" style="font-size:10px;">print MIS &middot; typesetting &amp; digital</div>
+        </div>
+      </div>
+    </div>
+
+    <div style="display:flex; align-items:center; gap:26px; padding-left:2px;">
+      <div style="display:flex; align-items:center; gap:9px;">
+        <svg width="26" height="26" viewBox="0 0 120 120">
+          <rect x="12" y="12" width="24" height="24" rx="7" fill="#416180"/>
+          <rect x="40" y="12" width="24" height="24" rx="7" fill="#597ea3"/>
+          <rect x="68" y="12" width="24" height="24" rx="7" fill="#94bce3"/>
+          <rect x="12" y="40" width="24" height="24" rx="7" fill="#416180"/>
+          <rect x="68" y="40" width="24" height="24" rx="7" fill="#9ebbd8"/>
+          <rect x="12" y="68" width="24" height="24" rx="7" fill="#416180"/>
+          <rect x="40" y="68" width="24" height="24" rx="7" fill="#597ea3"/>
+          <rect x="68" y="68" width="24" height="24" rx="7" fill="#749dc4"/>
+          <rect x="12" y="96" width="24" height="24" rx="7" fill="#416180"/>
+        </svg>
+        <span class="lockup-name" style="font-size:18px; color:var(--color-text);">Poly<span style="color:var(--color-accent);">Mix</span></span>
+      </div>
+      <div style="width:42px; height:42px; background:var(--color-accent); display:flex; align-items:center; justify-content:center;">
+        <svg width="24" height="24" viewBox="0 0 120 120">
+          <rect x="12" y="12" width="24" height="24" rx="7" fill="#ffffff"/>
+          <rect x="40" y="12" width="24" height="24" rx="7" fill="#cfe4fa"/>
+          <rect x="68" y="12" width="24" height="24" rx="7" fill="#cfe4fa"/>
+          <rect x="12" y="40" width="24" height="24" rx="7" fill="#ffffff"/>
+          <rect x="68" y="40" width="24" height="24" rx="7" fill="#cfe4fa"/>
+          <rect x="12" y="68" width="24" height="24" rx="7" fill="#ffffff"/>
+          <rect x="40" y="68" width="24" height="24" rx="7" fill="#cfe4fa"/>
+          <rect x="68" y="68" width="24" height="24" rx="7" fill="#cfe4fa"/>
+          <rect x="12" y="96" width="24" height="24" rx="7" fill="#ffffff"/>
+        </svg>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ 1c — Overlapping mix ============ -->
+  <section id="1c" style="display:flex; flex-direction:column; gap:22px; width:520px;">
+    <div style="display:flex; align-items:center; gap:8px;">
+      <span class="opt-badge">1c</span>
+      <span class="tagline" style="font-size:10px;">overlapping mix</span>
+    </div>
+
+    <div class="blueprint" style="background:#ffffff; padding:44px 36px;">
+      <i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i>
+      <div style="display:flex; align-items:center; gap:22px;">
+        <svg width="76" height="76" viewBox="0 0 120 120" aria-label="PolyMix overlap mark">
+          <g style="mix-blend-mode:multiply;">
+            <rect x="10" y="24" width="62" height="62" rx="19" fill="#8ed6d7"/>
+            <rect x="48" y="24" width="62" height="62" rx="19" fill="#9ebbd8"/>
+            <rect x="29" y="46" width="62" height="62" rx="19" fill="#94bce3"/>
+          </g>
+        </svg>
+        <div style="display:flex; flex-direction:column; gap:10px;">
+          <div class="lockup-name" style="font-size:44px; color:var(--color-text);">Poly<span style="color:var(--color-accent);">Mix</span></div>
+          <div class="tagline" style="font-size:10px;">print MIS &middot; typesetting &amp; digital</div>
+        </div>
+      </div>
+    </div>
+
+    <div style="display:flex; align-items:center; gap:26px; padding-left:2px;">
+      <div style="display:flex; align-items:center; gap:9px;">
+        <svg width="26" height="26" viewBox="0 0 120 120">
+          <g style="mix-blend-mode:multiply;">
+            <rect x="10" y="24" width="62" height="62" rx="19" fill="#8ed6d7"/>
+            <rect x="48" y="24" width="62" height="62" rx="19" fill="#9ebbd8"/>
+            <rect x="29" y="46" width="62" height="62" rx="19" fill="#94bce3"/>
+          </g>
+        </svg>
+        <span class="lockup-name" style="font-size:18px; color:var(--color-text);">Poly<span style="color:var(--color-accent);">Mix</span></span>
+      </div>
+      <div style="width:42px; height:42px; background:var(--color-accent); display:flex; align-items:center; justify-content:center;">
+        <svg width="26" height="26" viewBox="0 0 120 120">
+          <g opacity="0.95">
+            <rect x="10" y="24" width="62" height="62" rx="19" fill="#ffffff" opacity="0.85"/>
+            <rect x="48" y="24" width="62" height="62" rx="19" fill="#cfe4fa" opacity="0.8"/>
+            <rect x="29" y="46" width="62" height="62" rx="19" fill="#ffffff" opacity="0.7"/>
+          </g>
+        </svg>
+      </div>
+    </div>
+  </section>
+
+</div>
+</x-dc>
+</body>
+</html>
