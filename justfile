@@ -39,12 +39,12 @@ test-int:
 
 # Seeder against the local dev tenant (50k customers, 200k orders).
 seed:
-    cd backend && cargo run -p seeder
+    cd backend && SURREALDB_URL=ws://localhost:8001 cargo run -p seeder
 
 # Seeder against the Ukrainian demo tenant (100 customers, 1000 orders,
 # default language `ua`, default currency UAH) — PLAN.md M4.
 seed-ua:
-    cd backend && SEED_LOCALE=ua cargo run -p seeder
+    cd backend && SURREALDB_URL=ws://localhost:8001 SEED_LOCALE=ua cargo run -p seeder
 
 # Build all docker images.
 build:
