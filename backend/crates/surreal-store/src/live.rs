@@ -36,9 +36,9 @@ pub struct ChangeEvent<T> {
 
 #[derive(Debug, Clone)]
 pub enum LiveChange {
-    Customer(ChangeEvent<Customer>),
-    Order(ChangeEvent<Order>),
-    Invoice(ChangeEvent<Invoice>),
+    Customer(Box<ChangeEvent<Customer>>),
+    Order(Box<ChangeEvent<Order>>),
+    Invoice(Box<ChangeEvent<Invoice>>),
 }
 
 fn map_err(err: surrealdb::Error) -> DomainError {
@@ -130,14 +130,20 @@ pub async fn live_changes(session: Arc<Surreal<Any>>) -> Result<LiveChanges, Dom
 
     let customers = customers
         .map(|n| {
-            map_event(n, CustomerRow::key, customer_from_row_untenanted).map(LiveChange::Customer)
+            map_event(n, CustomerRow::key, customer_from_row_untenanted)
+                .map(|e| LiveChange::Customer(Box::new(e)))
         })
         .boxed();
     let orders = orders
-        .map(|n| map_event(n, OrderRow::key, Order::try_from).map(LiveChange::Order))
+        .map(|n| {
+            map_event(n, OrderRow::key, Order::try_from).map(|e| LiveChange::Order(Box::new(e)))
+        })
         .boxed();
     let invoices = invoices
-        .map(|n| map_event(n, InvoiceRow::key, Invoice::try_from).map(LiveChange::Invoice))
+        .map(|n| {
+            map_event(n, InvoiceRow::key, Invoice::try_from)
+                .map(|e| LiveChange::Invoice(Box::new(e)))
+        })
         .boxed();
 
     Ok(LiveChanges {

@@ -48,9 +48,9 @@ fn envelope<T: Serialize>(entity: &'static str, event: ChangeEvent<T>) -> Server
 
 fn to_server_event(change: LiveChange) -> ServerEvent {
     match change {
-        LiveChange::Customer(event) => envelope("customer", event),
-        LiveChange::Order(event) => envelope("order", event),
-        LiveChange::Invoice(event) => envelope("invoice", event),
+        LiveChange::Customer(event) => envelope("customer", *event),
+        LiveChange::Order(event) => envelope("order", *event),
+        LiveChange::Invoice(event) => envelope("invoice", *event),
     }
 }
 
@@ -280,11 +280,11 @@ mod tests {
         wait_for_senders(&senders, 1).await;
 
         senders.lock().await[0]
-            .unbounded_send(Ok(LiveChange::Customer(ChangeEvent {
+            .unbounded_send(Ok(LiveChange::Customer(Box::new(ChangeEvent {
                 action: ChangeAction::Create,
                 id: "01ARZ3NDEKTSV4RRFFQ69G5FAV".to_string(),
                 data: Some(customer("Acme")),
-            })))
+            }))))
             .unwrap();
 
         let event = tokio::time::timeout(Duration::from_secs(5), rx.recv())
