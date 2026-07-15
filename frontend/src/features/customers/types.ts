@@ -156,7 +156,7 @@ export const customerFormSchema = z
       z.literal(CUSTOMER_KIND.Fop),
       z.literal(CUSTOMER_KIND.Individual),
     ]),
-    name: z.string().min(1),
+    name: z.string().trim().min(1),
     legalName: z.string(),
     edrpou: z.string(),
     taxId: z.string(),

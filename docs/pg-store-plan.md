@@ -218,7 +218,7 @@ is a no-op returning the existing registry row.
   -- helper function instead.
   CREATE FUNCTION customer_contacts_text(contacts jsonb) RETURNS text AS $$
     SELECT coalesce(string_agg(coalesce(c->>'name','') || ' ' || coalesce(c->>'email',''), ' '), '')
-    FROM jsonb_array_elements(contacts) AS c
+    FROM jsonb_array_elements(contacts) AS c(contact)
   $$ LANGUAGE sql IMMUTABLE;
 
   ALTER TABLE customer ADD COLUMN search tsvector GENERATED ALWAYS AS (
