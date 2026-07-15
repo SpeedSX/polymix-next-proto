@@ -57,7 +57,7 @@ describe('InvoiceForm', () => {
     fireEvent.change(getField('lineItems.0.unitPrice'), { target: { value: 'abc' } })
     fireEvent.click(screen.getByRole('button', { name: 'Save' }))
 
-    expect(await screen.findByText('Invalid')).toBeInTheDocument()
+    expect(await screen.findByText('Must be a valid decimal amount.')).toBeInTheDocument()
     expect(onSubmit).not.toHaveBeenCalled()
   })
 

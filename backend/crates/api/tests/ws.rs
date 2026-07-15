@@ -39,7 +39,7 @@ impl TestApp {
             .client
             .post(format!("{}/api/customers", self.base_url))
             .bearer_auth(self.token_for(org_id))
-            .json(&serde_json::json!({ "name": name }))
+            .json(&serde_json::json!({ "kind": 0, "name": name, "payment_terms_days": 0, "default_discount_bp": 0 }))
             .send()
             .await
             .expect("create customer request failed");
@@ -52,7 +52,7 @@ impl TestApp {
             .client
             .put(format!("{}/api/customers/{id}", self.base_url))
             .bearer_auth(self.token_for(org_id))
-            .json(&serde_json::json!({ "name": name }))
+            .json(&serde_json::json!({ "kind": 0, "name": name, "payment_terms_days": 0, "default_discount_bp": 0 }))
             .send()
             .await
             .expect("update customer request failed");

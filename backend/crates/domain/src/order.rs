@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
-use serde::{Deserialize, Serialize};
 use serde::de::Error as _;
+use serde::{Deserialize, Serialize};
 use validator::Validate;
 
 use crate::error::{ConflictReason, DomainError, FieldError};
@@ -65,7 +65,8 @@ impl<'de> Deserialize<'de> for OrderStatus {
         D: serde::Deserializer<'de>,
     {
         let code = u8::deserialize(deserializer)?;
-        Self::from_code(code).ok_or_else(|| D::Error::custom(format!("invalid order status code: {code}")))
+        Self::from_code(code)
+            .ok_or_else(|| D::Error::custom(format!("invalid order status code: {code}")))
     }
 }
 
@@ -92,10 +93,12 @@ pub fn validate_transition(current: OrderStatus, target: OrderStatus) -> Result<
     if allowed {
         Ok(())
     } else {
-        Err(DomainError::Conflict(ConflictReason::OrderStatusTransition {
-            from: current,
-            to: target,
-        }))
+        Err(DomainError::Conflict(
+            ConflictReason::OrderStatusTransition {
+                from: current,
+                to: target,
+            },
+        ))
     }
 }
 

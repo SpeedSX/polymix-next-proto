@@ -8,7 +8,10 @@ pub mod search;
 pub mod tenant;
 
 pub use auth::AuthContext;
-pub use customer::{Address, Customer, CustomerRepo, ListQuery, NewCustomer, Paged};
+pub use customer::{
+    Address, Contact, Customer, CustomerKind, CustomerRepo, CustomerStatus, ListQuery, NewCustomer,
+    Paged,
+};
 pub use error::{ConflictReason, DomainError, FieldError};
 pub use invoice::{Invoice, InvoiceListQuery, InvoiceRepo, InvoiceStatus, NewInvoice};
 pub use money::Money;

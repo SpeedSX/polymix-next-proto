@@ -76,12 +76,27 @@ async fn connect_store() -> Arc<Store> {
 
 fn new_customer(name: &str) -> NewCustomer {
     NewCustomer {
+        kind: domain::customer::CustomerKind::LegalEntity,
         name: name.to_string(),
-        contact_name: None,
-        email: None,
-        phone: None,
-        address: None,
+        legal_name: None,
+        edrpou: None,
+        tax_id: None,
+        vat_ipn: None,
+        tags: vec![],
+        industry: None,
+        source: None,
+        website: None,
+        contacts: vec![],
+        legal_address: None,
+        delivery_address: None,
+        payment_terms_days: 0,
+        credit_limit: None,
+        default_currency: Some("EUR".to_string()),
+        default_discount_bp: 0,
+        iban: None,
+        bank_name: None,
         notes: None,
+        status: None,
     }
 }
 
@@ -110,7 +125,7 @@ async fn delivers_customer_create_update_delete() {
     let repo = SurrealCustomerRepo::new(session);
 
     let created = repo
-        .create(new_customer("Adamant Print GmbH"))
+        .create(new_customer("Adamant Print GmbH"), &tenant)
         .await
         .unwrap();
     match next_change(&mut stream).await {
@@ -126,7 +141,7 @@ async fn delivers_customer_create_update_delete() {
         other => panic!("expected a customer change, got {other:?}"),
     }
 
-    repo.update(&created.id, new_customer("Adamant Print AG"))
+    repo.update(&created.id, new_customer("Adamant Print AG"), &tenant)
         .await
         .unwrap();
     match next_change(&mut stream).await {
@@ -171,7 +186,7 @@ async fn delivers_across_sessions() {
     let write_session = store.for_tenant(&tenant.db_name).await.unwrap();
     let repo = SurrealCustomerRepo::new(write_session);
     let created = repo
-        .create(new_customer("Cross Session GmbH"))
+        .create(new_customer("Cross Session GmbH"), &tenant)
         .await
         .unwrap();
 
@@ -212,7 +227,10 @@ async fn delivers_across_connections() {
 
     let write_session = store_b.for_tenant(&tenant.db_name).await.unwrap();
     let repo = SurrealCustomerRepo::new(write_session);
-    let created = repo.create(new_customer("Cross Conn GmbH")).await.unwrap();
+    let created = repo
+        .create(new_customer("Cross Conn GmbH"), &tenant)
+        .await
+        .unwrap();
 
     match next_change(&mut stream).await {
         LiveChange::Customer(event) => {
@@ -242,13 +260,13 @@ async fn dropping_the_stream_releases_the_session() {
     let stream = live_changes(session.clone()).await.unwrap();
     drop(stream);
 
-    repo.create(new_customer("Made While No Stream"))
+    repo.create(new_customer("Made While No Stream"), &tenant)
         .await
         .unwrap();
 
     let mut stream = live_changes(session.clone()).await.unwrap();
     let created = repo
-        .create(new_customer("Made While Streaming"))
+        .create(new_customer("Made While Streaming"), &tenant)
         .await
         .unwrap();
     match next_change(&mut stream).await {

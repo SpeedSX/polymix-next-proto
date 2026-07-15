@@ -39,10 +39,12 @@ pub fn validate_transition(
     if allowed {
         Ok(())
     } else {
-        Err(DomainError::Conflict(ConflictReason::InvoiceStatusTransition {
-            from: current,
-            to: target,
-        }))
+        Err(DomainError::Conflict(
+            ConflictReason::InvoiceStatusTransition {
+                from: current,
+                to: target,
+            },
+        ))
     }
 }
 

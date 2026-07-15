@@ -8,9 +8,7 @@ use domain::invoice::{
     DEFAULT_TAX_RATE_BP, Invoice, InvoiceListQuery, InvoiceRepo, InvoiceStatus, NewInvoice,
     UpdateInvoice, can_edit, compute_gross, compute_tax, due_date_from_issue, validate_transition,
 };
-use domain::order::{
-    LineItem, can_invoice, line_items_total, validate_line_item_currencies,
-};
+use domain::order::{LineItem, can_invoice, line_items_total, validate_line_item_currencies};
 use domain::tenant::Tenant;
 use surrealdb::Surreal;
 use surrealdb::engine::any::Any;
@@ -186,7 +184,10 @@ fn sort_clause(sort: &str) -> Result<String, DomainError> {
         let mut details = HashMap::new();
         details.insert(
             "sort".to_string(),
-            FieldError::with_params("unknown_sort_field", HashMap::from([("field".to_string(), field.to_string())])),
+            FieldError::with_params(
+                "unknown_sort_field",
+                HashMap::from([("field".to_string(), field.to_string())]),
+            ),
         );
         return Err(DomainError::Validation(details));
     }
@@ -362,7 +363,9 @@ impl InvoiceRepo for SurrealInvoiceRepo {
 
         let order_status = order_status_from_db(order.status)?;
         if !can_invoice(order_status) {
-            return Err(DomainError::Conflict(ConflictReason::OrderNotConfirmedForInvoice));
+            return Err(DomainError::Conflict(
+                ConflictReason::OrderNotConfirmedForInvoice,
+            ));
         }
         if self.invoice_exists_for_order(&data.order_id).await? {
             return Err(DomainError::Conflict(ConflictReason::OrderAlreadyInvoiced));
@@ -464,7 +467,9 @@ impl InvoiceRepo for SurrealInvoiceRepo {
     }
 
     async fn delete(&self, _id: &str) -> Result<(), DomainError> {
-        Err(DomainError::Conflict(ConflictReason::InvoiceCannotBeDeleted))
+        Err(DomainError::Conflict(
+            ConflictReason::InvoiceCannotBeDeleted,
+        ))
     }
 
     async fn set_status(&self, id: &str, status: InvoiceStatus) -> Result<Invoice, DomainError> {

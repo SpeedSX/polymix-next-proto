@@ -13,17 +13,40 @@ import { emptyOrderFormValues } from './types'
 vi.mock('../customers/api', () => ({
   fetchCustomers: vi.fn(),
   fetchCustomer: vi.fn(),
+  fetchCustomerStatusDictionary: vi.fn(),
+  customersKeys: {
+    all: ['customers'],
+    list: (params: unknown) => ['customers', params],
+    detail: (id: string) => ['customers', id],
+    statusDictionary: () => ['dictionaries', 'customer-statuses'],
+  },
 }))
 
-const { fetchCustomer, fetchCustomers } = await import('../customers/api')
+const { fetchCustomer, fetchCustomers, fetchCustomerStatusDictionary } = await import('../customers/api')
 
 const CUSTOMER: Customer = {
   id: 'customer1',
+  number: '000001',
+  kind: 0,
   name: 'Acme Print',
-  contact_name: null,
-  email: null,
-  phone: null,
-  address: null,
+  legal_name: null,
+  edrpou: null,
+  tax_id: null,
+  vat_ipn: null,
+  status: 1,
+  tags: [],
+  industry: null,
+  source: null,
+  website: null,
+  contacts: [],
+  legal_address: null,
+  delivery_address: null,
+  payment_terms_days: 0,
+  credit_limit: null,
+  default_currency: 'EUR',
+  default_discount_bp: 0,
+  iban: null,
+  bank_name: null,
   notes: null,
   created_at: '2026-01-01T00:00:00Z',
   updated_at: '2026-01-01T00:00:00Z',
@@ -68,6 +91,9 @@ describe('OrderForm', () => {
   beforeEach(() => {
     vi.mocked(fetchCustomers).mockResolvedValue({ items: [CUSTOMER], total: 1, page: 1, limit: 20 })
     vi.mocked(fetchCustomer).mockResolvedValue(CUSTOMER)
+    vi.mocked(fetchCustomerStatusDictionary).mockResolvedValue({
+      items: [{ id: 1, key: 'active', sort: 1, color: 'green', can_order: true, allowed_targets: [], labels: { en: 'Active' } }],
+    })
   })
 
   it('lets the user search and pick a customer instead of typing an id', async () => {
@@ -90,7 +116,7 @@ describe('OrderForm', () => {
     fireEvent.change(getField('lineItems.0.unitPrice'), { target: { value: '10.00' } })
     fireEvent.click(screen.getByRole('button', { name: 'Save' }))
 
-    expect(await screen.findByText('String must contain at least 1 character(s)')).toBeInTheDocument()
+    expect(await screen.findByText('This field is required.')).toBeInTheDocument()
     expect(onSubmit).not.toHaveBeenCalled()
   })
 
@@ -102,7 +128,7 @@ describe('OrderForm', () => {
     fireEvent.change(getField('lineItems.0.unitPrice'), { target: { value: 'abc' } })
     fireEvent.click(screen.getByRole('button', { name: 'Save' }))
 
-    expect(await screen.findByText('Invalid')).toBeInTheDocument()
+    expect(await screen.findByText('Must be a valid decimal amount.')).toBeInTheDocument()
     expect(onSubmit).not.toHaveBeenCalled()
   })
 

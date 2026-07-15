@@ -12,6 +12,7 @@ use std::env;
 use std::sync::Arc;
 use std::time::Instant;
 
+use domain::customer::{CustomerKind, CustomerStatus};
 use domain::money::Money;
 use domain::order::{LineItem, OrderStatus, line_items_total};
 use fake::Fake;
@@ -32,6 +33,29 @@ const BATCH_SIZE: usize = 1000;
 const CUSTOMER_TABLE: &str = "customer";
 const ORDER_TABLE: &str = "order";
 const UA_LOCALE: &str = "ua";
+
+// ~60% legal entity, ~35% ФОП, ~5% private individual (docs/customers-crm.md
+// Step 6) — used for both demo tenants so the perf tenant's FTS index sees
+// the same field-value distribution as the Ukrainian one.
+const CUSTOMER_KIND_WEIGHTS: &[(CustomerKind, u32)] = &[
+    (CustomerKind::LegalEntity, 60),
+    (CustomerKind::Fop, 35),
+    (CustomerKind::Individual, 5),
+];
+
+// Mostly active, with a deliberate minority of every other status so the
+// list's status filter has something to demo.
+const CUSTOMER_STATUS_WEIGHTS: &[(CustomerStatus, u32)] = &[
+    (CustomerStatus::Active, 70),
+    (CustomerStatus::Lead, 10),
+    (CustomerStatus::Inactive, 10),
+    (CustomerStatus::Blocked, 10),
+];
+
+const PAYMENT_TERMS_OPTIONS: &[u16] = &[0, 7, 14, 30];
+
+const EN_TAGS: &[&str] = &["printing", "regular", "wholesale", "new", "vip"];
+const EN_CONTACT_ROLES: &[&str] = &["director", "purchasing manager", "accountant"];
 
 const PRODUCTS: &[&str] = &[
     "Business cards",
@@ -67,13 +91,43 @@ struct AddressRow {
 
 #[derive(Debug, SurrealValue)]
 #[surreal(crate = "surrealdb::types")]
-struct CustomerSeedRow {
-    id: RecordId,
+struct ContactRow {
     name: String,
-    contact_name: Option<String>,
+    role: Option<String>,
     email: Option<String>,
     phone: Option<String>,
-    address: Option<AddressRow>,
+    is_primary: bool,
+}
+
+#[derive(Debug, SurrealValue)]
+#[surreal(crate = "surrealdb::types")]
+struct CustomerSeedRow {
+    id: RecordId,
+    // `number` is deliberately omitted: `customer_repo::backfill_numbers`
+    // (run once at API startup, same as for pre-M5.1 legacy rows) assigns
+    // sequential numbers to any row that lacks one — no need to duplicate
+    // that counter-catchup logic here (contrast `seed_orders`, which writes
+    // `order.number` directly and so must catch the shared counter up itself).
+    kind: i64,
+    name: String,
+    legal_name: Option<String>,
+    edrpou: Option<String>,
+    tax_id: Option<String>,
+    vat_ipn: Option<String>,
+    status: i64,
+    tags: Vec<String>,
+    industry: Option<String>,
+    source: Option<String>,
+    website: Option<String>,
+    contacts: Vec<ContactRow>,
+    legal_address: Option<AddressRow>,
+    delivery_address: Option<AddressRow>,
+    payment_terms_days: u16,
+    credit_limit: Option<MoneyRow>,
+    default_currency: String,
+    default_discount_bp: u16,
+    iban: Option<String>,
+    bank_name: Option<String>,
     notes: Option<String>,
     created_at: String,
     updated_at: String,
@@ -151,6 +205,24 @@ fn random_status(rng: &mut impl Rng) -> OrderStatus {
     unreachable!("weights partition the full range")
 }
 
+fn weighted_pick<T: Copy>(rng: &mut impl Rng, weights: &[(T, u32)]) -> T {
+    let total: u32 = weights.iter().map(|(_, weight)| weight).sum();
+    let mut pick = rng.gen_range(0..total);
+    for (value, weight) in weights {
+        if pick < *weight {
+            return *value;
+        }
+        pick -= weight;
+    }
+    unreachable!("weights partition the full range")
+}
+
+fn random_digits(rng: &mut impl Rng, len: usize) -> String {
+    (0..len)
+        .map(|_| char::from_digit(rng.gen_range(0..10), 10).unwrap())
+        .collect()
+}
+
 fn random_line_items(rng: &mut impl Rng, currency: &str, products: &[&str]) -> Vec<LineItem> {
     let count = rng.gen_range(1..=4);
     (0..count)
@@ -204,7 +276,13 @@ async fn main() -> anyhow::Result<()> {
     tracing::info!(tenant = %tenant.db_name, org_id = %org_id, "seeding tenant");
 
     let started = Instant::now();
-    let customer_ids = seed_customers(&session, customer_count, ukrainian).await?;
+    let customer_ids = seed_customers(
+        &session,
+        customer_count,
+        ukrainian,
+        &tenant.default_currency,
+    )
+    .await?;
     tracing::info!(count = customer_ids.len(), elapsed = ?started.elapsed(), "customers seeded");
 
     let orders_started = Instant::now();
@@ -222,10 +300,53 @@ async fn main() -> anyhow::Result<()> {
     Ok(())
 }
 
+fn seed_contacts(rng: &mut impl Rng, ukrainian: bool, seq: usize) -> Vec<ContactRow> {
+    let count = rng.gen_range(1..=3);
+    (0..count)
+        .map(|i| {
+            let (name, role, email, phone) = if ukrainian {
+                (
+                    ua::contact_name(rng),
+                    ua::CONTACT_ROLES.choose(rng).unwrap().to_string(),
+                    ua::email(rng, seq * 10 + i),
+                    ua::phone(rng),
+                )
+            } else {
+                (
+                    Name().fake_with_rng(rng),
+                    EN_CONTACT_ROLES.choose(rng).unwrap().to_string(),
+                    FreeEmail().fake_with_rng(rng),
+                    PhoneNumber().fake_with_rng(rng),
+                )
+            };
+            ContactRow {
+                name,
+                role: Some(role),
+                email: Some(email),
+                phone: Some(phone),
+                is_primary: i == 0,
+            }
+        })
+        .collect()
+}
+
+fn seed_tags(rng: &mut impl Rng, ukrainian: bool) -> Vec<String> {
+    let pool = if ukrainian { ua::TAGS } else { EN_TAGS };
+    let count = rng.gen_range(0..=3);
+    let mut chosen: Vec<String> = pool
+        .choose_multiple(rng, count)
+        .map(|s| s.to_string())
+        .collect();
+    chosen.sort();
+    chosen.dedup();
+    chosen
+}
+
 async fn seed_customers(
     session: &Surreal<Any>,
     count: usize,
     ukrainian: bool,
+    default_currency: &str,
 ) -> anyhow::Result<Vec<String>> {
     let mut rng = rand::thread_rng();
     let mut ids = Vec::with_capacity(count);
@@ -238,40 +359,62 @@ async fn seed_customers(
         let mut batch = Vec::with_capacity(batch_size);
         for _ in 0..batch_size {
             let id = Ulid::new().to_string();
-            batch.push(if ukrainian {
-                CustomerSeedRow {
-                    id: RecordId::new(CUSTOMER_TABLE, id.clone()),
-                    name: ua::company_name(&mut rng),
-                    contact_name: Some(ua::contact_name(&mut rng)),
-                    email: Some(ua::email(&mut rng, seq)),
-                    phone: Some(ua::phone(&mut rng)),
-                    address: Some(AddressRow {
+            let kind = weighted_pick(&mut rng, CUSTOMER_KIND_WEIGHTS);
+            let edrpou = (kind == CustomerKind::LegalEntity).then(|| random_digits(&mut rng, 8));
+            let tax_id = (kind != CustomerKind::LegalEntity).then(|| random_digits(&mut rng, 10));
+            let vat_ipn = rng.gen_bool(0.4).then(|| random_digits(&mut rng, 12));
+            let status = weighted_pick(&mut rng, CUSTOMER_STATUS_WEIGHTS);
+            let payment_terms_days = *PAYMENT_TERMS_OPTIONS.choose(&mut rng).unwrap();
+            let contacts = seed_contacts(&mut rng, ukrainian, seq);
+            let tags = seed_tags(&mut rng, ukrainian);
+
+            let (name, legal_address) = if ukrainian {
+                (
+                    ua::company_name(&mut rng),
+                    AddressRow {
                         street: Some(ua::street(&mut rng)),
                         zip: Some(ua::zip(&mut rng)),
                         city: Some(ua::city(&mut rng)),
                         country: Some("UA".to_string()),
-                    }),
-                    notes: None,
-                    created_at: now.clone(),
-                    updated_at: now.clone(),
-                }
+                    },
+                )
             } else {
-                CustomerSeedRow {
-                    id: RecordId::new(CUSTOMER_TABLE, id.clone()),
-                    name: CompanyName().fake_with_rng(&mut rng),
-                    contact_name: Some(Name().fake_with_rng(&mut rng)),
-                    email: Some(FreeEmail().fake_with_rng(&mut rng)),
-                    phone: Some(PhoneNumber().fake_with_rng(&mut rng)),
-                    address: Some(AddressRow {
+                (
+                    CompanyName().fake_with_rng(&mut rng),
+                    AddressRow {
                         street: Some(StreetName().fake_with_rng(&mut rng)),
                         zip: Some(ZipCode().fake_with_rng(&mut rng)),
                         city: Some(CityName().fake_with_rng(&mut rng)),
                         country: Some(CountryCode().fake_with_rng(&mut rng)),
-                    }),
-                    notes: None,
-                    created_at: now.clone(),
-                    updated_at: now.clone(),
-                }
+                    },
+                )
+            };
+
+            batch.push(CustomerSeedRow {
+                id: RecordId::new(CUSTOMER_TABLE, id.clone()),
+                kind: kind.code() as i64,
+                name,
+                legal_name: None,
+                edrpou,
+                tax_id,
+                vat_ipn,
+                status: status.code() as i64,
+                tags,
+                industry: None,
+                source: None,
+                website: None,
+                contacts,
+                legal_address: Some(legal_address),
+                delivery_address: None,
+                payment_terms_days,
+                credit_limit: None,
+                default_currency: default_currency.to_string(),
+                default_discount_bp: 0,
+                iban: None,
+                bank_name: None,
+                notes: None,
+                created_at: now.clone(),
+                updated_at: now.clone(),
             });
             ids.push(id);
             seq += 1;

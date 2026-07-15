@@ -23,7 +23,7 @@ async fn create_customer(app: &TestApp, org_id: &str, name: &str) -> serde_json:
         .client
         .post(format!("{}/api/customers", app.base_url))
         .bearer_auth(app.token_for(org_id))
-        .json(&serde_json::json!({ "name": name }))
+        .json(&serde_json::json!({ "kind": 0, "name": name, "payment_terms_days": 0, "default_discount_bp": 0 }))
         .send()
         .await
         .expect("create customer request failed");
@@ -105,7 +105,12 @@ async fn live_updates_recover_after_surrealdb_pause() {
             .client
             .post(format!("{}/api/customers", app.base_url))
             .bearer_auth(&token)
-            .json(&serde_json::json!({ "name": format!("post-outage-{i}") }))
+            .json(&serde_json::json!({
+                "kind": 0,
+                "name": format!("post-outage-{i}"),
+                "payment_terms_days": 0,
+                "default_discount_bp": 0,
+            }))
             .send()
             .await;
         let created_ok = matches!(&response, Ok(r) if r.status() == 201);

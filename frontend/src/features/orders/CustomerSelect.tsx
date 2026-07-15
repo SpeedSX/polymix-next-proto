@@ -7,6 +7,7 @@ import { useTranslation } from 'react-i18next'
 
 import { useApi } from '../../lib/api'
 import { fetchCustomer, fetchCustomers } from '../customers/api'
+import { useCustomerStatusDictionary } from '../customers/useCustomerStatusDictionary'
 
 const SEARCH_DEBOUNCE_MS = 250
 const SEARCH_RESULT_LIMIT = 20
@@ -42,6 +43,7 @@ export function CustomerSelect({
 }: CustomerSelectProps) {
   const { t } = useTranslation('orders')
   const api = useApi()
+  const statusDict = useCustomerStatusDictionary()
   const [search, setSearch] = useState('')
   const [debouncedSearch] = useDebouncedValue(search, SEARCH_DEBOUNCE_MS)
 
@@ -56,9 +58,14 @@ export function CustomerSelect({
     enabled: value !== '',
   })
 
+  // Customers in a status that can't place an order (inactive/blocked) are
+  // filtered out here; if a race lets one through anyway, order creation
+  // still 409s and the caller surfaces that as a toast (see docs/customers-crm.md).
   const options = new Map<string, string>()
   for (const customer of searchResults?.items ?? []) {
-    options.set(customer.id, customer.name)
+    if (statusDict.byId.get(customer.status)?.can_order ?? true) {
+      options.set(customer.id, customer.name)
+    }
   }
   if (selectedCustomer && !options.has(selectedCustomer.id)) {
     options.set(selectedCustomer.id, selectedCustomer.name)

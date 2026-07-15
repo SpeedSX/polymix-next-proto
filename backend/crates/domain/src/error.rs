@@ -3,6 +3,7 @@ use std::fmt;
 
 use serde::Serialize;
 
+use crate::customer::CustomerStatus;
 use crate::invoice::InvoiceStatus;
 use crate::order::OrderStatus;
 
@@ -32,11 +33,17 @@ pub struct FieldError {
 
 impl FieldError {
     pub fn code(code: impl Into<String>) -> Self {
-        Self { code: code.into(), params: HashMap::new() }
+        Self {
+            code: code.into(),
+            params: HashMap::new(),
+        }
     }
 
     pub fn with_params(code: impl Into<String>, params: HashMap<String, String>) -> Self {
-        Self { code: code.into(), params }
+        Self {
+            code: code.into(),
+            params,
+        }
     }
 }
 
@@ -47,19 +54,31 @@ impl FieldError {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ConflictReason {
     CustomerHasOrders,
+    CustomerNotActiveForOrder,
     OrderHasInvoice,
     OrderNotConfirmedForInvoice,
     OrderAlreadyInvoiced,
     InvoiceNotDraft,
     InvoiceCannotBeDeleted,
-    OrderStatusTransition { from: OrderStatus, to: OrderStatus },
-    InvoiceStatusTransition { from: InvoiceStatus, to: InvoiceStatus },
+    OrderStatusTransition {
+        from: OrderStatus,
+        to: OrderStatus,
+    },
+    InvoiceStatusTransition {
+        from: InvoiceStatus,
+        to: InvoiceStatus,
+    },
+    CustomerStatusTransition {
+        from: CustomerStatus,
+        to: CustomerStatus,
+    },
 }
 
 impl ConflictReason {
     pub fn code(&self) -> &'static str {
         match self {
             Self::CustomerHasOrders => "customer_has_orders",
+            Self::CustomerNotActiveForOrder => "customer_not_active_for_order",
             Self::OrderHasInvoice => "order_has_invoice",
             Self::OrderNotConfirmedForInvoice => "order_not_confirmed_for_invoice",
             Self::OrderAlreadyInvoiced => "order_already_invoiced",
@@ -67,6 +86,7 @@ impl ConflictReason {
             Self::InvoiceCannotBeDeleted => "invoice_cannot_be_deleted",
             Self::OrderStatusTransition { .. } => "order_status_transition",
             Self::InvoiceStatusTransition { .. } => "invoice_status_transition",
+            Self::CustomerStatusTransition { .. } => "customer_status_transition",
         }
     }
 
@@ -81,6 +101,10 @@ impl ConflictReason {
                 ("to".to_string(), status_code(to)),
             ])),
             Self::InvoiceStatusTransition { from, to } => Some(HashMap::from([
+                ("from".to_string(), status_code(from)),
+                ("to".to_string(), status_code(to)),
+            ])),
+            Self::CustomerStatusTransition { from, to } => Some(HashMap::from([
                 ("from".to_string(), status_code(from)),
                 ("to".to_string(), status_code(to)),
             ])),
@@ -108,6 +132,7 @@ impl fmt::Display for ConflictReason {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::CustomerHasOrders => write!(f, "customer has orders and cannot be deleted"),
+            Self::CustomerNotActiveForOrder => write!(f, "customer is not active"),
             Self::OrderHasInvoice => write!(f, "order has an invoice and cannot be deleted"),
             Self::OrderNotConfirmedForInvoice => {
                 write!(f, "order must be confirmed before it can be invoiced")
@@ -125,6 +150,9 @@ impl fmt::Display for ConflictReason {
             }
             Self::InvoiceStatusTransition { from, to } => {
                 write!(f, "cannot transition invoice from {from:?} to {to:?}")
+            }
+            Self::CustomerStatusTransition { from, to } => {
+                write!(f, "cannot transition customer from {from:?} to {to:?}")
             }
         }
     }

@@ -15,7 +15,7 @@ impl TestApp {
         self.client
             .post(format!("{}/api/customers", self.base_url))
             .bearer_auth(self.token_for(org_id))
-            .json(&json!({ "name": name }))
+            .json(&json!({ "kind": 0, "name": name, "payment_terms_days": 0, "default_discount_bp": 0 }))
             .send()
             .await
             .expect("create customer request failed")

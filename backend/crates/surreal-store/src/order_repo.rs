@@ -3,6 +3,7 @@ use std::sync::Arc;
 
 use async_trait::async_trait;
 use domain::Paged;
+use domain::customer::{CustomerStatus, can_order};
 use domain::error::{ConflictReason, DomainError, FieldError};
 use domain::money::Money;
 use domain::order::{
@@ -16,7 +17,7 @@ use surrealdb::types::{RecordId, RecordIdKey, SurrealValue};
 use ulid::Ulid;
 
 use crate::counter::next_number;
-use crate::status::order_status_from_db;
+use crate::status::{customer_status_from_db, order_status_from_db};
 
 pub(crate) const TABLE: &str = "order";
 const CUSTOMER_TABLE: &str = "customer";
@@ -133,6 +134,12 @@ struct IdOnly {
 
 #[derive(Debug, SurrealValue)]
 #[surreal(crate = "surrealdb::types")]
+struct CustomerStatusRow {
+    status: i64,
+}
+
+#[derive(Debug, SurrealValue)]
+#[surreal(crate = "surrealdb::types")]
 struct CountRow {
     count: i64,
 }
@@ -189,7 +196,10 @@ fn sort_clause(sort: &str) -> Result<String, DomainError> {
         let mut details = HashMap::new();
         details.insert(
             "sort".to_string(),
-            FieldError::with_params("unknown_sort_field", HashMap::from([("field".to_string(), field.to_string())])),
+            FieldError::with_params(
+                "unknown_sort_field",
+                HashMap::from([("field".to_string(), field.to_string())]),
+            ),
         );
         return Err(DomainError::Validation(details));
     }
@@ -272,6 +282,37 @@ impl SurrealOrderRepo {
             .await
             .map_err(map_err)?;
         Ok(row.is_some())
+    }
+
+    async fn customer_status(
+        &self,
+        customer_id: &str,
+    ) -> Result<Option<CustomerStatus>, DomainError> {
+        let row: Option<CustomerStatusRow> = self
+            .session
+            .select((CUSTOMER_TABLE, customer_id))
+            .await
+            .map_err(map_err)?;
+        row.map(|r| customer_status_from_db(r.status)).transpose()
+    }
+
+    /// A `lead` placing its first order *is* the conversion event — promote
+    /// it to `active` in the same operation as order creation (see
+    /// `docs/customers-crm.md`). The write goes through this session so the
+    /// existing `LIVE SELECT` on `customer` picks it up like any other
+    /// update.
+    async fn promote_customer_to_active(&self, customer_id: &str) -> Result<(), DomainError> {
+        let patch = StatusPatch {
+            status: CustomerStatus::Active.code() as i64,
+            updated_at: chrono::Utc::now().to_rfc3339(),
+        };
+        let _: Option<IdOnly> = self
+            .session
+            .update((CUSTOMER_TABLE, customer_id))
+            .merge(patch)
+            .await
+            .map_err(map_err)?;
+        Ok(())
     }
 
     async fn has_invoice(&self, order_id: &str) -> Result<bool, DomainError> {
@@ -373,8 +414,17 @@ impl OrderRepo for SurrealOrderRepo {
     }
 
     async fn create(&self, data: NewOrder, tenant: &Tenant) -> Result<Order, DomainError> {
-        if !self.customer_exists(&data.customer_id).await? {
-            return Err(customer_not_found_error());
+        let customer_status = self
+            .customer_status(&data.customer_id)
+            .await?
+            .ok_or_else(customer_not_found_error)?;
+        if !can_order(customer_status) {
+            return Err(DomainError::Conflict(
+                ConflictReason::CustomerNotActiveForOrder,
+            ));
+        }
+        if customer_status == CustomerStatus::Lead {
+            self.promote_customer_to_active(&data.customer_id).await?;
         }
         let currency = data.currency.clone().unwrap_or_else(|| "EUR".to_string());
         let total = line_items_total(&data.line_items, &currency);

@@ -22,5 +22,14 @@
   "validation.min_line_items": "Must have at least one line item.",
   "validation.not_found": "This record could not be found.",
   "validation.unknown_sort_field": "Unknown sort field: {field}.",
-  "validation.currency_mismatch": "Must match the order's currency ({currency})."
+  "validation.currency_mismatch": "Must match the order's currency ({currency}).",
+  "validation.not_applicable_for_kind": "Not applicable for this customer kind.",
+  "validation.invalid_edrpou": "Must be exactly 8 digits.",
+  "validation.invalid_tax_id": "Must be exactly 10 digits.",
+  "validation.invalid_vat_ipn": "Must be exactly 12 digits.",
+  "validation.invalid_iban": "Must be a Ukrainian IBAN (UA + 27 digits).",
+  "validation.invalid_amount": "Must be a valid decimal amount.",
+  "validation.multiple_primary_contacts": "Only one contact can be marked primary.",
+  "validation.out_of_range": "Value is out of range.",
+  "validation.invalid_creation_status": "New customers can only start as a lead or active."
 }

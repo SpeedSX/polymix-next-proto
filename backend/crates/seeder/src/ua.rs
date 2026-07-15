@@ -91,6 +91,10 @@ const STREETS: &[&str] = &[
 
 const EMAIL_DOMAINS: &[&str] = &["pryklad.ua", "poshta.ua", "druk.ua"];
 
+pub const TAGS: &[&str] = &["поліграфія", "постійний", "опт", "новий", "vip"];
+
+pub const CONTACT_ROLES: &[&str] = &["директор", "менеджер із закупівель", "бухгалтер"];
+
 pub const PRODUCTS: &[&str] = &[
     "Візитки",
     "Листівки",

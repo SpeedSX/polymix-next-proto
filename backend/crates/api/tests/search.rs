@@ -12,7 +12,7 @@ impl TestApp {
         self.client
             .post(format!("{}/api/customers", self.base_url))
             .bearer_auth(self.token_for(org_id))
-            .json(&json!({ "name": name }))
+            .json(&json!({ "kind": 0, "name": name, "payment_terms_days": 0, "default_discount_bp": 0 }))
             .send()
             .await
             .expect("create customer request failed")
@@ -30,7 +30,13 @@ impl TestApp {
         self.client
             .post(format!("{}/api/customers", self.base_url))
             .bearer_auth(self.token_for(org_id))
-            .json(&json!({ "name": name, "contact_name": contact_name }))
+            .json(&json!({
+                "kind": 0,
+                "name": name,
+                "payment_terms_days": 0,
+                "default_discount_bp": 0,
+                "contacts": [{ "name": contact_name, "role": null, "email": null, "phone": null, "is_primary": true }],
+            }))
             .send()
             .await
             .expect("create customer request failed")
@@ -87,7 +93,7 @@ impl TestApp {
             .expect("create order response was not JSON")
     }
 
-    async fn set_order_status(&self, org_id: &str, order_id: &str, status: &str) -> Value {
+    async fn set_order_status(&self, org_id: &str, order_id: &str, status: i64) -> Value {
         self.client
             .post(format!("{}/api/orders/{order_id}/status", self.base_url))
             .bearer_auth(self.token_for(org_id))
@@ -306,16 +312,23 @@ async fn omnibox_matches_order_and_invoice_hits() {
     let order_number = order["number"].as_str().unwrap().to_string();
     assert_eq!(order_number, "000001");
 
-    app.set_order_status(org, &order_id, "confirmed").await;
+    app.set_order_status(org, &order_id, 1).await;
     let invoice = app.create_invoice_from_order(org, &order_id).await;
     let invoice_id = invoice["id"].as_str().unwrap().to_string();
     let invoice_number = invoice["number"].as_str().unwrap().to_string();
     assert_eq!(invoice_number, "000001");
 
-    // "000001" matches both the order's and the invoice's number.
+    // "000001" matches both the order's and the invoice's number. It may
+    // also match this customer's own number (also assigned from "000001" in
+    // a fresh tenant, since customer/order/invoice numbering are independent
+    // per-tenant counters that all start at the same value) — customer.number
+    // joined the FTS-indexed fields in M5.1, and edge-ngram matching is a
+    // shared-token test, not an exact-value one, so two zero-padded numbers
+    // sharing a leading run of zeros (e.g. "000001" and "000002") legitimately
+    // share tokens like "0000". See docs/adr/0010-customer-number-shares-fts-tokens-with-low-counters.md.
+    // This test's job is the order/invoice highlighting below, not asserting
+    // the customer side is empty.
     let results = app.search(org, "000001").await;
-
-    assert!(results["customers"].as_array().unwrap().is_empty());
 
     let orders = results["orders"].as_array().expect("orders is an array");
     assert_eq!(orders.len(), 1);
