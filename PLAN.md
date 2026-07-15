@@ -130,17 +130,11 @@ tenant {
 customer {
   id: ulid,
   name: string (required, non-empty),        // company name
-  contact_name: string | null,
-  email: string | null (format-validated),
-  phone: string | null,
-  address: { street, zip, city, country } | null   // country: ISO 3166-1 alpha-2
-  notes: string | null,
-  created_at, updated_at
+  ...
 }
-// M5.1 extends customer into a Ukraine-focused CRM profile (legal ids,
-// lifecycle status, embedded contacts, commercial terms) — once M5.1 lands,
-// docs/customers-crm.md is normative for this entity and supersedes the
-// block above.
+// Customer is  Ukraine-focused CRM profile (legal ids,
+// lifecycle status, embedded contacts, commercial terms) —,
+// docs/customers-crm.md is normative for this entity.
 
 order {
   id: ulid,
@@ -197,9 +191,9 @@ Migrations are ordered files `0001_init.surql`, `0002_….surql`, applied per te
 DEFINE ANALYZER autocomplete TOKENIZERS class FILTERS lowercase, ascii, edgengram(2, 10);
 
 DEFINE INDEX customer_search ON customer
-  FIELDS name, contact_name, email, address.city
+  FIELDS name, email
   SEARCH ANALYZER autocomplete BM25 HIGHLIGHTS;
-DEFINE INDEX order_search   ON order   FIELDS number, notes, line_items[*].description
+DEFINE INDEX order_search   ON order   FIELDS number, notes
   SEARCH ANALYZER autocomplete BM25 HIGHLIGHTS;
 DEFINE INDEX invoice_search ON invoice FIELDS number
   SEARCH ANALYZER autocomplete BM25 HIGHLIGHTS;
@@ -208,8 +202,8 @@ DEFINE INDEX invoice_search ON invoice FIELDS number
 Search query shape (per entity, `$q` bound, never string-interpolated):
 
 ```sql
-SELECT *, search::score(0) AS score FROM customer
-WHERE name @0@ $q OR contact_name @0@ $q OR email @0@ $q
+SELECT *, (search::score(0) + search::score(1)) AS score FROM customer
+WHERE name @0@ $q OR email @1@ $q
 ORDER BY score DESC LIMIT $limit;
 ```
 
