@@ -37,12 +37,12 @@ test-int:
     if [ -n "$ids" ]; then {{container_runtime}} rm -f $ids; fi; \
     exit $code
 
-# Seeder against the local dev tenant (50k customers, 200k orders).
+# Seeder against the local dev tenant.
 seed:
     cd backend && SURREALDB_URL=ws://localhost:8001 cargo run -p seeder
 
-# Seeder against the Ukrainian demo tenant (100 customers, 1000 orders,
-# default language `ua`, default currency UAH) — PLAN.md M4.
+# Seeder against the Ukrainian demo tenant,
+# default language `ua`, default currency UAH).
 seed-ua:
     cd backend && SURREALDB_URL=ws://localhost:8001 SEED_LOCALE=ua cargo run -p seeder
 
