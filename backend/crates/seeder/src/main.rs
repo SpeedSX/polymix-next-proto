@@ -491,7 +491,8 @@ async fn seed_orders(
         for _ in 0..batch_size {
             number += 1;
             let id = Ulid::new().to_string();
-            let customer_id = (*eligible.choose(&mut rng).expect("eligible is non-empty")).to_string();
+            let customer_id =
+                (*eligible.choose(&mut rng).expect("eligible is non-empty")).to_string();
             if pending_leads.remove(customer_id.as_str()) {
                 promoted_leads.push(customer_id.clone());
             }
@@ -536,10 +537,7 @@ async fn seed_orders(
     Ok(())
 }
 
-async fn promote_ordered_leads(
-    session: &Surreal<Any>,
-    lead_ids: &[String],
-) -> anyhow::Result<()> {
+async fn promote_ordered_leads(session: &Surreal<Any>, lead_ids: &[String]) -> anyhow::Result<()> {
     if lead_ids.is_empty() {
         return Ok(());
     }
@@ -560,6 +558,9 @@ async fn promote_ordered_leads(
             .await?
             .check()?;
     }
-    tracing::info!(count = lead_ids.len(), "leads promoted to active after first order");
+    tracing::info!(
+        count = lead_ids.len(),
+        "leads promoted to active after first order"
+    );
     Ok(())
 }
