@@ -10,7 +10,7 @@ use domain::error::{ConflictReason, DomainError, FieldError};
 use domain::tenant::Tenant;
 use surrealdb::Surreal;
 use surrealdb::engine::any::Any;
-use surrealdb::types::{RecordId, RecordIdKey, SurrealValue};
+use surrealdb::types::{RecordId, RecordIdKey, SurrealValue, Value};
 use ulid::Ulid;
 
 use crate::order_repo::MoneyRow;
@@ -352,14 +352,38 @@ const MAX_SEARCH_WINDOW: i64 = 1_000;
 struct SearchHitRow {
     id: RecordId,
     label: String,
-    highlight: Option<String>,
+    // Scalar FULLTEXT fields return a string, while array paths such as
+    // `contacts[*].name` return an array of highlighted field values.
+    highlight: Value,
     score: Option<f64>,
+}
+
+fn highlight_text(value: Value, label: &str) -> String {
+    match value {
+        Value::String(text) => text,
+        Value::Array(values) => {
+            let mut texts: Vec<String> = values
+                .into_iter()
+                .filter_map(|value| match value {
+                    Value::String(text) => Some(text),
+                    _ => None,
+                })
+                .collect();
+            texts
+                .iter()
+                .position(|text| text.contains("<b>"))
+                .map(|index| texts.swap_remove(index))
+                .or_else(|| texts.into_iter().next())
+                .unwrap_or_else(|| label.to_string())
+        }
+        _ => label.to_string(),
+    }
 }
 
 fn to_hit(row: SearchHitRow) -> domain::SearchHit {
     domain::SearchHit {
         id: record_key(&row.id),
-        highlight: row.highlight.unwrap_or_else(|| row.label.clone()),
+        highlight: highlight_text(row.highlight, &row.label),
         label: row.label,
     }
 }
@@ -666,5 +690,32 @@ impl CustomerRepo for SurrealCustomerRepo {
             .map_err(map_err)?;
         let row = row.ok_or(DomainError::NotFound)?;
         customer_from_row(row, tenant)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::highlight_text;
+    use surrealdb::types::Value;
+
+    #[test]
+    fn array_highlight_uses_the_matching_fragment() {
+        let highlight = Value::Array(
+            vec![
+                Value::String("Jane Doe".to_string()),
+                Value::String("<b>Adam</b> Smith".to_string()),
+            ]
+            .into(),
+        );
+
+        assert_eq!(highlight_text(highlight, "Customer"), "<b>Adam</b> Smith");
+    }
+
+    #[test]
+    fn missing_highlight_falls_back_to_label() {
+        assert_eq!(
+            highlight_text(Value::None, "Adamant Print GmbH"),
+            "Adamant Print GmbH"
+        );
     }
 }

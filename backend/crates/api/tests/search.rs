@@ -215,6 +215,28 @@ async fn omnibox_ranks_across_entities_with_highlight() {
 
 #[tokio::test]
 #[ignore]
+async fn omnibox_handles_array_field_highlights() {
+    let app = TestApp::spawn().await;
+    let org = "org-search-omnibox-contact";
+
+    let customer = app
+        .create_customer_with_contact(org, "Zebra Druck AG", "Adalina Smith")
+        .await;
+    let customer_id = customer["id"].as_str().unwrap();
+
+    let results = app.search(org, "adalina").await;
+    let customers = results["customers"]
+        .as_array()
+        .expect("customers is an array");
+
+    assert_eq!(customers.len(), 1);
+    assert_eq!(customers[0]["id"], customer_id);
+    assert_eq!(customers[0]["label"], "Zebra Druck AG");
+    assert_eq!(customers[0]["highlight"], "<b>Adalina</b> Smith");
+}
+
+#[tokio::test]
+#[ignore]
 async fn order_list_search_matches_number_and_notes_but_not_line_items() {
     let app = TestApp::spawn().await;
     let org = "org-search-order-list";

@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import {
+  Accordion,
   ActionIcon,
   Alert,
   Button,
@@ -22,7 +23,11 @@ import { useTranslation } from 'react-i18next'
 import { ApiError, apiErrorMessage, validationMessage } from '../../lib/api'
 import { CURRENCY_OPTIONS } from '../orders/types'
 import { CUSTOMER_KIND, customerFormSchema, emptyContactFormValues, mapApiErrorField, toNewCustomer } from './types'
-import type { Customer, CustomerFormValues, CustomerKindId } from './types'
+import type { AddressFormValues, Customer, CustomerFormValues, CustomerKindId } from './types'
+
+function isAddressEmpty(address: AddressFormValues): boolean {
+  return !address.street && !address.zip && !address.city && !address.country
+}
 
 export interface CustomerFormProps {
   initialValues: CustomerFormValues
@@ -157,9 +162,17 @@ export function CustomerForm({ initialValues, onSubmit, onSuccess, onCancel }: C
           </Stack>
         </Fieldset>
 
-        <Fieldset legend={t('sections.addresses')}>
-          <Stack>
-            <Fieldset legend={t('fields.legalAddress')} variant="filled">
+        <Accordion
+          multiple
+          variant="separated"
+          defaultValue={[
+            ...(!isAddressEmpty(initialValues.legalAddress) ? ['legal'] : []),
+            ...(!isAddressEmpty(initialValues.deliveryAddress) ? ['delivery'] : []),
+          ]}
+        >
+          <Accordion.Item value="legal">
+            <Accordion.Control>{t('fields.legalAddress')}</Accordion.Control>
+            <Accordion.Panel>
               <Stack>
                 <TextInput label={t('fields.street')} {...form.getInputProps('legalAddress.street')} />
                 <Group grow>
@@ -168,8 +181,11 @@ export function CustomerForm({ initialValues, onSubmit, onSuccess, onCancel }: C
                 </Group>
                 <TextInput label={t('fields.country')} maxLength={2} {...form.getInputProps('legalAddress.country')} />
               </Stack>
-            </Fieldset>
-            <Fieldset legend={t('fields.deliveryAddress')} variant="filled">
+            </Accordion.Panel>
+          </Accordion.Item>
+          <Accordion.Item value="delivery">
+            <Accordion.Control>{t('fields.deliveryAddress')}</Accordion.Control>
+            <Accordion.Panel>
               <Stack>
                 <TextInput label={t('fields.street')} {...form.getInputProps('deliveryAddress.street')} />
                 <Group grow>
@@ -182,45 +198,66 @@ export function CustomerForm({ initialValues, onSubmit, onSuccess, onCancel }: C
                   {...form.getInputProps('deliveryAddress.country')}
                 />
               </Stack>
-            </Fieldset>
-          </Stack>
-        </Fieldset>
+            </Accordion.Panel>
+          </Accordion.Item>
+        </Accordion>
 
-        <Fieldset legend={t('sections.finance')}>
-          <Stack>
-            <NumberInput
-              label={t('fields.paymentTermsDays')}
-              min={0}
-              max={365}
-              {...form.getInputProps('paymentTermsDays')}
-            />
-            <Checkbox
-              label={t('fields.hasCreditLimit')}
-              checked={form.values.hasCreditLimit}
-              onChange={(event) => form.setFieldValue('hasCreditLimit', event.currentTarget.checked)}
-            />
-            {form.values.hasCreditLimit && (
-              <Group grow>
-                <TextInput label={t('fields.creditLimitAmount')} {...form.getInputProps('creditLimitAmount')} />
-                <Select
-                  label={t('fields.currency')}
-                  data={[...currencyOptions]}
-                  {...form.getInputProps('creditLimitCurrency')}
+        <Accordion
+          multiple
+          variant="separated"
+          defaultValue={
+            initialValues.paymentTermsDays > 0 ||
+            initialValues.hasCreditLimit ||
+            initialValues.defaultDiscountPercent > 0 ||
+            !!initialValues.iban ||
+            !!initialValues.bankName
+              ? ['finance']
+              : []
+          }
+        >
+          <Accordion.Item value="finance">
+            <Accordion.Control>{t('sections.finance')}</Accordion.Control>
+            <Accordion.Panel>
+              <Stack>
+                <NumberInput
+                  label={t('fields.paymentTermsDays')}
+                  min={0}
+                  max={365}
+                  {...form.getInputProps('paymentTermsDays')}
                 />
-              </Group>
-            )}
-            <Select label={t('fields.defaultCurrency')} data={[...currencyOptions]} {...form.getInputProps('defaultCurrency')} />
-            <NumberInput
-              label={t('fields.defaultDiscountPercent')}
-              min={0}
-              max={100}
-              decimalScale={2}
-              {...form.getInputProps('defaultDiscountPercent')}
-            />
-            <TextInput label={t('fields.iban')} {...form.getInputProps('iban')} />
-            <TextInput label={t('fields.bankName')} {...form.getInputProps('bankName')} />
-          </Stack>
-        </Fieldset>
+                <Checkbox
+                  label={t('fields.hasCreditLimit')}
+                  checked={form.values.hasCreditLimit}
+                  onChange={(event) => form.setFieldValue('hasCreditLimit', event.currentTarget.checked)}
+                />
+                {form.values.hasCreditLimit && (
+                  <Group grow>
+                    <TextInput label={t('fields.creditLimitAmount')} {...form.getInputProps('creditLimitAmount')} />
+                    <Select
+                      label={t('fields.currency')}
+                      data={[...currencyOptions]}
+                      {...form.getInputProps('creditLimitCurrency')}
+                    />
+                  </Group>
+                )}
+                <Select
+                  label={t('fields.defaultCurrency')}
+                  data={[...currencyOptions]}
+                  {...form.getInputProps('defaultCurrency')}
+                />
+                <NumberInput
+                  label={t('fields.defaultDiscountPercent')}
+                  min={0}
+                  max={100}
+                  decimalScale={2}
+                  {...form.getInputProps('defaultDiscountPercent')}
+                />
+                <TextInput label={t('fields.iban')} {...form.getInputProps('iban')} />
+                <TextInput label={t('fields.bankName')} {...form.getInputProps('bankName')} />
+              </Stack>
+            </Accordion.Panel>
+          </Accordion.Item>
+        </Accordion>
 
         <Textarea label={t('fields.notes')} {...form.getInputProps('notes')} />
         <Group justify="flex-end">
