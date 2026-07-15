@@ -1,6 +1,7 @@
 import i18n from 'i18next'
 import ICU from 'i18next-icu'
 import { initReactI18next } from 'react-i18next'
+import { z } from 'zod'
 
 import enCommon from './locales/en/common.json'
 import enCustomers from './locales/en/customers.json'
@@ -12,6 +13,7 @@ import uaCustomers from './locales/ua/customers.json'
 import uaInvoices from './locales/ua/invoices.json'
 import uaOrders from './locales/ua/orders.json'
 import uaSearch from './locales/ua/search.json'
+import { zodErrorMap } from './zodErrorMap'
 
 export const SUPPORTED_LANGUAGES = ['en', 'ua'] as const
 export type SupportedLanguage = (typeof SUPPORTED_LANGUAGES)[number]
@@ -53,5 +55,7 @@ void i18n
       escapeValue: false,
     },
   })
+
+z.setErrorMap(zodErrorMap)
 
 export default i18n

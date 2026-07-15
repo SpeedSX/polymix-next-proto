@@ -13,7 +13,7 @@ use surrealdb::engine::any::Any;
 use surrealdb::types::Action;
 use surrealdb::{Notification, Surreal};
 
-use crate::customer_repo::CustomerRow;
+use crate::customer_repo::{CustomerRow, customer_from_row_untenanted};
 use crate::invoice_repo::InvoiceRow;
 use crate::order_repo::OrderRow;
 use crate::{customer_repo, invoice_repo, order_repo};
@@ -130,7 +130,7 @@ pub async fn live_changes(session: Arc<Surreal<Any>>) -> Result<LiveChanges, Dom
 
     let customers = customers
         .map(|n| {
-            map_event(n, CustomerRow::key, |row| Ok(Customer::from(row))).map(LiveChange::Customer)
+            map_event(n, CustomerRow::key, customer_from_row_untenanted).map(LiveChange::Customer)
         })
         .boxed();
     let orders = orders

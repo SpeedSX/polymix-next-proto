@@ -15,7 +15,7 @@ impl TestApp {
         self.client
             .post(format!("{}/api/customers", self.base_url))
             .bearer_auth(self.token_for(org_id))
-            .json(&json!({ "name": name }))
+            .json(&json!({ "kind": 0, "name": name, "payment_terms_days": 0, "default_discount_bp": 0 }))
             .send()
             .await
             .expect("create customer request failed")
@@ -53,7 +53,7 @@ impl TestApp {
         &self,
         org_id: &str,
         order_id: &str,
-        status: &str,
+        status: i64,
     ) -> (StatusCode, Value) {
         let response = self
             .client
@@ -179,16 +179,16 @@ async fn full_order_to_paid_invoice_flow() {
 
     let (status, order) = app.create_order(org, &customer_id).await;
     assert_eq!(status, StatusCode::CREATED);
-    assert_eq!(order["status"], "draft");
+    assert_eq!(order["status"], 0);
     assert_eq!(order["number"], "000001");
     // 3 * 250 + 2 * 1000 = 2750
     assert_eq!(order["total"]["amount_minor"], 2750);
     assert_eq!(order["total"]["currency"], "EUR");
     let order_id = order["id"].as_str().unwrap().to_string();
 
-    let (status, order) = app.set_order_status(org, &order_id, "confirmed").await;
+    let (status, order) = app.set_order_status(org, &order_id, 1).await;
     assert_eq!(status, StatusCode::OK);
-    assert_eq!(order["status"], "confirmed");
+    assert_eq!(order["status"], 1);
 
     let (status, invoice) = app.create_invoice_from_order(org, &order_id).await;
     assert_eq!(status, StatusCode::CREATED);
@@ -224,11 +224,11 @@ async fn invalid_order_transition_is_rejected() {
     let order_id = order["id"].as_str().unwrap().to_string();
 
     // draft -> in_production skips confirmed; must be rejected.
-    let (status, body) = app.set_order_status(org, &order_id, "in_production").await;
+    let (status, body) = app.set_order_status(org, &order_id, 2).await;
     assert_eq!(status, StatusCode::CONFLICT);
     assert_eq!(body["error"]["code"], "order_status_transition");
-    assert_eq!(body["error"]["details"]["from"], "draft");
-    assert_eq!(body["error"]["details"]["to"], "in_production");
+    assert_eq!(body["error"]["details"]["from"], "0");
+    assert_eq!(body["error"]["details"]["to"], "2");
 }
 
 #[tokio::test]
@@ -241,7 +241,7 @@ async fn ordering_an_invoice_twice_is_rejected() {
     let customer_id = customer["id"].as_str().unwrap().to_string();
     let (_, order) = app.create_order(org, &customer_id).await;
     let order_id = order["id"].as_str().unwrap().to_string();
-    app.set_order_status(org, &order_id, "confirmed").await;
+    app.set_order_status(org, &order_id, 1).await;
 
     let (first_status, _) = app.create_invoice_from_order(org, &order_id).await;
     assert_eq!(first_status, StatusCode::CREATED);
@@ -285,7 +285,7 @@ async fn deletes_are_blocked_by_references() {
     assert_eq!(customer_delete_status, StatusCode::CONFLICT);
     assert_eq!(customer_delete_body["error"]["code"], "customer_has_orders");
 
-    app.set_order_status(org, &order_id, "confirmed").await;
+    app.set_order_status(org, &order_id, 1).await;
     let (invoice_status, invoice) = app.create_invoice_from_order(org, &order_id).await;
     assert_eq!(invoice_status, StatusCode::CREATED);
     let _ = invoice;
@@ -306,7 +306,7 @@ async fn draft_invoice_put_recomputes_totals() {
     let customer_id = customer["id"].as_str().unwrap().to_string();
     let (_, order) = app.create_order(org, &customer_id).await;
     let order_id = order["id"].as_str().unwrap().to_string();
-    app.set_order_status(org, &order_id, "confirmed").await;
+    app.set_order_status(org, &order_id, 1).await;
 
     let (_, invoice) = app.create_invoice_from_order(org, &order_id).await;
     assert_eq!(invoice["status"], "draft");
@@ -342,7 +342,7 @@ async fn issued_invoice_put_is_rejected() {
     let customer_id = customer["id"].as_str().unwrap().to_string();
     let (_, order) = app.create_order(org, &customer_id).await;
     let order_id = order["id"].as_str().unwrap().to_string();
-    app.set_order_status(org, &order_id, "confirmed").await;
+    app.set_order_status(org, &order_id, 1).await;
 
     let (_, invoice) = app.create_invoice_from_order(org, &order_id).await;
     let invoice_id = invoice["id"].as_str().unwrap().to_string();

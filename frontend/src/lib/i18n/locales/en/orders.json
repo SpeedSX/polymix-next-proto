@@ -36,5 +36,6 @@
   "errors.order_has_invoice": "This order has an invoice and cannot be deleted.",
   "errors.order_not_confirmed_for_invoice": "The order must be confirmed before it can be invoiced.",
   "errors.order_already_invoiced": "This order already has an invoice.",
-  "errors.order_status_transition": "Cannot change the order status from {from} to {to}."
+  "errors.order_status_transition": "Cannot change the order status from {from} to {to}.",
+  "errors.customer_not_active_for_order": "This customer is not active and cannot be ordered for."
 }

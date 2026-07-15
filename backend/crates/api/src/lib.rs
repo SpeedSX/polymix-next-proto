@@ -79,6 +79,14 @@ pub fn build_router(state: AppState) -> Router {
     let protected = Router::new()
         .route("/api/me", get(routes::me::me))
         .route(
+            "/api/dictionaries/order-statuses",
+            get(routes::dictionaries::order_statuses),
+        )
+        .route(
+            "/api/dictionaries/customer-statuses",
+            get(routes::dictionaries::customer_statuses),
+        )
+        .route(
             "/api/customers",
             get(routes::customers::list).post(routes::customers::create),
         )
@@ -87,6 +95,10 @@ pub fn build_router(state: AppState) -> Router {
             get(routes::customers::get)
                 .put(routes::customers::update)
                 .delete(routes::customers::delete),
+        )
+        .route(
+            "/api/customers/{id}/status",
+            post(routes::customers::set_status),
         )
         .route(
             "/api/orders",

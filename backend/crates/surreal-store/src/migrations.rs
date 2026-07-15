@@ -30,6 +30,18 @@ const MIGRATIONS: &[(&str, &str)] = &[
         "0007_drop_unused_search_indexes",
         include_str!("../migrations/0007_drop_unused_search_indexes.surql"),
     ),
+    (
+        "0008_order_status_int",
+        include_str!("../migrations/0008_order_status_int.surql"),
+    ),
+    (
+        "0009_customers_crm",
+        include_str!("../migrations/0009_customers_crm.surql"),
+    ),
+    (
+        "0010_remove_customer_number",
+        include_str!("../migrations/0010_remove_customer_number.surql"),
+    ),
 ];
 
 #[derive(Debug, SurrealValue)]

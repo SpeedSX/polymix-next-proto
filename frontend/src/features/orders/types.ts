@@ -2,8 +2,15 @@ import { z } from 'zod'
 
 import { fromMinorUnits, MONEY_DECIMAL_PATTERN, toMinorUnits } from '../../lib/money'
 
-export const ORDER_STATUSES = ['draft', 'confirmed', 'in_production', 'completed', 'cancelled'] as const
-export type OrderStatus = (typeof ORDER_STATUSES)[number]
+export const ORDER_STATUS = {
+  Draft: 0,
+  Confirmed: 1,
+  InProduction: 2,
+  Completed: 3,
+  Cancelled: 4,
+} as const
+
+export type OrderStatusId = (typeof ORDER_STATUS)[keyof typeof ORDER_STATUS]
 
 // Currencies the seeded `exchange_rate` table (surreal-store/src/exchange_rate.rs)
 // carries snapshots for — the only ones worth offering, since any other ISO
@@ -11,18 +18,19 @@ export type OrderStatus = (typeof ORDER_STATUSES)[number]
 // "informational only" rate snapshot).
 export const CURRENCY_OPTIONS = ['EUR', 'USD', 'GBP', 'UAH'] as const
 
-// Mirrors domain::order::validate_transition — kept in sync manually since
-// the frontend has no access to the Rust domain crate.
-export const ORDER_TRANSITIONS: Record<OrderStatus, OrderStatus[]> = {
-  draft: ['confirmed', 'cancelled'],
-  confirmed: ['in_production', 'cancelled'],
-  in_production: ['completed'],
-  completed: [],
-  cancelled: [],
+export interface OrderStatusDictionaryItem {
+  id: OrderStatusId
+  key: string
+  sort: number
+  color: string
+  invoiceable: boolean
+  allowed_targets: OrderStatusId[]
+  labels: Record<string, string>
 }
 
-// Mirrors domain::order::can_invoice.
-export const INVOICEABLE_STATUSES: OrderStatus[] = ['confirmed', 'in_production', 'completed']
+export interface OrderStatusDictionaryResponse {
+  items: OrderStatusDictionaryItem[]
+}
 
 export interface Money {
   amount_minor: number
@@ -40,7 +48,7 @@ export interface Order {
   number: string
   customer_id: string
   customer_name: string | null
-  status: OrderStatus
+  status: OrderStatusId
   currency: string
   line_items: LineItem[]
   total: Money
@@ -61,7 +69,7 @@ export interface OrderListParams {
   limit: number
   sort: string
   customer_id?: string
-  status?: OrderStatus
+  status?: OrderStatusId
   q?: string
   [key: string]: string | number | undefined
 }

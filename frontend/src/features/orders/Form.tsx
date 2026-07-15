@@ -67,7 +67,7 @@ export function OrderForm({ initialValues, onSubmit, onSuccess, onCancel }: Orde
     <form onSubmit={handleSubmit}>
       <Stack maw={720}>
         {formError && <Alert color="red">{formError}</Alert>}
-        <Group grow>
+        <Group grow align="flex-start">
           <CustomerSelect {...form.getInputProps('customerId')} />
           <Select
             label={t('fields.currency')}
@@ -89,16 +89,16 @@ export function OrderForm({ initialValues, onSubmit, onSuccess, onCancel }: Orde
           <Table.Tbody>
             {form.values.lineItems.map((_, index) => (
               <Table.Tr key={index}>
-                <Table.Td>
+                <Table.Td style={{ verticalAlign: 'top' }}>
                   <TextInput {...form.getInputProps(`lineItems.${index}.description`)} />
                 </Table.Td>
-                <Table.Td>
+                <Table.Td style={{ verticalAlign: 'top' }}>
                   <NumberInput min={1} {...form.getInputProps(`lineItems.${index}.quantity`)} />
                 </Table.Td>
-                <Table.Td>
+                <Table.Td style={{ verticalAlign: 'top' }}>
                   <TextInput {...form.getInputProps(`lineItems.${index}.unitPrice`)} />
                 </Table.Td>
-                <Table.Td>
+                <Table.Td style={{ verticalAlign: 'top' }}>
                   <ActionIcon
                     color="red"
                     variant="subtle"

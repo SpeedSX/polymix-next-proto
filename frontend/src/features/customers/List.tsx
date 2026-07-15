@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { Button, Group, Pagination, Stack, Table, Text, TextInput, Title } from '@mantine/core'
+import { Badge, Button, Group, Pagination, Select, Stack, Table, Text, TextInput, Title } from '@mantine/core'
 import { useDebouncedValue } from '@mantine/hooks'
 import { useQuery } from '@tanstack/react-query'
 import { useNavigate } from '@tanstack/react-router'
@@ -10,7 +10,8 @@ import { useTranslation } from 'react-i18next'
 import { useApi } from '../../lib/api'
 import { formatDateTime } from '../../lib/dates'
 import { customersKeys, fetchCustomers } from './api'
-import type { Customer } from './types'
+import type { Customer, CustomerStatusId } from './types'
+import { useCustomerStatusDictionary } from './useCustomerStatusDictionary'
 
 const PAGE_SIZE = 25
 const DEFAULT_SORT = '-created_at'
@@ -30,15 +31,26 @@ export function CustomerList() {
   const { t, i18n } = useTranslation('customers')
   const navigate = useNavigate()
   const api = useApi()
+  const statusDict = useCustomerStatusDictionary()
   const [page, setPage] = useState(1)
   const [sorting, setSorting] = useState<SortingState>([{ id: 'created_at', desc: true }])
   const [search, setSearch] = useState('')
   const [debouncedSearch] = useDebouncedValue(search, SEARCH_DEBOUNCE_MS)
+  const [statusFilter, setStatusFilter] = useState<string | null>(null)
+  const [tagFilter, setTagFilter] = useState('')
+  const [debouncedTag] = useDebouncedValue(tagFilter, SEARCH_DEBOUNCE_MS)
   const hasSearch = debouncedSearch.trim() !== ''
 
   const params = useMemo(
-    () => ({ page, limit: PAGE_SIZE, sort: sortParam(sorting), q: hasSearch ? debouncedSearch.trim() : undefined }),
-    [page, sorting, hasSearch, debouncedSearch],
+    () => ({
+      page,
+      limit: PAGE_SIZE,
+      sort: sortParam(sorting),
+      q: hasSearch ? debouncedSearch.trim() : undefined,
+      status: statusFilter ? (Number(statusFilter) as CustomerStatusId) : undefined,
+      tag: debouncedTag.trim() !== '' ? debouncedTag.trim() : undefined,
+    }),
+    [page, sorting, hasSearch, debouncedSearch, statusFilter, debouncedTag],
   )
 
   const { data, isLoading, isError } = useQuery({
@@ -49,15 +61,30 @@ export function CustomerList() {
   const columns = useMemo(
     () => [
       columnHelper.accessor('name', { header: t('fields.name') }),
-      columnHelper.accessor((row) => row.contact_name ?? '', { id: 'contact_name', header: t('fields.contactName') }),
-      columnHelper.accessor((row) => row.email ?? '', { id: 'email', header: t('fields.email') }),
-      columnHelper.accessor((row) => row.address?.city ?? '', { id: 'city', header: t('fields.city'), enableSorting: false }),
+      columnHelper.accessor((row) => row.edrpou ?? row.tax_id ?? '', {
+        id: 'edrpou',
+        header: t('fields.edrpouOrTaxId'),
+        enableSorting: false,
+      }),
+      columnHelper.accessor('status', {
+        header: t('fields.status'),
+        enableSorting: false,
+        cell: (info) => {
+          const meta = statusDict.byId.get(info.getValue())
+          return <Badge color={meta?.color}>{statusDict.labelFor(info.getValue())}</Badge>
+        },
+      }),
+      columnHelper.accessor((row) => row.tags.join(', '), { id: 'tags', header: t('fields.tags'), enableSorting: false }),
+      columnHelper.accessor(
+        (row) => (row.contacts.find((c) => c.is_primary) ?? row.contacts[0])?.name ?? '',
+        { id: 'primary_contact', header: t('fields.contactName'), enableSorting: false },
+      ),
       columnHelper.accessor('created_at', {
         header: t('fields.createdAt'),
         cell: (info) => formatDateTime(info.getValue(), i18n.language),
       }),
     ],
-    [t, i18n.language],
+    [t, i18n.language, statusDict],
   )
 
   const handleSortingChange = (updaterOrValue: Updater<SortingState>) => {
@@ -88,14 +115,34 @@ export function CustomerList() {
         <Title order={2}>{t('list.title')}</Title>
         <Button onClick={() => navigate({ to: '/customers/new' })}>{t('list.new')}</Button>
       </Group>
-      <TextInput
-        placeholder={t('list.searchPlaceholder')}
-        value={search}
-        onChange={(event) => {
-          setSearch(event.currentTarget.value)
-          setPage(1)
-        }}
-      />
+      <Group grow>
+        <TextInput
+          placeholder={t('list.searchPlaceholder')}
+          value={search}
+          onChange={(event) => {
+            setSearch(event.currentTarget.value)
+            setPage(1)
+          }}
+        />
+        <Select
+          placeholder={t('list.filterStatus')}
+          data={statusDict.options}
+          value={statusFilter}
+          onChange={(value) => {
+            setStatusFilter(value)
+            setPage(1)
+          }}
+          clearable
+        />
+        <TextInput
+          placeholder={t('list.filterTag')}
+          value={tagFilter}
+          onChange={(event) => {
+            setTagFilter(event.currentTarget.value)
+            setPage(1)
+          }}
+        />
+      </Group>
       {isError && <Text c="red">{t('list.loadError')}</Text>}
       <Table highlightOnHover>
         <Table.Thead>

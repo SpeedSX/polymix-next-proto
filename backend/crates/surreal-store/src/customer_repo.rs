@@ -2,12 +2,19 @@ use std::collections::HashMap;
 use std::sync::Arc;
 
 use async_trait::async_trait;
-use domain::customer::{Address, Customer, CustomerRepo, ListQuery, NewCustomer, Paged};
+use domain::customer::{
+    Address, Contact, Customer, CustomerRepo, CustomerStatus, ListQuery, NewCustomer, Paged,
+    validate_transition,
+};
 use domain::error::{ConflictReason, DomainError, FieldError};
+use domain::tenant::Tenant;
 use surrealdb::Surreal;
 use surrealdb::engine::any::Any;
 use surrealdb::types::{RecordId, RecordIdKey, SurrealValue};
 use ulid::Ulid;
+
+use crate::order_repo::MoneyRow;
+use crate::status::{customer_kind_from_db, customer_status_from_db};
 
 pub(crate) const TABLE: &str = "customer";
 const ORDER_TABLE: &str = "order";
@@ -15,14 +22,7 @@ const ORDER_TABLE: &str = "order";
 // Whitelisted, not bound as a query parameter: SurrealQL identifiers (unlike
 // values) can't be passed as bind parameters, so the sort field is validated
 // against this list before being interpolated into the ORDER BY clause.
-const ALLOWED_SORT_FIELDS: &[&str] = &[
-    "name",
-    "contact_name",
-    "email",
-    "phone",
-    "created_at",
-    "updated_at",
-];
+const ALLOWED_SORT_FIELDS: &[&str] = &["name", "status", "created_at", "updated_at"];
 
 #[derive(Debug, Clone, SurrealValue)]
 #[surreal(crate = "surrealdb::types")]
@@ -55,15 +55,68 @@ impl From<AddressRow> for Address {
     }
 }
 
+#[derive(Debug, Clone, SurrealValue)]
+#[surreal(crate = "surrealdb::types")]
+struct ContactRow {
+    name: String,
+    role: Option<String>,
+    email: Option<String>,
+    phone: Option<String>,
+    is_primary: bool,
+}
+
+impl From<Contact> for ContactRow {
+    fn from(c: Contact) -> Self {
+        ContactRow {
+            name: c.name,
+            role: c.role,
+            email: c.email,
+            phone: c.phone,
+            is_primary: c.is_primary,
+        }
+    }
+}
+
+impl From<ContactRow> for Contact {
+    fn from(c: ContactRow) -> Self {
+        Contact {
+            name: c.name,
+            role: c.role,
+            email: c.email,
+            phone: c.phone,
+            is_primary: c.is_primary,
+        }
+    }
+}
+
 #[derive(Debug, SurrealValue)]
 #[surreal(crate = "surrealdb::types")]
 pub(crate) struct CustomerRow {
     id: RecordId,
+    kind: i64,
     name: String,
-    contact_name: Option<String>,
-    email: Option<String>,
-    phone: Option<String>,
-    address: Option<AddressRow>,
+    legal_name: Option<String>,
+    edrpou: Option<String>,
+    tax_id: Option<String>,
+    vat_ipn: Option<String>,
+    status: i64,
+    tags: Vec<String>,
+    industry: Option<String>,
+    source: Option<String>,
+    website: Option<String>,
+    contacts: Vec<ContactRow>,
+    legal_address: Option<AddressRow>,
+    delivery_address: Option<AddressRow>,
+    payment_terms_days: u16,
+    credit_limit: Option<MoneyRow>,
+    /// `None` for rows migrated before M5.1 that were never rewritten since
+    /// (the migration deliberately doesn't backfill this — see
+    /// `docs/customers-crm.md`) — repaired to the tenant default at read
+    /// time by `customer_from_row`, not stored back.
+    default_currency: Option<String>,
+    default_discount_bp: u16,
+    iban: Option<String>,
+    bank_name: Option<String>,
     notes: Option<String>,
     created_at: String,
     updated_at: String,
@@ -75,13 +128,35 @@ pub(crate) struct CustomerRow {
 #[derive(Debug, SurrealValue)]
 #[surreal(crate = "surrealdb::types")]
 struct CustomerContent {
+    kind: i64,
     name: String,
-    contact_name: Option<String>,
-    email: Option<String>,
-    phone: Option<String>,
-    address: Option<AddressRow>,
+    legal_name: Option<String>,
+    edrpou: Option<String>,
+    tax_id: Option<String>,
+    vat_ipn: Option<String>,
+    status: i64,
+    tags: Vec<String>,
+    industry: Option<String>,
+    source: Option<String>,
+    website: Option<String>,
+    contacts: Vec<ContactRow>,
+    legal_address: Option<AddressRow>,
+    delivery_address: Option<AddressRow>,
+    payment_terms_days: u16,
+    credit_limit: Option<MoneyRow>,
+    default_currency: Option<String>,
+    default_discount_bp: u16,
+    iban: Option<String>,
+    bank_name: Option<String>,
     notes: Option<String>,
     created_at: String,
+    updated_at: String,
+}
+
+#[derive(Debug, SurrealValue)]
+#[surreal(crate = "surrealdb::types")]
+struct StatusPatch {
+    status: i64,
     updated_at: String,
 }
 
@@ -94,7 +169,6 @@ struct CountRow {
 #[derive(Debug, SurrealValue)]
 #[surreal(crate = "surrealdb::types")]
 struct IdOnly {
-    #[allow(dead_code)]
     id: RecordId,
 }
 
@@ -111,33 +185,85 @@ impl CustomerRow {
     }
 }
 
-impl From<CustomerRow> for Customer {
-    fn from(row: CustomerRow) -> Self {
-        Customer {
-            id: record_key(&row.id),
-            name: row.name,
-            contact_name: row.contact_name,
-            email: row.email,
-            phone: row.phone,
-            address: row.address.map(Address::from),
-            notes: row.notes,
-            created_at: row.created_at,
-            updated_at: row.updated_at,
-        }
-    }
-}
-
 fn map_err(err: surrealdb::Error) -> DomainError {
     DomainError::Store(err.to_string())
 }
 
-fn content_from(data: NewCustomer, created_at: String, updated_at: String) -> CustomerContent {
+fn customer_from_row_with_currency(
+    row: CustomerRow,
+    fallback_currency: &str,
+) -> Result<Customer, DomainError> {
+    Ok(Customer {
+        id: record_key(&row.id),
+        kind: customer_kind_from_db(row.kind)?,
+        name: row.name,
+        legal_name: row.legal_name,
+        edrpou: row.edrpou,
+        tax_id: row.tax_id,
+        vat_ipn: row.vat_ipn,
+        status: customer_status_from_db(row.status)?,
+        tags: row.tags,
+        industry: row.industry,
+        source: row.source,
+        website: row.website,
+        contacts: row.contacts.into_iter().map(Contact::from).collect(),
+        legal_address: row.legal_address.map(Address::from),
+        delivery_address: row.delivery_address.map(Address::from),
+        payment_terms_days: row.payment_terms_days,
+        credit_limit: row.credit_limit.map(domain::Money::from),
+        default_currency: row
+            .default_currency
+            .unwrap_or_else(|| fallback_currency.to_string()),
+        default_discount_bp: row.default_discount_bp,
+        iban: row.iban,
+        bank_name: row.bank_name,
+        notes: row.notes,
+        created_at: row.created_at,
+        updated_at: row.updated_at,
+    })
+}
+
+fn customer_from_row(row: CustomerRow, tenant: &Tenant) -> Result<Customer, DomainError> {
+    customer_from_row_with_currency(row, &tenant.default_currency)
+}
+
+/// Used by the live-change stream (`live.rs`), which has no `Tenant` in
+/// scope (it's a per-tenant-db session with no cheap path back to the
+/// tenant registry). Falls back to an empty string for the rare legacy row
+/// whose `default_currency` was never backfilled and hasn't been rewritten
+/// since the M5.1 migration — the request path (`customer_from_row`)
+/// repairs it properly on the very next read of that row.
+pub(crate) fn customer_from_row_untenanted(row: CustomerRow) -> Result<Customer, DomainError> {
+    customer_from_row_with_currency(row, "")
+}
+
+fn content_from(
+    data: NewCustomer,
+    status: CustomerStatus,
+    created_at: String,
+    updated_at: String,
+) -> CustomerContent {
     CustomerContent {
+        kind: data.kind.code() as i64,
         name: data.name,
-        contact_name: data.contact_name,
-        email: data.email,
-        phone: data.phone,
-        address: data.address.map(AddressRow::from),
+        legal_name: data.legal_name,
+        edrpou: data.edrpou,
+        tax_id: data.tax_id,
+        vat_ipn: data.vat_ipn,
+        status: status.code() as i64,
+        tags: data.tags,
+        industry: data.industry,
+        source: data.source,
+        website: data.website,
+        contacts: data.contacts.into_iter().map(ContactRow::from).collect(),
+        legal_address: data.legal_address.map(AddressRow::from),
+        delivery_address: data.delivery_address.map(AddressRow::from),
+        payment_terms_days: data.payment_terms_days,
+        credit_limit: data.credit_limit.map(MoneyRow::from),
+        default_currency: data.default_currency,
+        default_discount_bp: data.default_discount_bp,
+        iban: data.iban,
+        bank_name: data.bank_name,
         notes: data.notes,
         created_at,
         updated_at,
@@ -167,16 +293,54 @@ fn non_empty_q(q: &Option<String>) -> Option<&str> {
     q.as_deref().filter(|s| !s.is_empty())
 }
 
-// The searchable fields, matching migrations/0004_search.surql's per-field
-// FULLTEXT indexes. Each field is queried as its OWN statement (all sent in
-// one request) and the results merged in Rust, instead of one
+/// Non-full-text filters, shared by the plain-list and the per-field search
+/// paths — see `where_clause` (plain path, `WHERE ... AND ...`) and
+/// `extra_and` (search path, appended to each per-field predicate).
+fn status_tag_conditions(query: &ListQuery) -> Vec<&'static str> {
+    let mut conditions = Vec::new();
+    if query.status.is_some() {
+        conditions.push("status = $status");
+    }
+    if query.tag.is_some() {
+        conditions.push("tags CONTAINS $tag");
+    }
+    conditions
+}
+
+fn where_clause(query: &ListQuery) -> String {
+    let conditions = status_tag_conditions(query);
+    if conditions.is_empty() {
+        String::new()
+    } else {
+        format!("WHERE {}", conditions.join(" AND "))
+    }
+}
+
+fn extra_and(query: &ListQuery) -> String {
+    let conditions = status_tag_conditions(query);
+    if conditions.is_empty() {
+        String::new()
+    } else {
+        format!(" AND {}", conditions.join(" AND "))
+    }
+}
+
+// The searchable fields, matching migrations/0009_customers_crm.surql's
+// per-field FULLTEXT indexes. Each field is queried as its OWN statement (all
+// sent in one request) and the results merged in Rust, instead of one
 // `field1 @0@ $q OR field2 @1@ $q ...` query: the OR form costs ~105ms
 // server-side for a common prefix on the seeded 50k-customer tenant, while
 // the same predicates as separate statements cost ~10-20ms each —
 // SurrealDB 3.2 can push the LIMIT into a single-index FullTextScan but not
 // into a multi-index OR. Measured in examples/perf_probe.rs; see
 // docs/adr/0006-tenant-session-cache-and-search-split.md.
-const SEARCH_FIELDS: &[&str] = &["name", "contact_name", "email"];
+const SEARCH_FIELDS: &[&str] = &[
+    "name",
+    "legal_name",
+    "edrpou",
+    "contacts[*].name",
+    "contacts[*].email",
+];
 
 /// Caps how many rows each per-field search statement returns for the
 /// paged list: deep pagination over merged rankings would otherwise force
@@ -237,6 +401,10 @@ impl SurrealCustomerRepo {
         Self { session }
     }
 
+    async fn get_row(&self, id: &str) -> Result<Option<CustomerRow>, DomainError> {
+        self.session.select((TABLE, id)).await.map_err(map_err)
+    }
+
     async fn has_orders(&self, customer_id: &str) -> Result<bool, DomainError> {
         let mut response = self
             .session
@@ -252,7 +420,11 @@ impl SurrealCustomerRepo {
 
 #[async_trait]
 impl CustomerRepo for SurrealCustomerRepo {
-    async fn list(&self, query: ListQuery) -> Result<Paged<Customer>, DomainError> {
+    async fn list(
+        &self,
+        query: ListQuery,
+        tenant: &Tenant,
+    ) -> Result<Paged<Customer>, DomainError> {
         let start = (query.page.saturating_sub(1) as i64) * query.limit as i64;
 
         let (rows, total) = if let Some(q) = non_empty_q(&query.q) {
@@ -260,12 +432,13 @@ impl CustomerRepo for SurrealCustomerRepo {
             // all in a single round-trip; see SEARCH_FIELDS for why this
             // beats a multi-index OR. The count subquery wrap works around
             // the zero-count planner bug (docs/adr/0001).
+            let extra = extra_and(&query);
             let window = (start + query.limit as i64).min(MAX_SEARCH_WINDOW);
             let mut statements = String::new();
             for field in SEARCH_FIELDS {
                 statements.push_str(&format!(
                     "SELECT *, search::score(0) AS score FROM type::table($table) \
-                     WHERE {field} @0@ $q ORDER BY score DESC LIMIT $window;"
+                     WHERE {field} @0@ $q{extra} ORDER BY score DESC LIMIT $window;"
                 ));
             }
             // Id-only projections for the exact total: each is a fast
@@ -275,17 +448,22 @@ impl CustomerRepo for SurrealCustomerRepo {
             // path (measured ~62ms vs ~24ms for these statements).
             for field in SEARCH_FIELDS {
                 statements.push_str(&format!(
-                    "SELECT VALUE id FROM type::table($table) WHERE {field} @0@ $q;"
+                    "SELECT VALUE id FROM type::table($table) WHERE {field} @0@ $q{extra};"
                 ));
             }
-            let mut response = self
+            let mut list_query = self
                 .session
                 .query(statements)
                 .bind(("table", TABLE))
                 .bind(("q", q.to_string()))
-                .bind(("window", window))
-                .await
-                .map_err(map_err)?;
+                .bind(("window", window));
+            if let Some(status) = query.status {
+                list_query = list_query.bind(("status", status.code() as i64));
+            }
+            if let Some(tag) = &query.tag {
+                list_query = list_query.bind(("tag", tag.clone()));
+            }
+            let mut response = list_query.await.map_err(map_err)?;
 
             let mut per_field = Vec::with_capacity(SEARCH_FIELDS.len());
             for i in 0..SEARCH_FIELDS.len() {
@@ -312,31 +490,49 @@ impl CustomerRepo for SurrealCustomerRepo {
             (rows, total)
         } else {
             let order = sort_clause(&query.sort)?;
-            let mut response = self
+            let filters = where_clause(&query);
+            let mut list_query = self
                 .session
                 .query(format!(
-                    "SELECT * FROM type::table($table) ORDER BY {order} LIMIT $limit START $start"
+                    "SELECT * FROM type::table($table) {filters} ORDER BY {order} LIMIT $limit START $start"
                 ))
                 .bind(("table", TABLE))
                 .bind(("limit", query.limit as i64))
-                .bind(("start", start))
-                .await
-                .map_err(map_err)?;
+                .bind(("start", start));
+            if let Some(status) = query.status {
+                list_query = list_query.bind(("status", status.code() as i64));
+            }
+            if let Some(tag) = &query.tag {
+                list_query = list_query.bind(("tag", tag.clone()));
+            }
+            let mut response = list_query.await.map_err(map_err)?;
             let rows: Vec<CustomerRow> = response.take(0).map_err(map_err)?;
 
-            let mut count_response = self
+            let mut count_query = self
                 .session
-                .query("SELECT count() FROM type::table($table) GROUP ALL")
-                .bind(("table", TABLE))
-                .await
-                .map_err(map_err)?;
+                .query(format!(
+                    "SELECT count() FROM type::table($table) {filters} GROUP ALL"
+                ))
+                .bind(("table", TABLE));
+            if let Some(status) = query.status {
+                count_query = count_query.bind(("status", status.code() as i64));
+            }
+            if let Some(tag) = &query.tag {
+                count_query = count_query.bind(("tag", tag.clone()));
+            }
+            let mut count_response = count_query.await.map_err(map_err)?;
             let count_rows: Vec<CountRow> = count_response.take(0).map_err(map_err)?;
             let total = count_rows.first().map(|r| r.count as u64).unwrap_or(0);
             (rows, total)
         };
 
+        let items = rows
+            .into_iter()
+            .map(|row| customer_from_row(row, tenant))
+            .collect::<Result<Vec<_>, _>>()?;
+
         Ok(Paged {
-            items: rows.into_iter().map(Customer::from).collect(),
+            items,
             total,
             page: query.page,
             limit: query.limit,
@@ -346,7 +542,7 @@ impl CustomerRepo for SurrealCustomerRepo {
     async fn search(&self, q: &str, limit: u32) -> Result<Vec<domain::SearchHit>, DomainError> {
         // One statement per field, merged in Rust — see SEARCH_FIELDS.
         // `search::highlight(..., 0)` in each statement highlights that
-        // statement's own field, so a contact_name/email match shows the
+        // statement's own field, so a contact/edrpou match shows the
         // matched fragment instead of falling back to the plain label.
         let mut statements = String::new();
         for field in SEARCH_FIELDS {
@@ -380,15 +576,25 @@ impl CustomerRepo for SurrealCustomerRepo {
         .collect())
     }
 
-    async fn get(&self, id: &str) -> Result<Option<Customer>, DomainError> {
-        let row: Option<CustomerRow> = self.session.select((TABLE, id)).await.map_err(map_err)?;
-        Ok(row.map(Customer::from))
+    async fn get(&self, id: &str, tenant: &Tenant) -> Result<Option<Customer>, DomainError> {
+        self.get_row(id)
+            .await?
+            .map(|row| customer_from_row(row, tenant))
+            .transpose()
     }
 
-    async fn create(&self, data: NewCustomer) -> Result<Customer, DomainError> {
+    async fn create(
+        &self,
+        mut data: NewCustomer,
+        tenant: &Tenant,
+    ) -> Result<Customer, DomainError> {
+        let status = match data.status.take() {
+            Some(0) => CustomerStatus::Lead,
+            _ => CustomerStatus::Active,
+        };
         let now = chrono::Utc::now().to_rfc3339();
+        let content = content_from(data, status, now.clone(), now);
         let id = Ulid::new().to_string();
-        let content = content_from(data, now.clone(), now);
 
         let row: Option<CustomerRow> = self
             .session
@@ -397,14 +603,28 @@ impl CustomerRepo for SurrealCustomerRepo {
             .await
             .map_err(map_err)?;
 
-        row.map(Customer::from)
-            .ok_or_else(|| DomainError::Store("customer create returned no row".to_string()))
+        let row =
+            row.ok_or_else(|| DomainError::Store("customer create returned no row".to_string()))?;
+        customer_from_row(row, tenant)
     }
 
-    async fn update(&self, id: &str, data: NewCustomer) -> Result<Customer, DomainError> {
-        let existing = self.get(id).await?.ok_or(DomainError::NotFound)?;
+    async fn update(
+        &self,
+        id: &str,
+        mut data: NewCustomer,
+        tenant: &Tenant,
+    ) -> Result<Customer, DomainError> {
+        let existing = self.get_row(id).await?.ok_or(DomainError::NotFound)?;
+        // Status changes only through `set_status` — a PUT body's `status`
+        // (if any) is ignored entirely.
+        data.status = None;
         let now = chrono::Utc::now().to_rfc3339();
-        let content = content_from(data, existing.created_at, now);
+        let content = content_from(
+            data,
+            customer_status_from_db(existing.status)?,
+            existing.created_at.clone(),
+            now,
+        );
 
         let row: Option<CustomerRow> = self
             .session
@@ -413,7 +633,8 @@ impl CustomerRepo for SurrealCustomerRepo {
             .await
             .map_err(map_err)?;
 
-        row.map(Customer::from).ok_or(DomainError::NotFound)
+        let row = row.ok_or(DomainError::NotFound)?;
+        customer_from_row(row, tenant)
     }
 
     async fn delete(&self, id: &str) -> Result<(), DomainError> {
@@ -422,5 +643,28 @@ impl CustomerRepo for SurrealCustomerRepo {
         }
         let row: Option<CustomerRow> = self.session.delete((TABLE, id)).await.map_err(map_err)?;
         row.map(|_| ()).ok_or(DomainError::NotFound)
+    }
+
+    async fn set_status(
+        &self,
+        id: &str,
+        status: CustomerStatus,
+        tenant: &Tenant,
+    ) -> Result<Customer, DomainError> {
+        let existing = self.get_row(id).await?.ok_or(DomainError::NotFound)?;
+        validate_transition(customer_status_from_db(existing.status)?, status)?;
+
+        let patch = StatusPatch {
+            status: status.code() as i64,
+            updated_at: chrono::Utc::now().to_rfc3339(),
+        };
+        let row: Option<CustomerRow> = self
+            .session
+            .update((TABLE, id))
+            .merge(patch)
+            .await
+            .map_err(map_err)?;
+        let row = row.ok_or(DomainError::NotFound)?;
+        customer_from_row(row, tenant)
     }
 }

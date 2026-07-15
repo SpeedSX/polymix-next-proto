@@ -2,9 +2,9 @@ use axum::Extension;
 use axum::Json;
 use axum::extract::{Path, Query, State};
 use axum::http::StatusCode;
-use domain::customer::{Customer, ListQuery, NewCustomer, Paged};
+use domain::customer::{Customer, CustomerStatus, ListQuery, NewCustomer, Paged};
 use domain::error::DomainError;
-use domain::{AuthContext, CustomerRepo};
+use domain::{AuthContext, CustomerRepo, Tenant};
 use serde::Deserialize;
 use serde_json::{Value, json};
 use surreal_store::SurrealCustomerRepo;
@@ -31,6 +31,8 @@ pub struct ListParams {
     #[serde(default = "default_sort")]
     sort: String,
     q: Option<String>,
+    status: Option<CustomerStatus>,
+    tag: Option<String>,
 }
 
 impl From<ListParams> for ListQuery {
@@ -40,8 +42,15 @@ impl From<ListParams> for ListQuery {
             limit: params.limit.clamp(1, 100),
             sort: params.sort,
             q: params.q,
+            status: params.status,
+            tag: params.tag,
         }
     }
+}
+
+#[derive(Debug, Deserialize)]
+pub struct StatusBody {
+    status: CustomerStatus,
 }
 
 async fn repo_for(state: &AppState, auth: &AuthContext) -> Result<SurrealCustomerRepo, ApiError> {
@@ -56,46 +65,61 @@ async fn repo_for(state: &AppState, auth: &AuthContext) -> Result<SurrealCustome
     Ok(SurrealCustomerRepo::new(session))
 }
 
+/// Normalizes tags, resolves the tenant's default currency, and runs domain
+/// validation — shared by `create` and `update`, both of which accept a
+/// full `NewCustomer` body.
+fn prepare(body: &mut NewCustomer, tenant: &Tenant) -> Result<(), ApiError> {
+    body.normalize();
+    body.resolve_default_currency(&tenant.default_currency);
+    body.validate_domain()?;
+    Ok(())
+}
+
 pub async fn list(
     State(state): State<AppState>,
     Extension(auth): Extension<AuthContext>,
+    Extension(tenant): Extension<Tenant>,
     Query(params): Query<ListParams>,
 ) -> Result<Json<Paged<Customer>>, ApiError> {
     let repo = repo_for(&state, &auth).await?;
-    let paged = repo.list(params.into()).await?;
+    let paged = repo.list(params.into(), &tenant).await?;
     Ok(Json(paged))
 }
 
 pub async fn create(
     State(state): State<AppState>,
     Extension(auth): Extension<AuthContext>,
-    Json(body): Json<NewCustomer>,
+    Extension(tenant): Extension<Tenant>,
+    Json(mut body): Json<NewCustomer>,
 ) -> Result<(StatusCode, Json<Customer>), ApiError> {
-    body.validate_domain()?;
+    prepare(&mut body, &tenant)?;
+    body.validate_creation_status()?;
     let repo = repo_for(&state, &auth).await?;
-    let customer = repo.create(body).await?;
+    let customer = repo.create(body, &tenant).await?;
     Ok((StatusCode::CREATED, Json(customer)))
 }
 
 pub async fn get(
     State(state): State<AppState>,
     Extension(auth): Extension<AuthContext>,
+    Extension(tenant): Extension<Tenant>,
     Path(id): Path<String>,
 ) -> Result<Json<Customer>, ApiError> {
     let repo = repo_for(&state, &auth).await?;
-    let customer = repo.get(&id).await?.ok_or(DomainError::NotFound)?;
+    let customer = repo.get(&id, &tenant).await?.ok_or(DomainError::NotFound)?;
     Ok(Json(customer))
 }
 
 pub async fn update(
     State(state): State<AppState>,
     Extension(auth): Extension<AuthContext>,
+    Extension(tenant): Extension<Tenant>,
     Path(id): Path<String>,
-    Json(body): Json<NewCustomer>,
+    Json(mut body): Json<NewCustomer>,
 ) -> Result<Json<Customer>, ApiError> {
-    body.validate_domain()?;
+    prepare(&mut body, &tenant)?;
     let repo = repo_for(&state, &auth).await?;
-    let customer = repo.update(&id, body).await?;
+    let customer = repo.update(&id, body, &tenant).await?;
     Ok(Json(customer))
 }
 
@@ -107,4 +131,16 @@ pub async fn delete(
     let repo = repo_for(&state, &auth).await?;
     repo.delete(&id).await?;
     Ok(Json(json!({})))
+}
+
+pub async fn set_status(
+    State(state): State<AppState>,
+    Extension(auth): Extension<AuthContext>,
+    Extension(tenant): Extension<Tenant>,
+    Path(id): Path<String>,
+    Json(body): Json<StatusBody>,
+) -> Result<Json<Customer>, ApiError> {
+    let repo = repo_for(&state, &auth).await?;
+    let customer = repo.set_status(&id, body.status, &tenant).await?;
+    Ok(Json(customer))
 }

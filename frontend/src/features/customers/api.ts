@@ -1,5 +1,12 @@
 import type { useApi } from '../../lib/api'
-import type { Customer, CustomerListParams, CustomerListResponse, NewCustomer } from './types'
+import type {
+  Customer,
+  CustomerListParams,
+  CustomerListResponse,
+  CustomerStatusDictionaryResponse,
+  CustomerStatusId,
+  NewCustomer,
+} from './types'
 
 type Api = ReturnType<typeof useApi>
 
@@ -7,6 +14,7 @@ export const customersKeys = {
   all: ['customers'] as const,
   list: (params: CustomerListParams) => ['customers', params] as const,
   detail: (id: string) => ['customers', id] as const,
+  statusDictionary: () => ['dictionaries', 'customer-statuses'] as const,
 }
 
 export function fetchCustomers(api: Api, params: CustomerListParams) {
@@ -27,4 +35,12 @@ export function updateCustomer(api: Api, id: string, data: NewCustomer) {
 
 export function deleteCustomer(api: Api, id: string) {
   return api<void>(`/api/customers/${id}`, { method: 'DELETE' })
+}
+
+export function setCustomerStatus(api: Api, id: string, status: CustomerStatusId) {
+  return api<Customer>(`/api/customers/${id}/status`, { method: 'POST', body: { status } })
+}
+
+export function fetchCustomerStatusDictionary(api: Api) {
+  return api<CustomerStatusDictionaryResponse>('/api/dictionaries/customer-statuses')
 }

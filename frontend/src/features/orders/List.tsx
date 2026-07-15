@@ -11,8 +11,8 @@ import { useApi } from '../../lib/api'
 import { formatMoney } from '../../lib/money'
 import { fetchOrders, ordersKeys } from './api'
 import { CustomerSelect } from './CustomerSelect'
-import { ORDER_STATUSES } from './types'
-import type { Order, OrderStatus } from './types'
+import type { Order, OrderStatusId } from './types'
+import { useOrderStatusDictionary } from './useOrderStatusDictionary'
 
 const PAGE_SIZE = 25
 const DEFAULT_SORT = '-created_at'
@@ -32,6 +32,7 @@ export function OrderList() {
   const { t, i18n } = useTranslation('orders')
   const navigate = useNavigate()
   const api = useApi()
+  const statusDict = useOrderStatusDictionary()
   const [page, setPage] = useState(1)
   const [sorting, setSorting] = useState<SortingState>([{ id: 'created_at', desc: true }])
   const [customerId, setCustomerId] = useState('')
@@ -46,7 +47,7 @@ export function OrderList() {
       limit: PAGE_SIZE,
       sort: sortParam(sorting),
       customer_id: customerId || undefined,
-      status: (status as OrderStatus | null) ?? undefined,
+      status: status === null ? undefined : (Number(status) as OrderStatusId),
       q: hasSearch ? debouncedSearch.trim() : undefined,
     }),
     [page, sorting, customerId, status, hasSearch, debouncedSearch],
@@ -67,7 +68,11 @@ export function OrderList() {
       }),
       columnHelper.accessor('status', {
         header: t('fields.status'),
-        cell: (info) => <Badge>{t(`status.${info.getValue()}`)}</Badge>,
+        cell: (info) => {
+          const statusId = info.getValue()
+          const meta = statusDict.byId.get(statusId)
+          return <Badge color={meta?.color}>{statusDict.labelFor(statusId)}</Badge>
+        },
       }),
       columnHelper.accessor((row) => formatMoney(row.total, i18n.language), {
         id: 'total',
@@ -128,7 +133,7 @@ export function OrderList() {
         <Select
           placeholder={t('list.filterStatus')}
           clearable
-          data={ORDER_STATUSES.map((value) => ({ value, label: t(`status.${value}`) }))}
+          data={statusDict.options}
           value={status}
           onChange={(value) => {
             setStatus(value)

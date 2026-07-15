@@ -1,11 +1,28 @@
 import { useState } from 'react'
-import { Alert, Button, Group, Stack, Textarea, TextInput } from '@mantine/core'
+import {
+  ActionIcon,
+  Alert,
+  Button,
+  Checkbox,
+  Fieldset,
+  Group,
+  NumberInput,
+  Radio,
+  SegmentedControl,
+  Select,
+  Stack,
+  Table,
+  Textarea,
+  TextInput,
+  TagsInput,
+} from '@mantine/core'
 import { useForm, zodResolver } from '@mantine/form'
 import { useTranslation } from 'react-i18next'
 
 import { ApiError, apiErrorMessage, validationMessage } from '../../lib/api'
-import { customerFormSchema, mapApiErrorField, toNewCustomer } from './types'
-import type { Customer, CustomerFormValues } from './types'
+import { CURRENCY_OPTIONS } from '../orders/types'
+import { CUSTOMER_KIND, customerFormSchema, emptyContactFormValues, mapApiErrorField, toNewCustomer } from './types'
+import type { Customer, CustomerFormValues, CustomerKindId } from './types'
 
 export interface CustomerFormProps {
   initialValues: CustomerFormValues
@@ -15,7 +32,7 @@ export interface CustomerFormProps {
 }
 
 export function CustomerForm({ initialValues, onSubmit, onSuccess, onCancel }: CustomerFormProps) {
-  const { t } = useTranslation('customers')
+  const { t, i18n } = useTranslation('customers')
   const [submitting, setSubmitting] = useState(false)
   const [formError, setFormError] = useState<string | null>(null)
   const form = useForm<CustomerFormValues>({
@@ -23,11 +40,17 @@ export function CustomerForm({ initialValues, onSubmit, onSuccess, onCancel }: C
     validate: zodResolver(customerFormSchema),
   })
 
+  const kind = form.values.kind
+  const currency = form.values.defaultCurrency.toUpperCase()
+  const currencyOptions = CURRENCY_OPTIONS.includes(currency as (typeof CURRENCY_OPTIONS)[number])
+    ? CURRENCY_OPTIONS
+    : [...CURRENCY_OPTIONS, currency]
+
   const handleSubmit = form.onSubmit(async (values) => {
     setFormError(null)
     setSubmitting(true)
     try {
-      const customer = await onSubmit(toNewCustomer(values))
+      const customer = await onSubmit(toNewCustomer(values, i18n.language))
       onSuccess(customer)
     } catch (err) {
       if (err instanceof ApiError && err.code === 'validation_failed' && err.details) {
@@ -44,18 +67,161 @@ export function CustomerForm({ initialValues, onSubmit, onSuccess, onCancel }: C
 
   return (
     <form onSubmit={handleSubmit}>
-      <Stack maw={480}>
+      <Stack maw={720}>
         {formError && <Alert color="red">{formError}</Alert>}
-        <TextInput label={t('fields.name')} withAsterisk {...form.getInputProps('name')} />
-        <TextInput label={t('fields.contactName')} {...form.getInputProps('contactName')} />
-        <TextInput label={t('fields.email')} {...form.getInputProps('email')} />
-        <TextInput label={t('fields.phone')} {...form.getInputProps('phone')} />
-        <TextInput label={t('fields.street')} {...form.getInputProps('address.street')} />
-        <Group grow>
-          <TextInput label={t('fields.zip')} {...form.getInputProps('address.zip')} />
-          <TextInput label={t('fields.city')} {...form.getInputProps('address.city')} />
-        </Group>
-        <TextInput label={t('fields.country')} maxLength={2} {...form.getInputProps('address.country')} />
+
+        <Fieldset legend={t('sections.general')}>
+          <Stack>
+            <SegmentedControl
+              data={[
+                { value: String(CUSTOMER_KIND.LegalEntity), label: t('kind.legalEntity') },
+                { value: String(CUSTOMER_KIND.Fop), label: t('kind.fop') },
+                { value: String(CUSTOMER_KIND.Individual), label: t('kind.individual') },
+              ]}
+              value={String(form.values.kind)}
+              onChange={(value) => form.setFieldValue('kind', Number(value) as CustomerKindId)}
+            />
+            <TextInput label={t('fields.name')} withAsterisk {...form.getInputProps('name')} />
+            <TextInput label={t('fields.legalName')} {...form.getInputProps('legalName')} />
+            {kind === CUSTOMER_KIND.LegalEntity && (
+              <TextInput label={t('fields.edrpou')} {...form.getInputProps('edrpou')} />
+            )}
+            {kind !== CUSTOMER_KIND.LegalEntity && (
+              <TextInput label={t('fields.taxId')} {...form.getInputProps('taxId')} />
+            )}
+            <TextInput label={t('fields.vatIpn')} {...form.getInputProps('vatIpn')} />
+            <TextInput label={t('fields.industry')} {...form.getInputProps('industry')} />
+            <TextInput label={t('fields.source')} {...form.getInputProps('source')} />
+            <TextInput label={t('fields.website')} {...form.getInputProps('website')} />
+            <TagsInput
+              label={t('fields.tags')}
+              value={form.values.tags}
+              onChange={(value) => form.setFieldValue('tags', value)}
+            />
+          </Stack>
+        </Fieldset>
+
+        <Fieldset legend={t('sections.contacts')}>
+          <Stack>
+            <Table>
+              <Table.Thead>
+                <Table.Tr>
+                  <Table.Th>{t('fields.contactName')}</Table.Th>
+                  <Table.Th>{t('fields.contactRole')}</Table.Th>
+                  <Table.Th>{t('fields.email')}</Table.Th>
+                  <Table.Th>{t('fields.phone')}</Table.Th>
+                  <Table.Th>{t('fields.primary')}</Table.Th>
+                  <Table.Th />
+                </Table.Tr>
+              </Table.Thead>
+              <Table.Tbody>
+                {form.values.contacts.map((contact, index) => (
+                  <Table.Tr key={index}>
+                    <Table.Td>
+                      <TextInput {...form.getInputProps(`contacts.${index}.name`)} />
+                    </Table.Td>
+                    <Table.Td>
+                      <TextInput {...form.getInputProps(`contacts.${index}.role`)} />
+                    </Table.Td>
+                    <Table.Td>
+                      <TextInput {...form.getInputProps(`contacts.${index}.email`)} />
+                    </Table.Td>
+                    <Table.Td>
+                      <TextInput {...form.getInputProps(`contacts.${index}.phone`)} />
+                    </Table.Td>
+                    <Table.Td>
+                      <Radio
+                        checked={contact.isPrimary}
+                        onChange={() => {
+                          form.values.contacts.forEach((_, otherIndex) => {
+                            form.setFieldValue(`contacts.${otherIndex}.isPrimary`, otherIndex === index)
+                          })
+                        }}
+                      />
+                    </Table.Td>
+                    <Table.Td>
+                      <ActionIcon color="red" variant="subtle" onClick={() => form.removeListItem('contacts', index)}>
+                        ✕
+                      </ActionIcon>
+                    </Table.Td>
+                  </Table.Tr>
+                ))}
+              </Table.Tbody>
+            </Table>
+            <Button
+              variant="subtle"
+              onClick={() => form.insertListItem('contacts', { ...emptyContactFormValues })}
+            >
+              {t('form.addContact')}
+            </Button>
+          </Stack>
+        </Fieldset>
+
+        <Fieldset legend={t('sections.addresses')}>
+          <Stack>
+            <Fieldset legend={t('fields.legalAddress')} variant="filled">
+              <Stack>
+                <TextInput label={t('fields.street')} {...form.getInputProps('legalAddress.street')} />
+                <Group grow>
+                  <TextInput label={t('fields.zip')} {...form.getInputProps('legalAddress.zip')} />
+                  <TextInput label={t('fields.city')} {...form.getInputProps('legalAddress.city')} />
+                </Group>
+                <TextInput label={t('fields.country')} maxLength={2} {...form.getInputProps('legalAddress.country')} />
+              </Stack>
+            </Fieldset>
+            <Fieldset legend={t('fields.deliveryAddress')} variant="filled">
+              <Stack>
+                <TextInput label={t('fields.street')} {...form.getInputProps('deliveryAddress.street')} />
+                <Group grow>
+                  <TextInput label={t('fields.zip')} {...form.getInputProps('deliveryAddress.zip')} />
+                  <TextInput label={t('fields.city')} {...form.getInputProps('deliveryAddress.city')} />
+                </Group>
+                <TextInput
+                  label={t('fields.country')}
+                  maxLength={2}
+                  {...form.getInputProps('deliveryAddress.country')}
+                />
+              </Stack>
+            </Fieldset>
+          </Stack>
+        </Fieldset>
+
+        <Fieldset legend={t('sections.finance')}>
+          <Stack>
+            <NumberInput
+              label={t('fields.paymentTermsDays')}
+              min={0}
+              max={365}
+              {...form.getInputProps('paymentTermsDays')}
+            />
+            <Checkbox
+              label={t('fields.hasCreditLimit')}
+              checked={form.values.hasCreditLimit}
+              onChange={(event) => form.setFieldValue('hasCreditLimit', event.currentTarget.checked)}
+            />
+            {form.values.hasCreditLimit && (
+              <Group grow>
+                <TextInput label={t('fields.creditLimitAmount')} {...form.getInputProps('creditLimitAmount')} />
+                <Select
+                  label={t('fields.currency')}
+                  data={[...currencyOptions]}
+                  {...form.getInputProps('creditLimitCurrency')}
+                />
+              </Group>
+            )}
+            <Select label={t('fields.defaultCurrency')} data={[...currencyOptions]} {...form.getInputProps('defaultCurrency')} />
+            <NumberInput
+              label={t('fields.defaultDiscountPercent')}
+              min={0}
+              max={100}
+              decimalScale={2}
+              {...form.getInputProps('defaultDiscountPercent')}
+            />
+            <TextInput label={t('fields.iban')} {...form.getInputProps('iban')} />
+            <TextInput label={t('fields.bankName')} {...form.getInputProps('bankName')} />
+          </Stack>
+        </Fieldset>
+
         <Textarea label={t('fields.notes')} {...form.getInputProps('notes')} />
         <Group justify="flex-end">
           <Button variant="subtle" onClick={onCancel} disabled={submitting}>

@@ -22,5 +22,14 @@
   "validation.min_line_items": "Має містити принаймні одну позицію.",
   "validation.not_found": "Цей запис не знайдено.",
   "validation.unknown_sort_field": "Невідоме поле сортування: {field}.",
-  "validation.currency_mismatch": "Має відповідати валюті замовлення ({currency})."
+  "validation.currency_mismatch": "Має відповідати валюті замовлення ({currency}).",
+  "validation.not_applicable_for_kind": "Не застосовується для цього типу клієнта.",
+  "validation.invalid_edrpou": "Має складатися рівно з 8 цифр.",
+  "validation.invalid_tax_id": "Має складатися рівно з 10 цифр.",
+  "validation.invalid_vat_ipn": "Має складатися рівно з 12 цифр.",
+  "validation.invalid_iban": "Має бути українським IBAN (UA + 27 цифр).",
+  "validation.invalid_amount": "Має бути дійсною десятковою сумою.",
+  "validation.multiple_primary_contacts": "Лише один контакт може бути основним.",
+  "validation.out_of_range": "Значення поза допустимим діапазоном.",
+  "validation.invalid_creation_status": "Нові клієнти можуть починати лише як лід або активний."
 }

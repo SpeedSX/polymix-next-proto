@@ -137,12 +137,16 @@ customer {
   notes: string | null,
   created_at, updated_at
 }
+// M5.1 extends customer into a Ukraine-focused CRM profile (legal ids,
+// lifecycle status, embedded contacts, commercial terms) — once M5.1 lands,
+// docs/customers-crm.md is normative for this entity and supersedes the
+// block above.
 
 order {
   id: ulid,
   number: string,                 // "ORD-000123", unique per tenant
   customer_id: ulid (required, must exist),
-  status: "draft" | "confirmed" | "in_production" | "completed" | "cancelled",
+  status: 0 | 1 | 2 | 3 | 4,       // order status id (see /api/dictionaries/order-statuses)
   currency: string,               // defaults to tenant default currency
   line_items: [                   // 1..n
     { description: string, quantity: int > 0, unit_price: money }
@@ -181,8 +185,8 @@ counter { id: "order" | "invoice", value: int }
 
 Status transitions (service-enforced; invalid transition → `409 conflict`):
 
-- order: `draft → confirmed → in_production → completed`; `cancelled` reachable from `draft|confirmed`; no other moves.
-- invoice: `draft → issued → paid`; `void` reachable from `draft|issued`. An invoice can be created only from an order with status `confirmed` or later; one invoice per order (second attempt → `409`).
+- order: `0 → 1 → 2 → 3`; `4` reachable from `0|1`; no other moves.
+- invoice: `draft → issued → paid`; `void` reachable from `draft|issued`. An invoice can be created only from an order with status `1|2|3`; one invoice per order (second attempt → `409`).
 - Deleting: customers with orders and orders with invoices cannot be deleted (`409`). Invoices are never deleted — void them.
 
 ### SurrealDB definitions (in `/crates/surreal-store/migrations/*.surql`)
@@ -224,11 +228,12 @@ Base path `/api`, JSON everywhere. All routes except `/api/health` require `Auth
 | `PUT /api/customers/{id}` | full update (no PATCH in the prototype) |
 | `DELETE /api/customers/{id}` | delete (409 if referenced) |
 | same five routes | `/api/orders`, `/api/invoices` |
-| `POST /api/orders/{id}/status` | body `{ "status": "confirmed" }` — transition |
+| `POST /api/orders/{id}/status` | body `{ "status": 1 }` — transition |
 | `POST /api/orders/{id}/invoice` | create invoice from order; body `{ currency?: string }` |
 | `POST /api/invoices/{id}/status` | body `{ "status": "issued" }` |
 | `GET /api/search?q=` | global omnibox (M3), shape below |
 | `GET /api/ws?token=<jwt>` | WebSocket upgrade (M5) |
+| `GET /api/dictionaries/order-statuses` | order status metadata (ids, labels, transitions, invoiceability) |
 
 **List parameters:** `page` (1-based, default 1), `limit` (default 25, max 100), `sort` (field name, prefix `-` for desc, default `-created_at`), `q` (FTS filter, M3+; when present results are ranked by score and `sort` is ignored). Orders/invoices additionally accept `customer_id` and `status` filters.
 
@@ -507,11 +512,15 @@ Each milestone ends runnable and demoable, with explicit acceptance criteria.
    Hub + live queries per the WS spec; frontend WS client with reconnect + invalidate-on-reconnect; optimistic updates on edit/transition mutations. Build order, module layout, and per-step tests: see **M5 work breakdown (Live updates)** above.
    **Done when:** two browsers on one tenant — an edit in one appears in the other within 1 s without user action, on both list and detail views; a browser on a second tenant sees nothing (integration test: WS client of tenant B receives no event for tenant A's mutation — mandatory); killing and restarting SurrealDB recovers live updates without a page reload.
 
-8. **M6 — Cloud + perf pass.**
+8. **M5.1 — Customer CRM profile (Ukraine-focused).**
+   Extend the customer entity into a CRM-grade profile: kind (юр. особа / ФОП / фіз. особа), legal identification (ЄДРПОУ, РНОКПП, ІПН ПДВ, IBAN), lifecycle status (`lead → active ↔ inactive`, `blocked`) with a status-transition route and dictionary endpoint, embedded contacts array, legal + delivery addresses, tags/industry/source, and commercial terms (payment terms, credit limit, default currency/discount); wider customer FTS index; migration of legacy `contact_name`/`email`/`phone`/`address` fields. No customer numbering — unlike orders/invoices, a customer is not a document with an external reference to number, and an initial attempt at one (`CUS-000123`-style, tenant `customer_prefix`) was dropped as scope that didn't belong (`docs/adr/0011-drop-customer-numbering.md`). Spec, data model, and step-by-step build order: `docs/customers-crm.md` (normative).
+   **Done when:** the acceptance pass and perf re-check in `docs/customers-crm.md` Step 6 pass — extended CRUD end-to-end from the UI in `ua` locale, migration of pre-M5.1 rows verified by integration test, order creation guarded by customer status (lead auto-promote, blocked → 409), omnibox finds customers by ЄДРПОУ and contact name, search p95 still < 100 ms on the seeded volume.
+
+9. **M6 — Cloud + perf pass.**
    Dockerfiles (multi-stage; frontend served by nginx); fly.toml for api + SurrealDB (volume-backed) + static frontend; the three items in **Operational hardening (M6)** — startup retry, CORS from config, readiness endpoint; k6 scripts for search, list pagination, and mutation fan-out with 100 concurrent WS clients; numbers recorded in `/docs/perf.md` against the NFR targets.
    **Done when:** the demo runs on Fly.io URLs end-to-end including Clerk sign-in; starting the API before SurrealDB recovers without manual intervention (integration test); `/api/ready` flips 503 ↔ 200 as the DB goes down/up (integration test); a non-dev start without `CORS_ALLOWED_ORIGINS` fails with a clear error, and a preflight from an unlisted origin gets no `Access-Control-Allow-Origin` header; k6 runs are scripted (`/deploy/k6/`), repeatable, and their p95s are written to `/docs/perf.md` with a pass/fail verdict per NFR.
 
-9. **M7 — Customer portal + instant quote** (post-prototype candidate): public product configurator with a parametric pricing engine. This is the first item of the post-prototype roadmap below; its design is already written (`docs/instant-quote.md`, `docs/product-configuration.md`, and the normative `docs/quote-engine-spec.md`).
+10. **M7 — Customer portal + instant quote** (post-prototype candidate): public product configurator with a parametric pricing engine. This is the first item of the post-prototype roadmap below; its design is already written (`docs/instant-quote.md`, `docs/product-configuration.md`, and the normative `docs/quote-engine-spec.md`).
 
 ## Testing
 

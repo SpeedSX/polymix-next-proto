@@ -3,6 +3,7 @@ use std::sync::Arc;
 
 use async_trait::async_trait;
 use domain::Paged;
+use domain::customer::{CustomerStatus, can_order};
 use domain::error::{ConflictReason, DomainError, FieldError};
 use domain::money::Money;
 use domain::order::{
@@ -16,6 +17,7 @@ use surrealdb::types::{RecordId, RecordIdKey, SurrealValue};
 use ulid::Ulid;
 
 use crate::counter::next_number;
+use crate::status::{customer_status_from_db, order_status_from_db};
 
 pub(crate) const TABLE: &str = "order";
 const CUSTOMER_TABLE: &str = "customer";
@@ -87,27 +89,6 @@ impl From<LineItemRow> for LineItem {
     }
 }
 
-fn status_to_str(status: OrderStatus) -> &'static str {
-    match status {
-        OrderStatus::Draft => "draft",
-        OrderStatus::Confirmed => "confirmed",
-        OrderStatus::InProduction => "in_production",
-        OrderStatus::Completed => "completed",
-        OrderStatus::Cancelled => "cancelled",
-    }
-}
-
-fn status_from_str(value: &str) -> Result<OrderStatus, DomainError> {
-    match value {
-        "draft" => Ok(OrderStatus::Draft),
-        "confirmed" => Ok(OrderStatus::Confirmed),
-        "in_production" => Ok(OrderStatus::InProduction),
-        "completed" => Ok(OrderStatus::Completed),
-        "cancelled" => Ok(OrderStatus::Cancelled),
-        other => Err(DomainError::Store(format!("unknown order status: {other}"))),
-    }
-}
-
 #[derive(Debug, SurrealValue)]
 #[surreal(crate = "surrealdb::types")]
 pub(crate) struct OrderRow {
@@ -115,7 +96,7 @@ pub(crate) struct OrderRow {
     number: String,
     customer_id: String,
     customer_name: Option<String>,
-    status: String,
+    status: i64,
     currency: String,
     line_items: Vec<LineItemRow>,
     total: MoneyRow,
@@ -129,7 +110,7 @@ pub(crate) struct OrderRow {
 struct OrderContent {
     number: String,
     customer_id: String,
-    status: String,
+    status: i64,
     currency: String,
     line_items: Vec<LineItemRow>,
     total: MoneyRow,
@@ -141,7 +122,7 @@ struct OrderContent {
 #[derive(Debug, SurrealValue)]
 #[surreal(crate = "surrealdb::types")]
 struct StatusPatch {
-    status: String,
+    status: i64,
     updated_at: String,
 }
 
@@ -149,6 +130,12 @@ struct StatusPatch {
 #[surreal(crate = "surrealdb::types")]
 struct IdOnly {
     id: RecordId,
+}
+
+#[derive(Debug, SurrealValue)]
+#[surreal(crate = "surrealdb::types")]
+struct CustomerStatusRow {
+    status: i64,
 }
 
 #[derive(Debug, SurrealValue)]
@@ -189,7 +176,7 @@ impl TryFrom<OrderRow> for Order {
             number: row.number,
             customer_id: row.customer_id,
             customer_name: row.customer_name,
-            status: status_from_str(&row.status)?,
+            status: order_status_from_db(row.status)?,
             currency: row.currency,
             line_items: row.line_items.into_iter().map(LineItem::from).collect(),
             total: row.total.into(),
@@ -297,6 +284,37 @@ impl SurrealOrderRepo {
         Ok(row.is_some())
     }
 
+    async fn customer_status(
+        &self,
+        customer_id: &str,
+    ) -> Result<Option<CustomerStatus>, DomainError> {
+        let row: Option<CustomerStatusRow> = self
+            .session
+            .select((CUSTOMER_TABLE, customer_id))
+            .await
+            .map_err(map_err)?;
+        row.map(|r| customer_status_from_db(r.status)).transpose()
+    }
+
+    /// A `lead` placing its first order *is* the conversion event — promote
+    /// it to `active` in the same operation as order creation (see
+    /// `docs/customers-crm.md`). The write goes through this session so the
+    /// existing `LIVE SELECT` on `customer` picks it up like any other
+    /// update.
+    async fn promote_customer_to_active(&self, customer_id: &str) -> Result<(), DomainError> {
+        let patch = StatusPatch {
+            status: CustomerStatus::Active.code() as i64,
+            updated_at: chrono::Utc::now().to_rfc3339(),
+        };
+        let _: Option<IdOnly> = self
+            .session
+            .update((CUSTOMER_TABLE, customer_id))
+            .merge(patch)
+            .await
+            .map_err(map_err)?;
+        Ok(())
+    }
+
     async fn has_invoice(&self, order_id: &str) -> Result<bool, DomainError> {
         let mut response = self
             .session
@@ -334,7 +352,7 @@ impl OrderRepo for SurrealOrderRepo {
             list_query = list_query.bind(("customer_id", customer_id.clone()));
         }
         if let Some(status) = query.status {
-            list_query = list_query.bind(("status", status_to_str(status)));
+            list_query = list_query.bind(("status", status.code() as i64));
         }
         if let Some(q) = q {
             list_query = list_query.bind(("q", q.to_string()));
@@ -359,7 +377,7 @@ impl OrderRepo for SurrealOrderRepo {
             count_query = count_query.bind(("customer_id", customer_id.clone()));
         }
         if let Some(status) = query.status {
-            count_query = count_query.bind(("status", status_to_str(status)));
+            count_query = count_query.bind(("status", status.code() as i64));
         }
         if let Some(q) = q {
             count_query = count_query.bind(("q", q.to_string()));
@@ -396,8 +414,17 @@ impl OrderRepo for SurrealOrderRepo {
     }
 
     async fn create(&self, data: NewOrder, tenant: &Tenant) -> Result<Order, DomainError> {
-        if !self.customer_exists(&data.customer_id).await? {
-            return Err(customer_not_found_error());
+        let customer_status = self
+            .customer_status(&data.customer_id)
+            .await?
+            .ok_or_else(customer_not_found_error)?;
+        if !can_order(customer_status) {
+            return Err(DomainError::Conflict(
+                ConflictReason::CustomerNotActiveForOrder,
+            ));
+        }
+        if customer_status == CustomerStatus::Lead {
+            self.promote_customer_to_active(&data.customer_id).await?;
         }
         let currency = data.currency.clone().unwrap_or_else(|| "EUR".to_string());
         let total = line_items_total(&data.line_items, &currency);
@@ -407,7 +434,7 @@ impl OrderRepo for SurrealOrderRepo {
         let content = OrderContent {
             number,
             customer_id: data.customer_id,
-            status: status_to_str(OrderStatus::Draft).to_string(),
+            status: OrderStatus::Draft.code() as i64,
             currency,
             line_items: data.line_items.into_iter().map(LineItemRow::from).collect(),
             total: total.into(),
@@ -442,7 +469,7 @@ impl OrderRepo for SurrealOrderRepo {
         let content = OrderContent {
             number: existing.number,
             customer_id: data.customer_id,
-            status: status_to_str(existing.status).to_string(),
+            status: existing.status.code() as i64,
             currency,
             line_items: data.line_items.into_iter().map(LineItemRow::from).collect(),
             total: total.into(),
@@ -475,7 +502,7 @@ impl OrderRepo for SurrealOrderRepo {
         validate_transition(existing.status, status)?;
 
         let patch = StatusPatch {
-            status: status_to_str(status).to_string(),
+            status: status.code() as i64,
             updated_at: chrono::Utc::now().to_rfc3339(),
         };
         let row: Option<IdOnly> = self

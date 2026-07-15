@@ -6,6 +6,7 @@ pub mod live;
 pub mod migrations;
 pub mod order_repo;
 pub mod provision;
+mod status;
 pub mod store;
 pub mod tenant_repo;
 
