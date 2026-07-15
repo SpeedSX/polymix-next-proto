@@ -2,11 +2,20 @@ use std::collections::HashMap;
 
 use serde::de::Error as _;
 use serde::{Deserialize, Serialize};
-use validator::Validate;
+use validator::{Validate, ValidationError};
 
 use crate::error::{ConflictReason, DomainError, FieldError};
 use crate::money::Money;
 use crate::tenant::Tenant;
+
+/// Rejects empty and whitespace-only strings (unlike `length(min = 1)`).
+fn not_blank(value: &str) -> Result<(), ValidationError> {
+    if value.trim().is_empty() {
+        Err(ValidationError::new("required"))
+    } else {
+        Ok(())
+    }
+}
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum CustomerKind {
@@ -170,7 +179,7 @@ pub struct Address {
 
 #[derive(Debug, Clone, Serialize, Deserialize, Validate)]
 pub struct Contact {
-    #[validate(length(min = 1, code = "required"))]
+    #[validate(custom(function = "not_blank", code = "required"))]
     pub name: String,
     pub role: Option<String>,
     #[validate(email(code = "invalid_email"))]
@@ -183,7 +192,6 @@ pub struct Contact {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Customer {
     pub id: String,
-    pub number: String,
     pub kind: CustomerKind,
     pub name: String,
     pub legal_name: Option<String>,
@@ -212,7 +220,7 @@ pub struct Customer {
 #[derive(Debug, Clone, Deserialize, Validate)]
 pub struct NewCustomer {
     pub kind: CustomerKind,
-    #[validate(length(min = 1, code = "required"))]
+    #[validate(custom(function = "not_blank", code = "required"))]
     pub name: String,
     pub legal_name: Option<String>,
     pub edrpou: Option<String>,
@@ -413,7 +421,6 @@ pub trait CustomerRepo: Send + Sync {
     async fn list(&self, query: ListQuery, tenant: &Tenant)
     -> Result<Paged<Customer>, DomainError>;
     async fn get(&self, id: &str, tenant: &Tenant) -> Result<Option<Customer>, DomainError>;
-    /// `tenant` also supplies `customer_prefix` for the assigned number.
     async fn create(&self, data: NewCustomer, tenant: &Tenant) -> Result<Customer, DomainError>;
     async fn update(
         &self,
@@ -483,6 +490,18 @@ mod tests {
             panic!("expected Validation error");
         };
         assert!(details.contains_key("name"));
+    }
+
+    #[test]
+    fn whitespace_only_name_is_invalid() {
+        let mut data = base_customer(CustomerKind::LegalEntity);
+        data.name = "   \t  ".to_string();
+
+        let err = data.validate_domain().unwrap_err();
+        let DomainError::Validation(details) = err else {
+            panic!("expected Validation error");
+        };
+        assert_eq!(details["name"].code, "required");
     }
 
     #[test]
@@ -608,6 +627,20 @@ mod tests {
             panic!("expected Validation error");
         };
         assert!(details.contains_key("contacts[0].name"));
+    }
+
+    #[test]
+    fn contact_with_whitespace_only_name_is_invalid() {
+        let mut data = base_customer(CustomerKind::LegalEntity);
+        let mut contact = valid_contact(false);
+        contact.name = " \n ".to_string();
+        data.contacts = vec![contact];
+
+        let err = data.validate_domain().unwrap_err();
+        let DomainError::Validation(details) = err else {
+            panic!("expected Validation error");
+        };
+        assert_eq!(details["contacts[0].name"].code, "required");
     }
 
     #[test]

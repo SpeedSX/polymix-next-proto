@@ -2,7 +2,11 @@
 
 ## Status
 
-Accepted.
+Superseded by
+[0011-drop-customer-numbering.md](0011-drop-customer-numbering.md), which
+removes `customer.number` (and its FTS index) entirely rather than living
+with the collision this ADR accepted. Kept for the record of why the
+collision happened and why living with it was the original call.
 
 ## Context
 

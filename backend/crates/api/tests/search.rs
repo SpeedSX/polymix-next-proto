@@ -318,17 +318,15 @@ async fn omnibox_matches_order_and_invoice_hits() {
     let invoice_number = invoice["number"].as_str().unwrap().to_string();
     assert_eq!(invoice_number, "000001");
 
-    // "000001" matches both the order's and the invoice's number. It may
-    // also match this customer's own number (also assigned from "000001" in
-    // a fresh tenant, since customer/order/invoice numbering are independent
-    // per-tenant counters that all start at the same value) — customer.number
-    // joined the FTS-indexed fields in M5.1, and edge-ngram matching is a
-    // shared-token test, not an exact-value one, so two zero-padded numbers
-    // sharing a leading run of zeros (e.g. "000001" and "000002") legitimately
-    // share tokens like "0000". See docs/adr/0010-customer-number-shares-fts-tokens-with-low-counters.md.
-    // This test's job is the order/invoice highlighting below, not asserting
-    // the customer side is empty.
+    // "000001" matches both the order's and the invoice's number. Customers
+    // have no `number` field (docs/adr/0011-drop-customer-numbering.md), so
+    // there's no cross-entity collision to worry about here.
     let results = app.search(org, "000001").await;
+
+    let customers = results["customers"]
+        .as_array()
+        .expect("customers is an array");
+    assert!(customers.is_empty());
 
     let orders = results["orders"].as_array().expect("orders is an array");
     assert_eq!(orders.len(), 1);

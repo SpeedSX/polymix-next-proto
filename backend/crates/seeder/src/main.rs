@@ -8,11 +8,12 @@
 
 mod ua;
 
+use std::collections::HashSet;
 use std::env;
 use std::sync::Arc;
 use std::time::Instant;
 
-use domain::customer::{CustomerKind, CustomerStatus};
+use domain::customer::{CustomerKind, CustomerStatus, can_order};
 use domain::money::Money;
 use domain::order::{LineItem, OrderStatus, line_items_total};
 use fake::Fake;
@@ -103,11 +104,6 @@ struct ContactRow {
 #[surreal(crate = "surrealdb::types")]
 struct CustomerSeedRow {
     id: RecordId,
-    // `number` is deliberately omitted: `customer_repo::backfill_numbers`
-    // (run once at API startup, same as for pre-M5.1 legacy rows) assigns
-    // sequential numbers to any row that lacks one — no need to duplicate
-    // that counter-catchup logic here (contrast `seed_orders`, which writes
-    // `order.number` directly and so must catch the shared counter up itself).
     kind: i64,
     name: String,
     legal_name: Option<String>,
@@ -276,19 +272,19 @@ async fn main() -> anyhow::Result<()> {
     tracing::info!(tenant = %tenant.db_name, org_id = %org_id, "seeding tenant");
 
     let started = Instant::now();
-    let customer_ids = seed_customers(
+    let customers = seed_customers(
         &session,
         customer_count,
         ukrainian,
         &tenant.default_currency,
     )
     .await?;
-    tracing::info!(count = customer_ids.len(), elapsed = ?started.elapsed(), "customers seeded");
+    tracing::info!(count = customers.len(), elapsed = ?started.elapsed(), "customers seeded");
 
     let orders_started = Instant::now();
     seed_orders(
         &session,
-        &customer_ids,
+        &customers,
         order_count,
         &tenant.default_currency,
         ukrainian,
@@ -342,14 +338,21 @@ fn seed_tags(rng: &mut impl Rng, ukrainian: bool) -> Vec<String> {
     chosen
 }
 
+/// Customer id + status as written during seeding — order selection needs the
+/// status so it can apply the same `can_order` / lead-promote rules as the API.
+struct SeededCustomer {
+    id: String,
+    status: CustomerStatus,
+}
+
 async fn seed_customers(
     session: &Surreal<Any>,
     count: usize,
     ukrainian: bool,
     default_currency: &str,
-) -> anyhow::Result<Vec<String>> {
+) -> anyhow::Result<Vec<SeededCustomer>> {
     let mut rng = rand::thread_rng();
-    let mut ids = Vec::with_capacity(count);
+    let mut customers = Vec::with_capacity(count);
     let mut remaining = count;
     let mut seq = 0usize;
 
@@ -363,6 +366,8 @@ async fn seed_customers(
             let edrpou = (kind == CustomerKind::LegalEntity).then(|| random_digits(&mut rng, 8));
             let tax_id = (kind != CustomerKind::LegalEntity).then(|| random_digits(&mut rng, 10));
             let vat_ipn = rng.gen_bool(0.4).then(|| random_digits(&mut rng, 12));
+            // Weighted mix is intentional for the list/status filter demo;
+            // ineligible statuses are filtered out again in `seed_orders`.
             let status = weighted_pick(&mut rng, CUSTOMER_STATUS_WEIGHTS);
             let payment_terms_days = *PAYMENT_TERMS_OPTIONS.choose(&mut rng).unwrap();
             let contacts = seed_contacts(&mut rng, ukrainian, seq);
@@ -416,16 +421,16 @@ async fn seed_customers(
                 created_at: now.clone(),
                 updated_at: now.clone(),
             });
-            ids.push(id);
+            customers.push(SeededCustomer { id, status });
             seq += 1;
         }
 
         let _: Vec<CustomerSeedRow> = session.insert(CUSTOMER_TABLE).content(batch).await?;
         remaining -= batch_size;
-        tracing::info!(seeded = ids.len(), count, "customers progress");
+        tracing::info!(seeded = customers.len(), count, "customers progress");
     }
 
-    Ok(ids)
+    Ok(customers)
 }
 
 #[derive(Debug, SurrealValue)]
@@ -436,7 +441,7 @@ struct CounterRow {
 
 async fn seed_orders(
     session: &Surreal<Any>,
-    customer_ids: &[String],
+    customers: &[SeededCustomer],
     count: usize,
     currency: &str,
     ukrainian: bool,
@@ -445,6 +450,28 @@ async fn seed_orders(
     let mut remaining = count;
     let mut seeded = 0usize;
     let products = if ukrainian { ua::PRODUCTS } else { PRODUCTS };
+
+    // Same eligibility as `OrderRepo::create`: only lead/active may receive
+    // orders. Inactive/blocked stay in the customer mix for list demos but
+    // are never attached to seeded orders.
+    let eligible: Vec<&str> = customers
+        .iter()
+        .filter(|c| can_order(c.status))
+        .map(|c| c.id.as_str())
+        .collect();
+    anyhow::ensure!(
+        !eligible.is_empty(),
+        "no order-eligible customers (need at least one lead or active)"
+    );
+
+    // Leads that receive an order are promoted to active — mirrors the
+    // conversion event in `promote_customer_to_active`.
+    let mut pending_leads: HashSet<&str> = customers
+        .iter()
+        .filter(|c| c.status == CustomerStatus::Lead)
+        .map(|c| c.id.as_str())
+        .collect();
+    let mut promoted_leads: Vec<String> = Vec::new();
 
     // Re-running the seeder against an already-provisioned tenant must not
     // restart numbering at 000001: that would mint duplicates against
@@ -464,10 +491,10 @@ async fn seed_orders(
         for _ in 0..batch_size {
             number += 1;
             let id = Ulid::new().to_string();
-            let customer_id = customer_ids
-                .choose(&mut rng)
-                .expect("customer_ids is non-empty")
-                .clone();
+            let customer_id = (*eligible.choose(&mut rng).expect("eligible is non-empty")).to_string();
+            if pending_leads.remove(customer_id.as_str()) {
+                promoted_leads.push(customer_id.clone());
+            }
             let line_items = random_line_items(&mut rng, currency, products);
             let total = line_items_total(&line_items, currency);
             let status = random_status(&mut rng);
@@ -493,6 +520,8 @@ async fn seed_orders(
         tracing::info!(seeded, count, "orders progress");
     }
 
+    promote_ordered_leads(session, &promoted_leads).await?;
+
     // Orders above were assigned sequential numbers directly (bulk insert,
     // not the one-row-at-a-time `next_number` path), so the shared counter
     // needs to be caught up here or the first order created afterwards
@@ -504,5 +533,33 @@ async fn seed_orders(
         .await?
         .check()?;
 
+    Ok(())
+}
+
+async fn promote_ordered_leads(
+    session: &Surreal<Any>,
+    lead_ids: &[String],
+) -> anyhow::Result<()> {
+    if lead_ids.is_empty() {
+        return Ok(());
+    }
+    let now = chrono::Utc::now().to_rfc3339();
+    let active = CustomerStatus::Active.code() as i64;
+    for chunk in lead_ids.chunks(BATCH_SIZE) {
+        let ids: Vec<RecordId> = chunk
+            .iter()
+            .map(|id| RecordId::new(CUSTOMER_TABLE, id.clone()))
+            .collect();
+        session
+            .query(
+                "UPDATE customer SET status = $status, updated_at = $now WHERE id IN $ids RETURN NONE",
+            )
+            .bind(("status", active))
+            .bind(("now", now.clone()))
+            .bind(("ids", ids))
+            .await?
+            .check()?;
+    }
+    tracing::info!(count = lead_ids.len(), "leads promoted to active after first order");
     Ok(())
 }

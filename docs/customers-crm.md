@@ -25,9 +25,9 @@ Scope decisions already made (do not re-litigate):
 ```
 customer {
   id: ulid,
-  number: string,                  // per-tenant sequence, "CUS-000123" or "000123"
-                                   // (tenant customer_prefix, default empty) —
-                                   // assigned by the service at creation, immutable
+  // No `number` field — unlike orders/invoices (which need a customer-facing
+  // document reference), a customer has no external contract to number
+  // against; see docs/adr/0011-drop-customer-numbering.md.
   kind: 0 | 1 | 2,                 // 0 = legal entity (ТОВ/ПП/АТ), 1 = ФОП, 2 = private individual
   name: string (required, non-empty),      // display name, e.g. "Друкарня «Аркуш»"
   legal_name: string | null,               // full legal name, e.g. ТОВ «Аркуш Прінт»
@@ -120,18 +120,6 @@ Interaction with orders (enforced in the **order** service at creation):
 - Deletion rule unchanged: a customer with orders cannot be deleted (409),
   regardless of status. `blocked` is the "soft off" state.
 
-### Numbering
-
-Same mechanism as orders/invoices: counter record `counter:customer`
-(`next_number` in `crates/surreal-store/src/counter.rs` already takes the
-kind as a parameter), formatted with the tenant's new `customer_prefix`
-(empty by default, like `order_prefix`/`invoice_prefix` — no admin endpoint,
-same M4 decision). Assigned at creation, immutable, unique per tenant.
-
-The tenant registry record (system db) gains `customer_prefix: string`
-defaulting to `""` — existing registry rows are backfilled by a system-db
-migration.
-
 ## API contract (delta)
 
 | Method + path | Purpose |
@@ -146,8 +134,8 @@ migration.
 same composition rules as the orders list's `customer_id`/`status` filters
 (combine with `q`, pagination, sorting).
 
-Create/update bodies are the extended entity minus `id`, `number`, and
-timestamps. `status` is **not** settable via PUT — transitions only via the
+Create/update bodies are the extended entity minus `id` and timestamps.
+`status` is **not** settable via PUT — transitions only via the
 status route (mirrors orders). New customers start as `status = 1` (active)
 by default; the create body may pass `status: 0` to register a lead —
 those are the only two accepted creation statuses (anything else → 422).
@@ -159,7 +147,7 @@ cover the new identity fields:
 
 ```sql
 DEFINE INDEX customer_search ON customer
-  FIELDS name, legal_name, number, edrpou, contacts[*].name, contacts[*].email
+  FIELDS name, legal_name, edrpou, contacts[*].name, contacts[*].email
   SEARCH ANALYZER autocomplete BM25 HIGHLIGHTS;
 ```
 
@@ -191,18 +179,11 @@ handle legacy rows:
 3. Addresses: `legal_address = address`, `delivery_address = NONE`, then
    `UNSET address`. (The legacy single address is treated as the legal
    address; delivery stays empty until staff fill it.)
-4. Numbering backfill: `FOR` loop over `SELECT id FROM customer WHERE
-   number IS NONE ORDER BY created_at ASC`, assigning
-   `counter:customer`-sequenced numbers (same UPSERT as `next_number`,
-   with the reserved-keyword backtick escaping from
-   `docs/surrealdb-rust-sdk-notes.md`). Prefix is empty at migration time
-   (registry default), so backfilled numbers are bare `NNNNNN`.
-5. FTS: `REMOVE INDEX IF EXISTS customer_search ON customer;` then the new
+4. FTS: `REMOVE INDEX IF EXISTS customer_search ON customer;` then the new
    `DEFINE INDEX` above.
 
-System db: a companion migration/DEFINE backfills `customer_prefix = ""`
-on existing `tenant` rows (follow however `order_prefix` was introduced —
-mirror that mechanism exactly).
+No customer numbering and no `customer_prefix` — see
+docs/adr/0011-drop-customer-numbering.md.
 
 ## Frontend (delta)
 
@@ -229,7 +210,7 @@ mirror that mechanism exactly).
   `/api/dictionaries/customer-statuses` — copy the order Detail's
   transition UI, including the 409 toast and the optimistic
   update/rollback wiring from M5 Step 6.
-- `List.tsx`: columns number, name, ЄДРПОУ/РНОКПП (one column, whichever
+- `List.tsx`: columns name, ЄДРПОУ/РНОКПП (one column, whichever
   is set), status badge, tags, primary contact; status filter
   (Select fed by the dictionary) and tag filter next to the search box —
   same layout as the orders list's customer/status filters.
@@ -281,30 +262,26 @@ harness (shared container, fresh tenant per test, `#[ignore]`).
 
 ### Step 2 — Migration + store
 
-- `0009_customers_crm.surql` exactly as specced above; system-db
-  `customer_prefix` backfill.
+- `0009_customers_crm.surql` exactly as specced above.
 - `customer_repo.rs`: extend the Row struct + Row→domain conversion
   (including the `default_currency` read-repair from tenant settings);
   `list` gains `status`/`tag` filters (bound parameters, composed like the
   order repo's filters).
 - Integration tests (`#[ignore]`): (a) legacy-shaped record written
   pre-migration migrates to the new shape — contacts array, legal_address,
-  backfilled number/status, legacy keys gone; (b) migration is idempotent
+  backfilled status, legacy keys gone; (b) migration is idempotent
   (run twice, same result); (c) FTS finds a customer by ЄДРПОУ fragment,
   contact name, and Ukrainian legal_name prefix; (d) list filters by
   status and tag.
 
-### Step 3 — Numbering
+### Step 3 — (removed) Numbering
 
-- Tenant registry: add `customer_prefix` (default `""`) to the domain
-  tenant type, provisioning, and `/api/me` settings payload if prefixes
-  are exposed there (mirror `order_prefix` handling exactly).
-- Customer service assigns `number` at creation via
-  `next_number(session, "customer", prefix)`; `update` never touches it
-  (reject or ignore a client-sent number — match whatever orders do with
-  `number` on PUT, for consistency).
-- Tests: creation assigns sequential unique numbers per tenant (two
-  tenants don't share a sequence); number survives update.
+This spec originally assigned each customer a `CUS-000123`-style number via
+a `customer_prefix` tenant setting, mirroring order/invoice numbering. That
+was dropped before it proved out — see
+docs/adr/0011-drop-customer-numbering.md for why — so this step no longer
+exists; there is no `customer.number`, `customer_prefix`, or numbering
+service call anywhere in the entity.
 
 ### Step 4 — API routes + order-service guard
 

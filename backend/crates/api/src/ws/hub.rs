@@ -189,7 +189,6 @@ mod tests {
     fn customer(name: &str) -> domain::customer::Customer {
         domain::customer::Customer {
             id: "01ARZ3NDEKTSV4RRFFQ69G5FAV".to_string(),
-            number: "000001".to_string(),
             kind: domain::customer::CustomerKind::LegalEntity,
             name: name.to_string(),
             legal_name: None,

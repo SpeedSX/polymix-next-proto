@@ -33,7 +33,6 @@ function renderForm(props: Partial<React.ComponentProps<typeof CustomerForm>> = 
 function customer(overrides: Partial<Customer> = {}): Customer {
   return {
     id: '01',
-    number: '000001',
     kind: 0,
     name: 'Adamant Print GmbH',
     legal_name: null,

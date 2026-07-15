@@ -151,12 +151,33 @@ New workspace crate `pg-store` (add to `backend/Cargo.toml` members), depending 
   truth, not the snapshot in PLAN.md):
 
   ```sql
+  -- Shape matches the CRM profile in docs/customers-crm.md (normative for
+  -- this entity) — no `number`/`customer_prefix` column, per
+  -- docs/adr/0011-drop-customer-numbering.md.
   CREATE TABLE customer (
-    id          text PRIMARY KEY,
-    name        text NOT NULL,
-    contact_name text, email text, phone text,
-    address     jsonb, notes text,
-    created_at  timestamptz NOT NULL, updated_at timestamptz NOT NULL
+    id                  text PRIMARY KEY,
+    kind                smallint NOT NULL,      -- 0 legal entity | 1 ФОП | 2 private individual
+    name                text NOT NULL,
+    legal_name          text,
+    edrpou              text,                   -- ^\d{8}$, kind 0 only
+    tax_id              text,                   -- ^\d{10}$, kind 1|2 only
+    vat_ipn             text,                   -- ^\d{12}$, any kind
+    status              smallint NOT NULL,      -- 0 lead | 1 active | 2 inactive | 3 blocked
+    tags                jsonb NOT NULL DEFAULT '[]',
+    industry            text,
+    source              text,
+    website             text,
+    contacts            jsonb NOT NULL DEFAULT '[]',  -- [{name, role, email, phone, is_primary}]
+    legal_address       jsonb,
+    delivery_address    jsonb,
+    payment_terms_days  int NOT NULL DEFAULT 0,
+    credit_limit        jsonb,                  -- {amount_minor, currency} | null
+    default_currency    text,                   -- null = use tenant default (read-repair)
+    default_discount_bp int NOT NULL DEFAULT 0,
+    iban                text,                   -- ^UA\d{27}$
+    bank_name           text,
+    notes               text,
+    created_at          timestamptz NOT NULL, updated_at timestamptz NOT NULL
   );
   -- order is a reserved word: always write "order" quoted, or name the table orders
   -- and keep the mapping inside pg-store (pick one, use it consistently).
@@ -192,10 +213,18 @@ is a no-op returning the existing registry row.
   ALTER TEXT SEARCH CONFIGURATION tenant_search
     ALTER MAPPING FOR word, hword, hword_part WITH unaccent, simple;
 
+  -- Flattens contacts[*].name/email out of the jsonb array; generated columns
+  -- can't use a subquery directly, so the aggregation lives in an IMMUTABLE
+  -- helper function instead.
+  CREATE FUNCTION customer_contacts_text(contacts jsonb) RETURNS text AS $$
+    SELECT coalesce(string_agg(coalesce(c->>'name','') || ' ' || coalesce(c->>'email',''), ' '), '')
+    FROM jsonb_array_elements(contacts) AS c
+  $$ LANGUAGE sql IMMUTABLE;
+
   ALTER TABLE customer ADD COLUMN search tsvector GENERATED ALWAYS AS (
     to_tsvector('tenant_search',
-      coalesce(name,'') || ' ' || coalesce(contact_name,'') || ' ' ||
-      coalesce(email,'') || ' ' || coalesce(address->>'city',''))
+      coalesce(name,'') || ' ' || coalesce(legal_name,'') || ' ' ||
+      coalesce(edrpou,'') || ' ' || customer_contacts_text(contacts))
   ) STORED;
   CREATE INDEX customer_search_idx ON customer USING gin (search);
   CREATE INDEX customer_name_trgm ON customer USING gin (name gin_trgm_ops);

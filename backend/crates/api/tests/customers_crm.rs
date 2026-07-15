@@ -197,7 +197,6 @@ async fn full_crud_round_trip_preserves_every_field() {
     assert_eq!(created["tags"], json!(["опт"]));
     assert_eq!(created["industry"], "Поліграфія");
     assert_eq!(created["status"], 1, "creation defaults to active");
-    assert!(created["number"].as_str().is_some_and(|n| !n.is_empty()));
 
     let contacts = created["contacts"]
         .as_array()
@@ -231,10 +230,6 @@ async fn full_crud_round_trip_preserves_every_field() {
     assert_eq!(status, StatusCode::OK);
     assert_eq!(updated["name"], "Друкарня «Аркуш» AG");
     assert_eq!(updated["status"], 1, "PUT must not change status");
-    assert_eq!(
-        updated["number"], created["number"],
-        "PUT must not change number"
-    );
 }
 
 #[tokio::test]

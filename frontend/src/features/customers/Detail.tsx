@@ -103,7 +103,7 @@ export function CustomerDetail() {
   if (editing) {
     return (
       <Stack>
-        <Title order={2}>{customer.number}</Title>
+        <Title order={2}>{customer.name}</Title>
         <CustomerForm
           initialValues={fromCustomer(customer, i18n.language)}
           onSubmit={(data) => updateMutation.mutateAsync(data)}
@@ -121,10 +121,7 @@ export function CustomerDetail() {
   return (
     <Stack>
       <Group justify="space-between">
-        <Group>
-          <Title order={2}>{customer.name}</Title>
-          <Text c="dimmed">{customer.number}</Text>
-        </Group>
+        <Title order={2}>{customer.name}</Title>
         <Badge color={meta?.color}>{statusDict.labelFor(customer.status)}</Badge>
       </Group>
       {actionError && <Alert color="red">{actionError}</Alert>}

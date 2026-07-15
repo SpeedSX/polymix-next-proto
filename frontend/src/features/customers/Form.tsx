@@ -40,7 +40,7 @@ export function CustomerForm({ initialValues, onSubmit, onSuccess, onCancel }: C
     validate: zodResolver(customerFormSchema),
   })
 
-  const kind = form.values.kind as CustomerKindId
+  const kind = form.values.kind
   const currency = form.values.defaultCurrency.toUpperCase()
   const currencyOptions = CURRENCY_OPTIONS.includes(currency as (typeof CURRENCY_OPTIONS)[number])
     ? CURRENCY_OPTIONS

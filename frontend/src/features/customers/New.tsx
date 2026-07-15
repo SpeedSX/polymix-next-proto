@@ -1,4 +1,4 @@
-import { Loader, Stack, Title } from '@mantine/core'
+import { Alert, Loader, Stack, Title } from '@mantine/core'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from '@tanstack/react-router'
 import { useTranslation } from 'react-i18next'
@@ -18,10 +18,14 @@ export function CustomerNew() {
   const api = useApi()
   const queryClient = useQueryClient()
 
-  const { data: me, isLoading } = useQuery({
+  const { data: me, isLoading, isError } = useQuery({
     queryKey: ['me'],
     queryFn: () => api<MeResponse>('/api/me'),
   })
+
+  if (isError) {
+    return <Alert color="red">{t('form.unexpectedError')}</Alert>
+  }
 
   if (isLoading || !me) {
     return <Loader />

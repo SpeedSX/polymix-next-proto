@@ -8,10 +8,12 @@
 -- docs/adr/0001-surrealdb-fulltext-keyword.md), so this migration defines
 -- one per-field index instead of the doc's single multi-field
 -- `customer_search` index — the same pattern migrations/0004_search.surql
--- already established for this table's older fields. `number` backfill for
--- legacy rows is likewise handled by Rust (`customer_repo::backfill_numbers`,
--- run once at startup alongside migrations) rather than inline SurrealQL,
--- since there's no zero-pad string builtin to lean on here.
+-- already established for this table's older fields.
+--
+-- Per-customer numbering (originally specced alongside this migration) was
+-- dropped before ever shipping meaningfully — see
+-- docs/adr/0011-drop-customer-numbering.md — so no `number` field or index
+-- is defined here.
 
 -- 1. Scalar backfill. Guarded on `kind`, the first field this migration
 --    introduces: legacy rows have it as NONE, already-migrated rows keep
@@ -63,8 +65,6 @@ REMOVE INDEX IF EXISTS customer_search_email ON customer;
 
 DEFINE INDEX IF NOT EXISTS customer_search_legal_name ON customer
   FIELDS legal_name FULLTEXT ANALYZER autocomplete BM25 HIGHLIGHTS;
-DEFINE INDEX IF NOT EXISTS customer_search_number ON customer
-  FIELDS number FULLTEXT ANALYZER autocomplete BM25 HIGHLIGHTS;
 DEFINE INDEX IF NOT EXISTS customer_search_edrpou ON customer
   FIELDS edrpou FULLTEXT ANALYZER autocomplete BM25 HIGHLIGHTS;
 -- Array-field FULLTEXT indexes don't get the scalar-field limit pushdown

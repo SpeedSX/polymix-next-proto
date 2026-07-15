@@ -41,11 +41,6 @@ pub async fn build_state(config: AppConfig) -> anyhow::Result<AppState> {
     for tenant in tenants {
         let session = store.for_tenant(&tenant.db_name).await?;
         migrations::apply_migrations(&session, &tenant.db_name).await?;
-        // Migration 0009 can't zero-pad a backfilled customer number in
-        // pure SurrealQL (no `string::format`-style builtin) — this reuses
-        // `next_number`'s Rust formatting instead. Idempotent, so safe to
-        // run unconditionally alongside migrations on every startup.
-        surreal_store::customer_repo::backfill_numbers(&session).await?;
     }
     let provisioner = Arc::new(TenantProvisioner::new(store.clone()));
     let jwks = Arc::new(JwksCache::new(config.auth_jwks_url.clone()));

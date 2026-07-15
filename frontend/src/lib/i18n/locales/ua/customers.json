@@ -22,7 +22,6 @@
   "kind.legalEntity": "Юридична особа",
   "kind.fop": "ФОП",
   "kind.individual": "Фізична особа",
-  "fields.number": "Номер",
   "fields.name": "Назва",
   "fields.legalName": "Повна юридична назва",
   "fields.edrpou": "ЄДРПОУ",

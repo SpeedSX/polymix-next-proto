@@ -22,7 +22,6 @@
   "kind.legalEntity": "Legal entity",
   "kind.fop": "Sole proprietor (ФОП)",
   "kind.individual": "Private individual",
-  "fields.number": "Number",
   "fields.name": "Name",
   "fields.legalName": "Legal name",
   "fields.edrpou": "EDRPOU",

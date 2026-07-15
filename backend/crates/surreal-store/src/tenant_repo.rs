@@ -19,12 +19,11 @@ struct TenantRow {
     name: String,
     default_language: String,
     default_currency: String,
-    // `Option` rather than `String`: tenants provisioned before M4 (M5.1 for
-    // customer_prefix) have no value stored for these fields at all
-    // (SCHEMALESS table, no backfill migration) — missing, not empty-string.
+    // `Option` rather than `String`: tenants provisioned before M4 have no
+    // value stored for these fields at all (SCHEMALESS table, no backfill
+    // migration) — missing, not empty-string.
     order_prefix: Option<String>,
     invoice_prefix: Option<String>,
-    customer_prefix: Option<String>,
     created_at: String,
     updated_at: String,
 }
@@ -39,7 +38,6 @@ struct TenantContent {
     default_currency: String,
     order_prefix: String,
     invoice_prefix: String,
-    customer_prefix: String,
     created_at: String,
     updated_at: String,
 }
@@ -62,7 +60,6 @@ impl From<TenantRow> for Tenant {
             default_currency: row.default_currency,
             order_prefix: row.order_prefix.unwrap_or_default(),
             invoice_prefix: row.invoice_prefix.unwrap_or_default(),
-            customer_prefix: row.customer_prefix.unwrap_or_default(),
             created_at: row.created_at,
             updated_at: row.updated_at,
         }
@@ -129,7 +126,6 @@ impl TenantRepo for SurrealTenantRepo {
             default_currency: data.default_currency,
             order_prefix: String::new(),
             invoice_prefix: String::new(),
-            customer_prefix: String::new(),
             created_at: now.clone(),
             updated_at: now,
         };

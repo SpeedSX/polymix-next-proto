@@ -60,7 +60,6 @@ export function CustomerList() {
 
   const columns = useMemo(
     () => [
-      columnHelper.accessor('number', { header: t('fields.number') }),
       columnHelper.accessor('name', { header: t('fields.name') }),
       columnHelper.accessor((row) => row.edrpou ?? row.tax_id ?? '', {
         id: 'edrpou',

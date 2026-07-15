@@ -13,7 +13,6 @@ use surrealdb::engine::any::Any;
 use surrealdb::types::{RecordId, RecordIdKey, SurrealValue};
 use ulid::Ulid;
 
-use crate::counter::next_number;
 use crate::order_repo::MoneyRow;
 use crate::status::{customer_kind_from_db, customer_status_from_db};
 
@@ -23,7 +22,7 @@ const ORDER_TABLE: &str = "order";
 // Whitelisted, not bound as a query parameter: SurrealQL identifiers (unlike
 // values) can't be passed as bind parameters, so the sort field is validated
 // against this list before being interpolated into the ORDER BY clause.
-const ALLOWED_SORT_FIELDS: &[&str] = &["name", "number", "status", "created_at", "updated_at"];
+const ALLOWED_SORT_FIELDS: &[&str] = &["name", "status", "created_at", "updated_at"];
 
 #[derive(Debug, Clone, SurrealValue)]
 #[surreal(crate = "surrealdb::types")]
@@ -94,7 +93,6 @@ impl From<ContactRow> for Contact {
 #[surreal(crate = "surrealdb::types")]
 pub(crate) struct CustomerRow {
     id: RecordId,
-    number: String,
     kind: i64,
     name: String,
     legal_name: Option<String>,
@@ -130,7 +128,6 @@ pub(crate) struct CustomerRow {
 #[derive(Debug, SurrealValue)]
 #[surreal(crate = "surrealdb::types")]
 struct CustomerContent {
-    number: String,
     kind: i64,
     name: String,
     legal_name: Option<String>,
@@ -161,12 +158,6 @@ struct CustomerContent {
 struct StatusPatch {
     status: i64,
     updated_at: String,
-}
-
-#[derive(Debug, SurrealValue)]
-#[surreal(crate = "surrealdb::types")]
-struct NumberPatch {
-    number: String,
 }
 
 #[derive(Debug, SurrealValue)]
@@ -204,7 +195,6 @@ fn customer_from_row_with_currency(
 ) -> Result<Customer, DomainError> {
     Ok(Customer {
         id: record_key(&row.id),
-        number: row.number,
         kind: customer_kind_from_db(row.kind)?,
         name: row.name,
         legal_name: row.legal_name,
@@ -249,13 +239,11 @@ pub(crate) fn customer_from_row_untenanted(row: CustomerRow) -> Result<Customer,
 
 fn content_from(
     data: NewCustomer,
-    number: String,
     status: CustomerStatus,
     created_at: String,
     updated_at: String,
 ) -> CustomerContent {
     CustomerContent {
-        number,
         kind: data.kind.code() as i64,
         name: data.name,
         legal_name: data.legal_name,
@@ -349,7 +337,6 @@ fn extra_and(query: &ListQuery) -> String {
 const SEARCH_FIELDS: &[&str] = &[
     "name",
     "legal_name",
-    "number",
     "edrpou",
     "contacts[*].name",
     "contacts[*].email",
@@ -605,9 +592,8 @@ impl CustomerRepo for SurrealCustomerRepo {
             Some(0) => CustomerStatus::Lead,
             _ => CustomerStatus::Active,
         };
-        let number = next_number(&self.session, "customer", &tenant.customer_prefix).await?;
         let now = chrono::Utc::now().to_rfc3339();
-        let content = content_from(data, number, status, now.clone(), now);
+        let content = content_from(data, status, now.clone(), now);
         let id = Ulid::new().to_string();
 
         let row: Option<CustomerRow> = self
@@ -630,12 +616,11 @@ impl CustomerRepo for SurrealCustomerRepo {
     ) -> Result<Customer, DomainError> {
         let existing = self.get_row(id).await?.ok_or(DomainError::NotFound)?;
         // Status changes only through `set_status` — a PUT body's `status`
-        // (if any) is ignored entirely, matching how `number` is preserved.
+        // (if any) is ignored entirely.
         data.status = None;
         let now = chrono::Utc::now().to_rfc3339();
         let content = content_from(
             data,
-            existing.number.clone(),
             customer_status_from_db(existing.status)?,
             existing.created_at.clone(),
             now,
@@ -682,33 +667,4 @@ impl CustomerRepo for SurrealCustomerRepo {
         let row = row.ok_or(DomainError::NotFound)?;
         customer_from_row(row, tenant)
     }
-}
-
-/// One-time backfill for tenant databases migrated from before per-customer
-/// numbering existed (`docs/customers-crm.md` migration step 4). Runs as
-/// Rust rather than inline SurrealQL because there's no `string::format`-
-/// style zero-pad builtin to lean on — this reuses `next_number`'s Rust
-/// formatting instead of duplicating it in SQL. Idempotent: a no-op once
-/// every row has a `number`. Called once per tenant at API startup,
-/// alongside `migrations::apply_migrations` (see `api::build_state`).
-pub async fn backfill_numbers(session: &Surreal<Any>) -> Result<(), DomainError> {
-    let mut response = session
-        // `created_at` must be in the projection: SurrealDB 3.2 rejects an
-        // ORDER BY idiom that isn't also selected.
-        .query(
-            "SELECT id, created_at FROM type::table($table) WHERE number IS NONE ORDER BY created_at ASC",
-        )
-        .bind(("table", TABLE))
-        .await
-        .map_err(map_err)?;
-    let rows: Vec<IdOnly> = response.take(0).map_err(map_err)?;
-    for row in rows {
-        let number = next_number(session, "customer", "").await?;
-        let _: Option<IdOnly> = session
-            .update((TABLE, record_key(&row.id)))
-            .merge(NumberPatch { number })
-            .await
-            .map_err(map_err)?;
-    }
-    Ok(())
 }

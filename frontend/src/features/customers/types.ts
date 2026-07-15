@@ -1,6 +1,6 @@
 import { z } from 'zod'
 
-import { fromMinorUnits, toMinorUnits } from '../../lib/money'
+import { fromMinorUnits, MONEY_DECIMAL_PATTERN, toMinorUnits } from '../../lib/money'
 
 export const CUSTOMER_KIND = {
   LegalEntity: 0,
@@ -55,7 +55,6 @@ export interface Money {
 
 export interface Customer {
   id: string
-  number: string
   kind: CustomerKindId
   name: string
   legal_name: string | null
@@ -150,30 +149,45 @@ export const emptyContactFormValues: ContactFormValues = {
   isPrimary: false,
 }
 
-export const customerFormSchema = z.object({
-  kind: z.number(),
-  name: z.string().min(1),
-  legalName: z.string(),
-  edrpou: z.string(),
-  taxId: z.string(),
-  vatIpn: z.string(),
-  industry: z.string(),
-  source: z.string(),
-  website: z.string(),
-  tags: z.array(z.string()),
-  contacts: z.array(contactFormSchema),
-  legalAddress: addressFormSchema,
-  deliveryAddress: addressFormSchema,
-  paymentTermsDays: z.coerce.number().int().min(0).max(365),
-  hasCreditLimit: z.boolean(),
-  creditLimitAmount: z.string(),
-  creditLimitCurrency: z.string(),
-  defaultCurrency: z.string().length(3),
-  defaultDiscountPercent: z.string(),
-  iban: z.string(),
-  bankName: z.string(),
-  notes: z.string(),
-})
+export const customerFormSchema = z
+  .object({
+    kind: z.union([
+      z.literal(CUSTOMER_KIND.LegalEntity),
+      z.literal(CUSTOMER_KIND.Fop),
+      z.literal(CUSTOMER_KIND.Individual),
+    ]),
+    name: z.string().min(1),
+    legalName: z.string(),
+    edrpou: z.string(),
+    taxId: z.string(),
+    vatIpn: z.string(),
+    industry: z.string(),
+    source: z.string(),
+    website: z.string(),
+    tags: z.array(z.string()),
+    contacts: z.array(contactFormSchema),
+    legalAddress: addressFormSchema,
+    deliveryAddress: addressFormSchema,
+    paymentTermsDays: z.coerce.number().int().min(0).max(365),
+    hasCreditLimit: z.boolean(),
+    creditLimitAmount: z.string(),
+    creditLimitCurrency: z.string().length(3),
+    defaultCurrency: z.string().length(3),
+    // Form stores percent; backend stores basis points (0–10000).
+    defaultDiscountPercent: z.coerce.number().min(0).max(100),
+    iban: z.string(),
+    bankName: z.string(),
+    notes: z.string(),
+  })
+  .superRefine((values, ctx) => {
+    if (values.hasCreditLimit && !MONEY_DECIMAL_PATTERN.test(values.creditLimitAmount)) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.invalid_string,
+        validation: 'regex',
+        path: ['creditLimitAmount'],
+      })
+    }
+  })
 
 export type CustomerFormValues = z.infer<typeof customerFormSchema>
 
@@ -197,7 +211,7 @@ export function emptyCustomerFormValues(defaultCurrency: string): CustomerFormVa
     creditLimitAmount: '',
     creditLimitCurrency: defaultCurrency,
     defaultCurrency,
-    defaultDiscountPercent: '0',
+    defaultDiscountPercent: 0,
     iban: '',
     bankName: '',
     notes: '',
@@ -232,7 +246,7 @@ function addressFormValues(address: Address | null): AddressFormValues {
 export function toNewCustomer(values: CustomerFormValues, locale = 'en'): NewCustomer {
   const currency = values.defaultCurrency.toUpperCase()
   return {
-    kind: values.kind as CustomerKindId,
+    kind: values.kind,
     name: values.name,
     legal_name: nullIfEmpty(values.legalName),
     edrpou: nullIfEmpty(values.edrpou),
@@ -259,7 +273,7 @@ export function toNewCustomer(values: CustomerFormValues, locale = 'en'): NewCus
         }
       : null,
     default_currency: currency,
-    default_discount_bp: Math.round(Number.parseFloat(values.defaultDiscountPercent || '0') * 100),
+    default_discount_bp: Math.round(values.defaultDiscountPercent * 100),
     iban: nullIfEmpty(values.iban),
     bank_name: nullIfEmpty(values.bankName),
     notes: nullIfEmpty(values.notes),
@@ -294,7 +308,7 @@ export function fromCustomer(customer: Customer, locale = 'en'): CustomerFormVal
       : '',
     creditLimitCurrency: customer.credit_limit?.currency ?? customer.default_currency,
     defaultCurrency: customer.default_currency,
-    defaultDiscountPercent: (customer.default_discount_bp / 100).toString(),
+    defaultDiscountPercent: customer.default_discount_bp / 100,
     iban: customer.iban ?? '',
     bankName: customer.bank_name ?? '',
     notes: customer.notes ?? '',

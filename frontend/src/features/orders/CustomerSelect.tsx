@@ -63,7 +63,7 @@ export function CustomerSelect({
   // still 409s and the caller surfaces that as a toast (see docs/customers-crm.md).
   const options = new Map<string, string>()
   for (const customer of searchResults?.items ?? []) {
-    if (statusDict.byId.get(customer.status)?.can_order ?? true) {
+    if (statusDict.byId.get(customer.status)?.can_order === true) {
       options.set(customer.id, customer.name)
     }
   }

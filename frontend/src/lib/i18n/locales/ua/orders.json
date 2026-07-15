@@ -37,5 +37,5 @@
   "errors.order_not_confirmed_for_invoice": "Замовлення потрібно підтвердити, перш ніж виставляти рахунок.",
   "errors.order_already_invoiced": "На це замовлення вже виставлено рахунок.",
   "errors.order_status_transition": "Неможливо змінити статус замовлення з «{from}» на «{to}».",
-  "errors.customer_not_active_for_order": "Цей клієнт неактивний, і для нього не можна оформити замовлення."
+  "errors.customer_not_active_for_order": "Цей клієнт не має активного статусу, і для нього не можна оформити замовлення."
 }
