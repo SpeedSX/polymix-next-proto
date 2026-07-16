@@ -26,6 +26,7 @@
   "fields.unitPrice": "Unit price",
   "fields.total": "Total",
   "fields.notes": "Notes",
+  "fields.createdAt": "Created",
   "actions.transitionTo": "Mark as {status}",
   "actions.generateInvoice": "Generate invoice",
   "status.draft": "Draft",

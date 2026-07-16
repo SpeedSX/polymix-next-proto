@@ -2,11 +2,11 @@
 //! producing >= 50k customers / >= 200k orders per demo tenant, batched
 //! inserts of 1000"). Run with `just seed` or `cargo run -p seeder`.
 //!
-//! `SEED_LOCALE=ua` (see `just seed-ua`) provisions the M4 Ukrainian demo
-//! tenant instead (default currency UAH, default language `ua`, names drawn
-//! from the `ua` module) — everything else about the run is unchanged.
+//! `SEED_LOCALE=uk` (see `just seed-uk`) provisions the M4 Ukrainian demo
+//! tenant instead (default currency UAH, default language `uk`, names drawn
+//! from the `uk` module) — everything else about the run is unchanged.
 
-mod ua;
+mod uk;
 
 use std::collections::HashSet;
 use std::env;
@@ -33,7 +33,7 @@ use ulid::Ulid;
 const BATCH_SIZE: usize = 1000;
 const CUSTOMER_TABLE: &str = "customer";
 const ORDER_TABLE: &str = "order";
-const UA_LOCALE: &str = "ua";
+const UK_LOCALE: &str = "uk";
 
 // ~60% legal entity, ~35% ФОП, ~5% private individual (docs/customers-crm.md
 // Step 6) — used for both demo tenants so the perf tenant's FTS index sees
@@ -238,11 +238,11 @@ async fn main() -> anyhow::Result<()> {
     tracing_subscriber::fmt::init();
 
     let locale = env_or("SEED_LOCALE", "en");
-    let ukrainian = locale == UA_LOCALE;
+    let ukrainian = locale == UK_LOCALE;
 
     let customer_count = env_count("SEED_CUSTOMERS", if ukrainian { 100 } else { 50_000 });
     let order_count = env_count("SEED_ORDERS", if ukrainian { 1_000 } else { 200_000 });
-    let default_org_id = if ukrainian { "demo-ua" } else { "demo" };
+    let default_org_id = if ukrainian { "demo-uk" } else { "demo" };
     let default_org_name = if ukrainian {
         "Демо Друкарня"
     } else {
@@ -262,7 +262,7 @@ async fn main() -> anyhow::Result<()> {
     let provisioner = TenantProvisioner::new(store.clone());
     let tenant = if ukrainian {
         provisioner
-            .provision_with_locale(&org_id, &org_name, "ua", "UAH")
+            .provision_with_locale(&org_id, &org_name, "uk", "UAH")
             .await?
     } else {
         provisioner.ensure_tenant(&org_id, &org_name).await?
@@ -302,10 +302,10 @@ fn seed_contacts(rng: &mut impl Rng, ukrainian: bool, seq: usize) -> Vec<Contact
         .map(|i| {
             let (name, role, email, phone) = if ukrainian {
                 (
-                    ua::contact_name(rng),
-                    ua::CONTACT_ROLES.choose(rng).unwrap().to_string(),
-                    ua::email(rng, seq * 10 + i),
-                    ua::phone(rng),
+                    uk::contact_name(rng),
+                    uk::CONTACT_ROLES.choose(rng).unwrap().to_string(),
+                    uk::email(rng, seq * 10 + i),
+                    uk::phone(rng),
                 )
             } else {
                 (
@@ -327,7 +327,7 @@ fn seed_contacts(rng: &mut impl Rng, ukrainian: bool, seq: usize) -> Vec<Contact
 }
 
 fn seed_tags(rng: &mut impl Rng, ukrainian: bool) -> Vec<String> {
-    let pool = if ukrainian { ua::TAGS } else { EN_TAGS };
+    let pool = if ukrainian { uk::TAGS } else { EN_TAGS };
     let count = rng.gen_range(0..=3);
     let mut chosen: Vec<String> = pool
         .choose_multiple(rng, count)
@@ -375,11 +375,11 @@ async fn seed_customers(
 
             let (name, legal_address) = if ukrainian {
                 (
-                    ua::company_name(&mut rng),
+                    uk::company_name(&mut rng),
                     AddressRow {
-                        street: Some(ua::street(&mut rng)),
-                        zip: Some(ua::zip(&mut rng)),
-                        city: Some(ua::city(&mut rng)),
+                        street: Some(uk::street(&mut rng)),
+                        zip: Some(uk::zip(&mut rng)),
+                        city: Some(uk::city(&mut rng)),
                         country: Some("UA".to_string()),
                     },
                 )
@@ -449,7 +449,7 @@ async fn seed_orders(
     let mut rng = rand::thread_rng();
     let mut remaining = count;
     let mut seeded = 0usize;
-    let products = if ukrainian { ua::PRODUCTS } else { PRODUCTS };
+    let products = if ukrainian { uk::PRODUCTS } else { PRODUCTS };
 
     // Same eligibility as `OrderRepo::create`: only lead/active may receive
     // orders. Inactive/blocked stay in the customer mix for list demos but

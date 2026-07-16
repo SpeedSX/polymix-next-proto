@@ -187,7 +187,9 @@ fn recent_month_keys(now: DateTime<Utc>) -> Vec<String> {
 /// Aggregates a customer's orders into the detail-page activity summary.
 /// Pure over `(rows, now)` so it can be exercised without a database.
 /// `created_at` values that don't parse as RFC3339 still count toward totals
-/// and status breakdown but are excluded from the date-windowed figures.
+/// and status breakdown but are excluded from `last_order_at` and the
+/// date-windowed figures. Timestamps after `now` are also excluded from the
+/// 30-day window and monthly sparkline.
 fn aggregate_activity(rows: Vec<ActivityRow>, now: DateTime<Utc>) -> CustomerActivity {
     let window_start = now - chrono::Duration::days(ACTIVITY_WINDOW_DAYS);
 
@@ -197,6 +199,7 @@ fn aggregate_activity(rows: Vec<ActivityRow>, now: DateTime<Utc>) -> CustomerAct
     let mut spend_currency: Option<String> = None;
     let mut any_currency: Option<String> = None;
     let mut last_order_at: Option<String> = None;
+    let mut last_order_dt: Option<DateTime<Utc>> = None;
     let mut orders_last_30_days: u64 = 0;
 
     for row in &rows {
@@ -208,17 +211,20 @@ fn aggregate_activity(rows: Vec<ActivityRow>, now: DateTime<Utc>) -> CustomerAct
             spend_minor += row.amount;
             spend_currency.get_or_insert_with(|| row.currency.clone());
         }
-        if last_order_at.as_deref().is_none_or(|max| row.created_at.as_str() > max) {
-            last_order_at = Some(row.created_at.clone());
-        }
         if let Ok(parsed) = DateTime::parse_from_rfc3339(&row.created_at) {
             let parsed = parsed.with_timezone(&Utc);
-            if parsed >= window_start {
-                orders_last_30_days += 1;
+            if last_order_dt.is_none_or(|max| parsed > max) {
+                last_order_dt = Some(parsed);
+                last_order_at = Some(row.created_at.clone());
             }
-            *month_counts
-                .entry(month_key(parsed.year(), parsed.month()))
-                .or_insert(0) += 1;
+            if parsed <= now {
+                if parsed >= window_start {
+                    orders_last_30_days += 1;
+                }
+                *month_counts
+                    .entry(month_key(parsed.year(), parsed.month()))
+                    .or_insert(0) += 1;
+            }
         }
     }
 
@@ -760,5 +766,58 @@ mod activity_tests {
         assert_eq!(keys.len(), MONTHS_IN_SPARKLINE);
         assert_eq!(keys.first().unwrap(), "2025-08");
         assert_eq!(keys.last().unwrap(), "2026-07");
+    }
+
+    #[test]
+    fn last_order_uses_parsed_instant_not_string_order() {
+        // Lexicographically "…T10:00:00+02:00" > "…T09:00:00+00:00", but the
+        // UTC offset means the second timestamp is actually later (09:00Z vs 08:00Z).
+        let rows = vec![
+            row(OrderStatus::Completed, 100, "2026-07-15T10:00:00+02:00"),
+            row(OrderStatus::Completed, 100, "2026-07-15T09:00:00+00:00"),
+        ];
+        let activity = aggregate_activity(rows, now());
+        assert_eq!(
+            activity.last_order_at.as_deref(),
+            Some("2026-07-15T09:00:00+00:00")
+        );
+    }
+
+    #[test]
+    fn future_timestamps_are_excluded_from_window_and_months() {
+        let rows = vec![
+            row(OrderStatus::Completed, 100, "2026-07-10T09:00:00+00:00"),
+            row(OrderStatus::Draft, 0, "2026-07-20T09:00:00+00:00"),
+            row(OrderStatus::Cancelled, 0, "not-a-timestamp"),
+        ];
+        let activity = aggregate_activity(rows, now());
+
+        assert_eq!(activity.total_orders, 3);
+        assert_eq!(activity.orders_last_30_days, 1);
+        assert_eq!(
+            activity
+                .orders_by_month
+                .iter()
+                .find(|m| m.month == "2026-07")
+                .map(|m| m.count),
+            Some(1)
+        );
+        // Latest parseable instant wins; unparseable rows do not.
+        assert_eq!(
+            activity.last_order_at.as_deref(),
+            Some("2026-07-20T09:00:00+00:00")
+        );
+    }
+
+    #[test]
+    fn offset_aware_window_boundary() {
+        // now = 2026-07-16T12:00:00Z ⇒ window_start = 2026-06-16T12:00:00Z.
+        // Same wall-clock hour, different offsets straddle the boundary.
+        let rows = vec![
+            row(OrderStatus::Completed, 100, "2026-06-16T14:00:00+02:00"), // 12:00Z — in
+            row(OrderStatus::Completed, 100, "2026-06-16T13:00:00+02:00"), // 11:00Z — out
+        ];
+        let activity = aggregate_activity(rows, now());
+        assert_eq!(activity.orders_last_30_days, 1);
     }
 }

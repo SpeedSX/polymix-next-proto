@@ -12,7 +12,7 @@
   "auth.selectOrganization": "Select an organization to continue",
   "lang.label": "Language",
   "lang.en": "English",
-  "lang.ua": "Ukrainian",
+  "lang.uk": "Ukrainian",
   "validation.required": "This field is required.",
   "validation.invalid_email": "Must be a valid email address.",
   "validation.invalid_country_code": "Must be an ISO 3166-1 alpha-2 country code.",

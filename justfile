@@ -41,10 +41,10 @@ test-int:
 seed:
     cd backend && SURREALDB_URL=ws://localhost:8001 cargo run -p seeder
 
-# Seeder against the Ukrainian demo tenant,
-# default language `ua`, default currency UAH).
-seed-ua:
-    cd backend && SURREALDB_URL=ws://localhost:8001 SEED_LOCALE=ua cargo run -p seeder
+# Seeder against the Ukrainian demo tenant
+# (default language `uk`, default currency UAH).
+seed-uk:
+    cd backend && SURREALDB_URL=ws://localhost:8001 SEED_LOCALE=uk cargo run -p seeder
 
 # Build all docker images.
 build:

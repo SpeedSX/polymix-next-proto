@@ -9,7 +9,9 @@ import { useTranslation } from 'react-i18next'
 
 import { ListPagination } from '../../components/ListPagination'
 import { useApi } from '../../lib/api'
+import { formatDateTime } from '../../lib/dates'
 import { formatMoney } from '../../lib/money'
+import { columnAlign } from '../../lib/table'
 import { fetchOrders, ordersKeys } from './api'
 import { CustomerSelect } from './CustomerSelect'
 import type { Order, OrderStatusId } from './types'
@@ -79,6 +81,11 @@ export function OrderList() {
         id: 'total',
         header: t('fields.total'),
         enableSorting: false,
+        meta: { align: 'right' },
+      }),
+      columnHelper.accessor('created_at', {
+        header: t('fields.createdAt'),
+        cell: (info) => formatDateTime(info.getValue(), i18n.language),
       }),
     ],
     [t, i18n.language],
@@ -154,6 +161,7 @@ export function OrderList() {
                   <Table.Th
                     key={header.id}
                     onClick={header.column.getToggleSortingHandler()}
+                    ta={columnAlign(header.column)}
                     style={{ cursor: header.column.getCanSort() ? 'pointer' : undefined }}
                   >
                     {flexRender(header.column.columnDef.header, header.getContext())}
@@ -173,7 +181,9 @@ export function OrderList() {
               style={{ cursor: 'pointer' }}
             >
               {row.getVisibleCells().map((cell) => (
-                <Table.Td key={cell.id}>{flexRender(cell.column.columnDef.cell, cell.getContext())}</Table.Td>
+                <Table.Td key={cell.id} ta={columnAlign(cell.column)}>
+                  {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                </Table.Td>
               ))}
             </Table.Tr>
           ))}

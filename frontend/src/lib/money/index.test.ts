@@ -21,10 +21,10 @@ describe('money', () => {
     expect(toMinorUnits('12.34', 'USD')).toBe(toMinorUnits('12,34', 'USD'))
   })
 
-  it('round-trips through the ua locale without losing cents', () => {
-    const minor = toMinorUnits('12,34', 'UAH', 'ua')
+  it('round-trips through the uk locale without losing cents', () => {
+    const minor = toMinorUnits('12,34', 'UAH', 'uk')
     expect(minor).toBe(1234)
-    expect(fromMinorUnits(minor, 'UAH', 'ua')).toBe('12.34')
+    expect(fromMinorUnits(minor, 'UAH', 'uk')).toBe('12.34')
   })
 
   it('converts a display-only amount using a base->quote rate snapshot', () => {

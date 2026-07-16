@@ -1,4 +1,4 @@
-// `locale` here is the i18next language tag ('en' | 'ua'), passed straight
+// `locale` here is the i18next language tag ('en' | 'uk'), passed straight
 // into Intl — same convention lib/money already uses.
 
 export function formatDateTime(value: string, locale = 'en'): string {

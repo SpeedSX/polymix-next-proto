@@ -23,7 +23,7 @@ export function formatMoney(money: Money, locale = 'en'): string {
 }
 
 // Matches a plain decimal amount with a single '.' or ',' decimal separator
-// (both are common across the app's locales — 'en' uses '.', 'ua'/'de' use
+// (both are common across the app's locales — 'en' uses '.', 'uk'/'de' use
 // ',') and no thousands separator. Use to validate money text inputs before
 // they reach toMinorUnits.
 export const MONEY_DECIMAL_PATTERN = /^\d+([.,]\d+)?$/

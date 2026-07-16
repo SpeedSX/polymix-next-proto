@@ -12,7 +12,7 @@
   "auth.selectOrganization": "Оберіть організацію, щоб продовжити",
   "lang.label": "Мова",
   "lang.en": "English",
-  "lang.ua": "Українська",
+  "lang.uk": "Українська",
   "validation.required": "Це поле обов'язкове.",
   "validation.invalid_email": "Введіть дійсну електронну адресу.",
   "validation.invalid_country_code": "Має бути кодом країни ISO 3166-1 alpha-2.",

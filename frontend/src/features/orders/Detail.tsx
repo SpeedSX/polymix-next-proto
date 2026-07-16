@@ -138,16 +138,16 @@ export function OrderDetail() {
         <Table.Thead>
           <Table.Tr>
             <Table.Th>{t('fields.description')}</Table.Th>
-            <Table.Th>{t('fields.quantity')}</Table.Th>
-            <Table.Th>{t('fields.unitPrice')}</Table.Th>
+            <Table.Th ta="right">{t('fields.quantity')}</Table.Th>
+            <Table.Th ta="right">{t('fields.unitPrice')}</Table.Th>
           </Table.Tr>
         </Table.Thead>
         <Table.Tbody>
           {order.line_items.map((item, index) => (
             <Table.Tr key={index}>
               <Table.Td>{item.description}</Table.Td>
-              <Table.Td>{item.quantity}</Table.Td>
-              <Table.Td>{formatMoney(item.unit_price, i18n.language)}</Table.Td>
+              <Table.Td ta="right">{item.quantity}</Table.Td>
+              <Table.Td ta="right">{formatMoney(item.unit_price, i18n.language)}</Table.Td>
             </Table.Tr>
           ))}
         </Table.Tbody>

@@ -45,14 +45,14 @@ fn color(status: OrderStatus) -> &'static str {
 fn labels(status: OrderStatus) -> HashMap<&'static str, &'static str> {
     use OrderStatus::*;
     // NOTE: These labels intentionally mirror the current frontend i18n
-    // translations (en/ua) so the UI can switch languages without needing
+    // translations (en/uk) so the UI can switch languages without needing
     // to ship its own status label tables.
     match status {
-        Draft => HashMap::from([("en", "Draft"), ("ua", "Чернетка")]),
-        Confirmed => HashMap::from([("en", "Confirmed"), ("ua", "Підтверджено")]),
-        InProduction => HashMap::from([("en", "In production"), ("ua", "У виробництві")]),
-        Completed => HashMap::from([("en", "Completed"), ("ua", "Завершено")]),
-        Cancelled => HashMap::from([("en", "Cancelled"), ("ua", "Скасовано")]),
+        Draft => HashMap::from([("en", "Draft"), ("uk", "Чернетка")]),
+        Confirmed => HashMap::from([("en", "Confirmed"), ("uk", "Підтверджено")]),
+        InProduction => HashMap::from([("en", "In production"), ("uk", "У виробництві")]),
+        Completed => HashMap::from([("en", "Completed"), ("uk", "Завершено")]),
+        Cancelled => HashMap::from([("en", "Cancelled"), ("uk", "Скасовано")]),
     }
 }
 
@@ -122,13 +122,13 @@ fn customer_color(status: CustomerStatus) -> &'static str {
 
 fn customer_labels(status: CustomerStatus) -> HashMap<&'static str, &'static str> {
     use CustomerStatus::*;
-    // NOTE: mirrors the current frontend i18n translations (en/ua), same
+    // NOTE: mirrors the current frontend i18n translations (en/uk), same
     // rationale as `labels` above.
     match status {
-        Lead => HashMap::from([("en", "Lead"), ("ua", "Лід")]),
-        Active => HashMap::from([("en", "Active"), ("ua", "Активний")]),
-        Inactive => HashMap::from([("en", "Inactive"), ("ua", "Неактивний")]),
-        Blocked => HashMap::from([("en", "Blocked"), ("ua", "Заблокований")]),
+        Lead => HashMap::from([("en", "Lead"), ("uk", "Лід")]),
+        Active => HashMap::from([("en", "Active"), ("uk", "Активний")]),
+        Inactive => HashMap::from([("en", "Inactive"), ("uk", "Неактивний")]),
+        Blocked => HashMap::from([("en", "Blocked"), ("uk", "Заблокований")]),
     }
 }
 

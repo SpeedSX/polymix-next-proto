@@ -10,6 +10,7 @@ import { useTranslation } from 'react-i18next'
 import { ListPagination } from '../../components/ListPagination'
 import { useApi } from '../../lib/api'
 import { formatMoney } from '../../lib/money'
+import { columnAlign } from '../../lib/table'
 import { fetchInvoices, invoicesKeys } from './api'
 import { INVOICE_STATUSES } from './types'
 import type { Invoice, InvoiceStatus } from './types'
@@ -70,6 +71,7 @@ export function InvoiceList() {
         id: 'gross_total',
         header: t('fields.grossTotal'),
         enableSorting: false,
+        meta: { align: 'right' },
       }),
     ],
     [t, i18n.language],
@@ -140,6 +142,7 @@ export function InvoiceList() {
                   <Table.Th
                     key={header.id}
                     onClick={header.column.getToggleSortingHandler()}
+                    ta={columnAlign(header.column)}
                     style={{ cursor: header.column.getCanSort() ? 'pointer' : undefined }}
                   >
                     {flexRender(header.column.columnDef.header, header.getContext())}
@@ -159,7 +162,9 @@ export function InvoiceList() {
               style={{ cursor: 'pointer' }}
             >
               {row.getVisibleCells().map((cell) => (
-                <Table.Td key={cell.id}>{flexRender(cell.column.columnDef.cell, cell.getContext())}</Table.Td>
+                <Table.Td key={cell.id} ta={columnAlign(cell.column)}>
+                  {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                </Table.Td>
               ))}
             </Table.Tr>
           ))}

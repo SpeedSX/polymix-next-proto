@@ -26,6 +26,7 @@
   "fields.unitPrice": "Ціна за одиницю",
   "fields.total": "Разом",
   "fields.notes": "Примітки",
+  "fields.createdAt": "Створено",
   "actions.transitionTo": "Позначити як «{status}»",
   "actions.generateInvoice": "Сформувати рахунок",
   "status.draft": "Чернетка",

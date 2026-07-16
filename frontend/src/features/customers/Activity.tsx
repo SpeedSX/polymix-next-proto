@@ -146,7 +146,7 @@ export function CustomerActivityPanel({ customerId }: { customerId: string }) {
               <Table.Tr>
                 <Table.Th>{t('activity.orderNumber')}</Table.Th>
                 <Table.Th>{t('fields.status')}</Table.Th>
-                <Table.Th>{t('activity.orderTotal')}</Table.Th>
+                <Table.Th ta="right">{t('activity.orderTotal')}</Table.Th>
                 <Table.Th>{t('activity.orderDate')}</Table.Th>
               </Table.Tr>
             </Table.Thead>
@@ -163,7 +163,7 @@ export function CustomerActivityPanel({ customerId }: { customerId: string }) {
                       {statusDict.labelFor(order.status)}
                     </Badge>
                   </Table.Td>
-                  <Table.Td>{formatMoney(order.total, i18n.language)}</Table.Td>
+                  <Table.Td ta="right">{formatMoney(order.total, i18n.language)}</Table.Td>
                   <Table.Td>{formatDateTime(order.created_at, i18n.language)}</Table.Td>
                 </Table.Tr>
               ))}
