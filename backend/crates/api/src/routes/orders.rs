@@ -3,7 +3,9 @@ use axum::Json;
 use axum::extract::{Path, Query, State};
 use axum::http::StatusCode;
 use domain::error::DomainError;
-use domain::order::{NewOrder, Order, OrderListQuery, OrderStatus, validate_line_item_currencies};
+use domain::order::{
+    CustomerActivity, NewOrder, Order, OrderListQuery, OrderStatus, validate_line_item_currencies,
+};
 use domain::{AuthContext, OrderRepo, Paged, Tenant};
 use serde::Deserialize;
 use serde_json::{Value, json};
@@ -87,6 +89,18 @@ pub async fn list(
     let repo = repo_for(&state, &auth).await?;
     let paged = repo.list(params.into()).await?;
     Ok(Json(paged))
+}
+
+pub async fn customer_activity(
+    State(state): State<AppState>,
+    Extension(auth): Extension<AuthContext>,
+    Path(customer_id): Path<String>,
+) -> Result<Json<CustomerActivity>, ApiError> {
+    let repo = repo_for(&state, &auth).await?;
+    let activity = repo
+        .customer_activity(&customer_id, chrono::Utc::now())
+        .await?;
+    Ok(Json(activity))
 }
 
 pub async fn create(

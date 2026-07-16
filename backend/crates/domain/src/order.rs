@@ -191,6 +191,41 @@ impl NewOrder {
     }
 }
 
+/// Number of a customer's orders in one status. `status` serializes to its
+/// integer code, matching `Order.status`.
+#[derive(Debug, Clone, Serialize)]
+pub struct StatusCount {
+    pub status: OrderStatus,
+    pub count: u64,
+}
+
+/// Orders created in one calendar month, keyed `YYYY-MM` (UTC). Emitted as a
+/// dense, chronologically ordered series (zero-filled months included) so a
+/// sparkline can render it without gap handling.
+#[derive(Debug, Clone, Serialize)]
+pub struct MonthlyOrderCount {
+    pub month: String,
+    pub count: u64,
+}
+
+/// Aggregated order activity for a single customer, surfaced on the customer
+/// detail page. Spend and counts are derived from the customer's orders; no
+/// value is precomputed or stored.
+#[derive(Debug, Clone, Serialize)]
+pub struct CustomerActivity {
+    pub total_orders: u64,
+    /// Per-status breakdown; omits statuses the customer has no orders in.
+    pub status_counts: Vec<StatusCount>,
+    /// Sum of `total` across completed orders. `currency` is that of the
+    /// customer's orders; zero in the customer's currency when there are none.
+    pub total_spend: Money,
+    /// Most recent order's `created_at` (RFC3339), or `None` with no orders.
+    pub last_order_at: Option<String>,
+    pub orders_last_30_days: u64,
+    /// Last 12 calendar months up to and including the current one.
+    pub orders_by_month: Vec<MonthlyOrderCount>,
+}
+
 #[derive(Debug, Clone)]
 pub struct OrderListQuery {
     pub page: u32,
@@ -207,6 +242,14 @@ pub struct OrderListQuery {
 pub trait OrderRepo: Send + Sync {
     async fn list(&self, query: OrderListQuery) -> Result<crate::Paged<Order>, DomainError>;
     async fn get(&self, id: &str) -> Result<Option<Order>, DomainError>;
+    /// Aggregated order activity for the customer's detail page. `now` is the
+    /// reference instant for the 30-day window and month series, passed in so
+    /// the aggregation stays a pure function of its inputs.
+    async fn customer_activity(
+        &self,
+        customer_id: &str,
+        now: chrono::DateTime<chrono::Utc>,
+    ) -> Result<CustomerActivity, DomainError>;
     /// `tenant` supplies `order_prefix` for the assigned number.
     async fn create(&self, data: NewOrder, tenant: &Tenant) -> Result<Order, DomainError>;
     async fn update(&self, id: &str, data: NewOrder) -> Result<Order, DomainError>;

@@ -2,13 +2,14 @@ use std::collections::HashMap;
 use std::sync::Arc;
 
 use async_trait::async_trait;
+use chrono::{DateTime, Datelike, Utc};
 use domain::Paged;
 use domain::customer::{CustomerStatus, can_order};
 use domain::error::{ConflictReason, DomainError, FieldError};
 use domain::money::Money;
 use domain::order::{
-    LineItem, NewOrder, Order, OrderListQuery, OrderRepo, OrderStatus, line_items_total,
-    validate_transition,
+    CustomerActivity, LineItem, MonthlyOrderCount, NewOrder, Order, OrderListQuery, OrderRepo,
+    OrderStatus, StatusCount, line_items_total, validate_transition,
 };
 use domain::tenant::Tenant;
 use surrealdb::Surreal;
@@ -142,6 +143,114 @@ struct CustomerStatusRow {
 #[surreal(crate = "surrealdb::types")]
 struct CountRow {
     count: i64,
+}
+
+// Slim per-order projection for `customer_activity` — no line items, no
+// customer-name join. Aggregation happens in Rust (`aggregate_activity`)
+// rather than SurrealQL GROUP BY: it keeps the count/sum/date-window logic
+// unit-testable and sidesteps the fulltext-era count() mis-planning quirk
+// noted in `list` (see docs/adr/0001-surrealdb-fulltext-keyword.md).
+#[derive(Debug, SurrealValue)]
+#[surreal(crate = "surrealdb::types")]
+struct ActivityRow {
+    status: i64,
+    amount: i64,
+    currency: String,
+    created_at: String,
+}
+
+const MONTHS_IN_SPARKLINE: usize = 12;
+const ACTIVITY_WINDOW_DAYS: i64 = 30;
+
+fn month_key(year: i32, month: u32) -> String {
+    format!("{year:04}-{month:02}")
+}
+
+/// The last `MONTHS_IN_SPARKLINE` `YYYY-MM` keys up to and including `now`'s
+/// month, oldest first.
+fn recent_month_keys(now: DateTime<Utc>) -> Vec<String> {
+    let (mut year, mut month) = (now.year(), now.month());
+    let mut keys = Vec::with_capacity(MONTHS_IN_SPARKLINE);
+    for _ in 0..MONTHS_IN_SPARKLINE {
+        keys.push(month_key(year, month));
+        if month == 1 {
+            month = 12;
+            year -= 1;
+        } else {
+            month -= 1;
+        }
+    }
+    keys.reverse();
+    keys
+}
+
+/// Aggregates a customer's orders into the detail-page activity summary.
+/// Pure over `(rows, now)` so it can be exercised without a database.
+/// `created_at` values that don't parse as RFC3339 still count toward totals
+/// and status breakdown but are excluded from the date-windowed figures.
+fn aggregate_activity(rows: Vec<ActivityRow>, now: DateTime<Utc>) -> CustomerActivity {
+    let window_start = now - chrono::Duration::days(ACTIVITY_WINDOW_DAYS);
+
+    let mut status_counts: HashMap<u8, u64> = HashMap::new();
+    let mut month_counts: HashMap<String, u64> = HashMap::new();
+    let mut spend_minor: i64 = 0;
+    let mut spend_currency: Option<String> = None;
+    let mut any_currency: Option<String> = None;
+    let mut last_order_at: Option<String> = None;
+    let mut orders_last_30_days: u64 = 0;
+
+    for row in &rows {
+        if let Ok(code) = u8::try_from(row.status) {
+            *status_counts.entry(code).or_insert(0) += 1;
+        }
+        any_currency.get_or_insert_with(|| row.currency.clone());
+        if row.status == OrderStatus::Completed.code() as i64 {
+            spend_minor += row.amount;
+            spend_currency.get_or_insert_with(|| row.currency.clone());
+        }
+        if last_order_at.as_deref().is_none_or(|max| row.created_at.as_str() > max) {
+            last_order_at = Some(row.created_at.clone());
+        }
+        if let Ok(parsed) = DateTime::parse_from_rfc3339(&row.created_at) {
+            let parsed = parsed.with_timezone(&Utc);
+            if parsed >= window_start {
+                orders_last_30_days += 1;
+            }
+            *month_counts
+                .entry(month_key(parsed.year(), parsed.month()))
+                .or_insert(0) += 1;
+        }
+    }
+
+    let mut status_counts: Vec<StatusCount> = status_counts
+        .into_iter()
+        .filter_map(|(code, count)| OrderStatus::from_code(code).map(|status| StatusCount { status, count }))
+        .collect();
+    status_counts.sort_by_key(|entry| entry.status.code());
+
+    let orders_by_month = recent_month_keys(now)
+        .into_iter()
+        .map(|month| MonthlyOrderCount {
+            count: month_counts.get(&month).copied().unwrap_or(0),
+            month,
+        })
+        .collect();
+
+    let currency = spend_currency
+        .or(any_currency)
+        .unwrap_or_else(|| "EUR".to_string());
+
+    CustomerActivity {
+        total_orders: rows.len() as u64,
+        status_counts,
+        total_spend: Money {
+            amount_minor: spend_minor,
+            currency,
+        },
+        last_order_at,
+        orders_last_30_days,
+        orders_by_month,
+    }
 }
 
 fn record_key(id: &RecordId) -> String {
@@ -413,6 +522,25 @@ impl OrderRepo for SurrealOrderRepo {
         rows.into_iter().next().map(Order::try_from).transpose()
     }
 
+    async fn customer_activity(
+        &self,
+        customer_id: &str,
+        now: DateTime<Utc>,
+    ) -> Result<CustomerActivity, DomainError> {
+        let mut response = self
+            .session
+            .query(
+                "SELECT status, total.amount_minor AS amount, currency, created_at \
+                 FROM type::table($table) WHERE customer_id = $customer_id",
+            )
+            .bind(("table", TABLE))
+            .bind(("customer_id", customer_id.to_string()))
+            .await
+            .map_err(map_err)?;
+        let rows: Vec<ActivityRow> = response.take(0).map_err(map_err)?;
+        Ok(aggregate_activity(rows, now))
+    }
+
     async fn create(&self, data: NewOrder, tenant: &Tenant) -> Result<Order, DomainError> {
         let customer_status = self
             .customer_status(&data.customer_id)
@@ -530,5 +658,107 @@ impl OrderRepo for SurrealOrderRepo {
             .map_err(map_err)?;
         let rows: Vec<SearchHitRow> = response.take(0).map_err(map_err)?;
         Ok(rows.into_iter().map(to_hit).collect())
+    }
+}
+
+#[cfg(test)]
+mod activity_tests {
+    use super::*;
+    use chrono::TimeZone;
+
+    fn now() -> DateTime<Utc> {
+        Utc.with_ymd_and_hms(2026, 7, 16, 12, 0, 0).unwrap()
+    }
+
+    fn row(status: OrderStatus, amount: i64, created_at: &str) -> ActivityRow {
+        ActivityRow {
+            status: status.code() as i64,
+            amount,
+            currency: "EUR".to_string(),
+            created_at: created_at.to_string(),
+        }
+    }
+
+    fn count_for(activity: &CustomerActivity, status: OrderStatus) -> u64 {
+        activity
+            .status_counts
+            .iter()
+            .find(|c| c.status == status)
+            .map_or(0, |c| c.count)
+    }
+
+    #[test]
+    fn empty_customer_has_zeroed_activity() {
+        let activity = aggregate_activity(vec![], now());
+        assert_eq!(activity.total_orders, 0);
+        assert!(activity.status_counts.is_empty());
+        assert_eq!(activity.total_spend.amount_minor, 0);
+        assert_eq!(activity.total_spend.currency, "EUR");
+        assert_eq!(activity.last_order_at, None);
+        assert_eq!(activity.orders_last_30_days, 0);
+        assert_eq!(activity.orders_by_month.len(), MONTHS_IN_SPARKLINE);
+        assert!(activity.orders_by_month.iter().all(|m| m.count == 0));
+    }
+
+    #[test]
+    fn aggregates_counts_spend_recency_and_months() {
+        let rows = vec![
+            row(OrderStatus::Completed, 1000, "2026-07-10T09:00:00+00:00"),
+            row(OrderStatus::Completed, 500, "2026-06-01T09:00:00+00:00"),
+            row(OrderStatus::Draft, 999, "2026-07-15T09:00:00+00:00"),
+            row(OrderStatus::Cancelled, 200, "2025-08-01T09:00:00+00:00"),
+        ];
+        let activity = aggregate_activity(rows, now());
+
+        assert_eq!(activity.total_orders, 4);
+        assert_eq!(count_for(&activity, OrderStatus::Completed), 2);
+        assert_eq!(count_for(&activity, OrderStatus::Draft), 1);
+        assert_eq!(count_for(&activity, OrderStatus::Cancelled), 1);
+
+        // Spend counts completed orders only; the draft's amount is excluded.
+        assert_eq!(activity.total_spend.amount_minor, 1500);
+
+        assert_eq!(
+            activity.last_order_at.as_deref(),
+            Some("2026-07-15T09:00:00+00:00")
+        );
+
+        // Window start is 2026-06-16, so only the two July orders qualify.
+        assert_eq!(activity.orders_last_30_days, 2);
+
+        let month = |key: &str| {
+            activity
+                .orders_by_month
+                .iter()
+                .find(|m| m.month == key)
+                .map_or(0, |m| m.count)
+        };
+        assert_eq!(month("2026-07"), 2);
+        assert_eq!(month("2026-06"), 1);
+        assert_eq!(month("2025-08"), 1);
+    }
+
+    #[test]
+    fn status_counts_are_ordered_by_status_code() {
+        let rows = vec![
+            row(OrderStatus::Cancelled, 0, "2026-07-01T09:00:00+00:00"),
+            row(OrderStatus::Draft, 0, "2026-07-01T09:00:00+00:00"),
+            row(OrderStatus::Completed, 0, "2026-07-01T09:00:00+00:00"),
+        ];
+        let activity = aggregate_activity(rows, now());
+        let codes: Vec<u8> = activity
+            .status_counts
+            .iter()
+            .map(|c| c.status.code())
+            .collect();
+        assert_eq!(codes, vec![0, 3, 4]);
+    }
+
+    #[test]
+    fn sparkline_spans_twelve_months_ending_this_month() {
+        let keys = recent_month_keys(now());
+        assert_eq!(keys.len(), MONTHS_IN_SPARKLINE);
+        assert_eq!(keys.first().unwrap(), "2025-08");
+        assert_eq!(keys.last().unwrap(), "2026-07");
     }
 }

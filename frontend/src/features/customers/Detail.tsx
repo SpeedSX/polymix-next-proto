@@ -6,6 +6,7 @@ import { useTranslation } from 'react-i18next'
 
 import { ApiError, apiErrorMessage, useApi } from '../../lib/api'
 import { formatMoney } from '../../lib/money'
+import { CustomerActivityPanel } from './Activity'
 import { customersKeys, deleteCustomer, fetchCustomer, setCustomerStatus, updateCustomer } from './api'
 import { CustomerForm } from './Form'
 import { CUSTOMER_KIND, fromCustomer } from './types'
@@ -265,6 +266,8 @@ export function CustomerDetail() {
       </Stack>
 
       {customer.notes && <Field label={t('fields.notes')} value={customer.notes} />}
+
+      <CustomerActivityPanel customerId={customer.id} />
 
       <Group>
         {nextStatuses.map((next) => (

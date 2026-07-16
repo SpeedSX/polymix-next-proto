@@ -64,6 +64,25 @@ export interface NewOrder {
   notes: string | null
 }
 
+export interface StatusCount {
+  status: OrderStatusId
+  count: number
+}
+
+export interface MonthlyOrderCount {
+  month: string
+  count: number
+}
+
+export interface CustomerActivity {
+  total_orders: number
+  status_counts: StatusCount[]
+  total_spend: Money
+  last_order_at: string | null
+  orders_last_30_days: number
+  orders_by_month: MonthlyOrderCount[]
+}
+
 export interface OrderListParams {
   page: number
   limit: number

@@ -15,6 +15,9 @@ pub use customer::{
 pub use error::{ConflictReason, DomainError, FieldError};
 pub use invoice::{Invoice, InvoiceListQuery, InvoiceRepo, InvoiceStatus, NewInvoice};
 pub use money::Money;
-pub use order::{LineItem, NewOrder, Order, OrderListQuery, OrderRepo, OrderStatus};
+pub use order::{
+    CustomerActivity, LineItem, MonthlyOrderCount, NewOrder, Order, OrderListQuery, OrderRepo,
+    OrderStatus, StatusCount,
+};
 pub use search::{SearchHit, SearchResults};
 pub use tenant::{NewTenant, Tenant, TenantRepo};

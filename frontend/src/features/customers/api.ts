@@ -1,4 +1,5 @@
 import type { useApi } from '../../lib/api'
+import type { CustomerActivity } from '../orders/types'
 import type {
   Customer,
   CustomerListParams,
@@ -14,6 +15,7 @@ export const customersKeys = {
   all: ['customers'] as const,
   list: (params: CustomerListParams) => ['customers', params] as const,
   detail: (id: string) => ['customers', id] as const,
+  activity: (id: string) => ['customers', id, 'activity'] as const,
   statusDictionary: () => ['dictionaries', 'customer-statuses'] as const,
 }
 
@@ -23,6 +25,10 @@ export function fetchCustomers(api: Api, params: CustomerListParams) {
 
 export function fetchCustomer(api: Api, id: string) {
   return api<Customer>(`/api/customers/${id}`)
+}
+
+export function fetchCustomerActivity(api: Api, id: string) {
+  return api<CustomerActivity>(`/api/customers/${id}/activity`)
 }
 
 export function createCustomer(api: Api, data: NewCustomer) {

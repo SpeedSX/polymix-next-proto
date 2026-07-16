@@ -99,6 +99,10 @@ pub fn build_router(state: AppState) -> Router {
             post(routes::customers::set_status),
         )
         .route(
+            "/api/customers/{id}/activity",
+            get(routes::orders::customer_activity),
+        )
+        .route(
             "/api/orders",
             get(routes::orders::list).post(routes::orders::create),
         )
