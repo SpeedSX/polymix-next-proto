@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { Badge, Button, Group, Pagination, Select, Stack, Table, Text, TextInput, Title } from '@mantine/core'
+import { Badge, Button, Group, Select, Stack, Table, Text, TextInput, Title } from '@mantine/core'
 import { useDebouncedValue } from '@mantine/hooks'
 import { useQuery } from '@tanstack/react-query'
 import { useNavigate } from '@tanstack/react-router'
@@ -7,6 +7,7 @@ import { createColumnHelper, flexRender, getCoreRowModel, useReactTable } from '
 import type { SortingState, Updater } from '@tanstack/react-table'
 import { useTranslation } from 'react-i18next'
 
+import { ListPagination } from '../../components/ListPagination'
 import { useApi } from '../../lib/api'
 import { formatDateTime } from '../../lib/dates'
 import { customersKeys, fetchCustomers } from './api'
@@ -61,11 +62,6 @@ export function CustomerList() {
   const columns = useMemo(
     () => [
       columnHelper.accessor('name', { header: t('fields.name') }),
-      columnHelper.accessor((row) => row.edrpou ?? row.tax_id ?? '', {
-        id: 'edrpou',
-        header: t('fields.edrpouOrTaxId'),
-        enableSorting: false,
-      }),
       columnHelper.accessor('status', {
         header: t('fields.status'),
         enableSorting: false,
@@ -107,13 +103,14 @@ export function CustomerList() {
     getCoreRowModel: getCoreRowModel(),
   })
 
-  const totalPages = data ? Math.max(1, Math.ceil(data.total / PAGE_SIZE)) : 1
-
   return (
     <Stack>
       <Group justify="space-between">
         <Title order={2}>{t('list.title')}</Title>
-        <Button onClick={() => navigate({ to: '/customers/new' })}>{t('list.new')}</Button>
+        <Group gap="sm">
+          <ListPagination page={page} pageSize={PAGE_SIZE} total={data?.total ?? 0} onChange={setPage} />
+          <Button onClick={() => navigate({ to: '/customers/new' })}>{t('list.new')}</Button>
+        </Group>
       </Group>
       <Group grow>
         <TextInput
@@ -180,7 +177,6 @@ export function CustomerList() {
         </Table.Tbody>
       </Table>
       {!isLoading && data?.items.length === 0 && <Text c="dimmed">{t('list.empty')}</Text>}
-      <Pagination value={page} onChange={setPage} total={totalPages} />
     </Stack>
   )
 }

@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { Badge, Group, Pagination, Select, Stack, Table, Text, TextInput, Title } from '@mantine/core'
+import { Badge, Group, Select, Stack, Table, Text, TextInput, Title } from '@mantine/core'
 import { useDebouncedValue } from '@mantine/hooks'
 import { useQuery } from '@tanstack/react-query'
 import { useNavigate } from '@tanstack/react-router'
@@ -7,6 +7,7 @@ import { createColumnHelper, flexRender, getCoreRowModel, useReactTable } from '
 import type { SortingState, Updater } from '@tanstack/react-table'
 import { useTranslation } from 'react-i18next'
 
+import { ListPagination } from '../../components/ListPagination'
 import { useApi } from '../../lib/api'
 import { formatMoney } from '../../lib/money'
 import { fetchInvoices, invoicesKeys } from './api'
@@ -94,11 +95,12 @@ export function InvoiceList() {
     getCoreRowModel: getCoreRowModel(),
   })
 
-  const totalPages = data ? Math.max(1, Math.ceil(data.total / PAGE_SIZE)) : 1
-
   return (
     <Stack>
-      <Title order={2}>{t('list.title')}</Title>
+      <Group justify="space-between">
+        <Title order={2}>{t('list.title')}</Title>
+        <ListPagination page={page} pageSize={PAGE_SIZE} total={data?.total ?? 0} onChange={setPage} />
+      </Group>
       <Group>
         <TextInput
           placeholder={t('list.searchPlaceholder')}
@@ -164,7 +166,6 @@ export function InvoiceList() {
         </Table.Tbody>
       </Table>
       {!isLoading && data?.items.length === 0 && <Text c="dimmed">{t('list.empty')}</Text>}
-      <Pagination value={page} onChange={setPage} total={totalPages} />
     </Stack>
   )
 }
