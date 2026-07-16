@@ -51,19 +51,12 @@ async fn shared_db() -> &'static SharedDb {
     .await
 }
 
-async fn connect_store() -> Arc<Store> {
-    let db = shared_db().await;
-    let config = DbConfig {
-        url: db.url.clone(),
-        user: "root".to_string(),
-        pass: "root".to_string(),
-        ns: ulid::Ulid::new().to_string(),
-    };
-    // The container's port maps before SurrealDB serves the WS endpoint;
-    // retry the first connect (same rationale as the api harness).
+// The container's port maps before SurrealDB serves the WS endpoint;
+// retry the first connect (same rationale as the api harness).
+async fn connect_with_config(config: &DbConfig) -> Arc<Store> {
     let mut last_err = None;
     for _ in 0..60 {
-        match Store::connect(&config).await {
+        match Store::connect(config).await {
             Ok(store) => return Arc::new(store),
             Err(err) => {
                 last_err = Some(err);
@@ -72,6 +65,17 @@ async fn connect_store() -> Arc<Store> {
         }
     }
     panic!("failed to connect store after retrying: {last_err:?}");
+}
+
+async fn connect_store() -> Arc<Store> {
+    let db = shared_db().await;
+    let config = DbConfig {
+        url: db.url.clone(),
+        user: "root".to_string(),
+        pass: "root".to_string(),
+        ns: ulid::Ulid::new().to_string(),
+    };
+    connect_with_config(&config).await
 }
 
 fn new_customer(name: &str) -> NewCustomer {
@@ -213,8 +217,8 @@ async fn delivers_across_connections() {
         pass: "root".to_string(),
         ns,
     };
-    let store_a = Arc::new(Store::connect(&config).await.unwrap());
-    let store_b = Arc::new(Store::connect(&config).await.unwrap());
+    let store_a = connect_with_config(&config).await;
+    let store_b = connect_with_config(&config).await;
 
     let provisioner = TenantProvisioner::new(store_a.clone());
     let tenant = provisioner
