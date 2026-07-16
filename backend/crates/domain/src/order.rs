@@ -216,8 +216,9 @@ pub struct CustomerActivity {
     pub total_orders: u64,
     /// Per-status breakdown; omits statuses the customer has no orders in.
     pub status_counts: Vec<StatusCount>,
-    /// Sum of `total` across completed orders. `currency` is that of the
-    /// customer's orders; zero in the customer's currency when there are none.
+    /// Sum of `total` across completed orders in a single currency (the first
+    /// completed order's). Minor units are never mixed across currencies.
+    /// Zero in the customer's default currency when there are no orders.
     pub total_spend: Money,
     /// Most recent order's `created_at` (RFC3339), or `None` with no orders.
     pub last_order_at: Option<String>,

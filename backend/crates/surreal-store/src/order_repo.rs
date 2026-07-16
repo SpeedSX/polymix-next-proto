@@ -11,7 +11,7 @@ use domain::order::{
     CustomerActivity, LineItem, MonthlyOrderCount, NewOrder, Order, OrderListQuery, OrderRepo,
     OrderStatus, StatusCount, line_items_total, validate_transition,
 };
-use domain::tenant::Tenant;
+use domain::tenant::{DEFAULT_CURRENCY, Tenant};
 use surrealdb::Surreal;
 use surrealdb::engine::any::Any;
 use surrealdb::types::{RecordId, RecordIdKey, SurrealValue};
@@ -141,6 +141,12 @@ struct CustomerStatusRow {
 
 #[derive(Debug, SurrealValue)]
 #[surreal(crate = "surrealdb::types")]
+struct CustomerCurrencyRow {
+    default_currency: Option<String>,
+}
+
+#[derive(Debug, SurrealValue)]
+#[surreal(crate = "surrealdb::types")]
 struct CountRow {
     count: i64,
 }
@@ -185,12 +191,20 @@ fn recent_month_keys(now: DateTime<Utc>) -> Vec<String> {
 }
 
 /// Aggregates a customer's orders into the detail-page activity summary.
-/// Pure over `(rows, now)` so it can be exercised without a database.
-/// `created_at` values that don't parse as RFC3339 still count toward totals
-/// and status breakdown but are excluded from `last_order_at` and the
+/// Pure over `(rows, now, default_currency)` so it can be exercised without a
+/// database. `created_at` values that don't parse as RFC3339 still count toward
+/// totals and status breakdown but are excluded from `last_order_at` and the
 /// date-windowed figures. Timestamps after `now` are also excluded from the
 /// 30-day window and monthly sparkline.
-fn aggregate_activity(rows: Vec<ActivityRow>, now: DateTime<Utc>) -> CustomerActivity {
+///
+/// Completed spend is summed in a single currency only — the first completed
+/// order's currency — so minor units are never combined across currencies.
+/// With no orders, `total_spend` is zero in `default_currency`.
+fn aggregate_activity(
+    rows: Vec<ActivityRow>,
+    now: DateTime<Utc>,
+    default_currency: &str,
+) -> CustomerActivity {
     let window_start = now - chrono::Duration::days(ACTIVITY_WINDOW_DAYS);
 
     let mut status_counts: HashMap<u8, u64> = HashMap::new();
@@ -208,8 +222,18 @@ fn aggregate_activity(rows: Vec<ActivityRow>, now: DateTime<Utc>) -> CustomerAct
         }
         any_currency.get_or_insert_with(|| row.currency.clone());
         if row.status == OrderStatus::Completed.code() as i64 {
-            spend_minor += row.amount;
-            spend_currency.get_or_insert_with(|| row.currency.clone());
+            match &spend_currency {
+                None => {
+                    spend_currency = Some(row.currency.clone());
+                    spend_minor += row.amount;
+                }
+                Some(currency) if currency == &row.currency => {
+                    spend_minor += row.amount;
+                }
+                Some(_) => {
+                    // Different currency — skip; never mix minor units.
+                }
+            }
         }
         if let Ok(parsed) = DateTime::parse_from_rfc3339(&row.created_at) {
             let parsed = parsed.with_timezone(&Utc);
@@ -244,7 +268,7 @@ fn aggregate_activity(rows: Vec<ActivityRow>, now: DateTime<Utc>) -> CustomerAct
 
     let currency = spend_currency
         .or(any_currency)
-        .unwrap_or_else(|| "EUR".to_string());
+        .unwrap_or_else(|| default_currency.to_string());
 
     CustomerActivity {
         total_orders: rows.len() as u64,
@@ -411,6 +435,18 @@ impl SurrealOrderRepo {
         row.map(|r| customer_status_from_db(r.status)).transpose()
     }
 
+    async fn customer_default_currency(
+        &self,
+        customer_id: &str,
+    ) -> Result<Option<String>, DomainError> {
+        let row: Option<CustomerCurrencyRow> = self
+            .session
+            .select((CUSTOMER_TABLE, customer_id))
+            .await
+            .map_err(map_err)?;
+        Ok(row.and_then(|r| r.default_currency))
+    }
+
     /// A `lead` placing its first order *is* the conversion event — promote
     /// it to `active` in the same operation as order creation (see
     /// `docs/customers-crm.md`). The write goes through this session so the
@@ -533,6 +569,10 @@ impl OrderRepo for SurrealOrderRepo {
         customer_id: &str,
         now: DateTime<Utc>,
     ) -> Result<CustomerActivity, DomainError> {
+        let default_currency = self
+            .customer_default_currency(customer_id)
+            .await?
+            .unwrap_or_else(|| DEFAULT_CURRENCY.to_string());
         let mut response = self
             .session
             .query(
@@ -544,7 +584,7 @@ impl OrderRepo for SurrealOrderRepo {
             .await
             .map_err(map_err)?;
         let rows: Vec<ActivityRow> = response.take(0).map_err(map_err)?;
-        Ok(aggregate_activity(rows, now))
+        Ok(aggregate_activity(rows, now, &default_currency))
     }
 
     async fn create(&self, data: NewOrder, tenant: &Tenant) -> Result<Order, DomainError> {
@@ -677,10 +717,14 @@ mod activity_tests {
     }
 
     fn row(status: OrderStatus, amount: i64, created_at: &str) -> ActivityRow {
+        row_in(status, amount, "EUR", created_at)
+    }
+
+    fn row_in(status: OrderStatus, amount: i64, currency: &str, created_at: &str) -> ActivityRow {
         ActivityRow {
             status: status.code() as i64,
             amount,
-            currency: "EUR".to_string(),
+            currency: currency.to_string(),
             created_at: created_at.to_string(),
         }
     }
@@ -695,11 +739,11 @@ mod activity_tests {
 
     #[test]
     fn empty_customer_has_zeroed_activity() {
-        let activity = aggregate_activity(vec![], now());
+        let activity = aggregate_activity(vec![], now(), "UAH");
         assert_eq!(activity.total_orders, 0);
         assert!(activity.status_counts.is_empty());
         assert_eq!(activity.total_spend.amount_minor, 0);
-        assert_eq!(activity.total_spend.currency, "EUR");
+        assert_eq!(activity.total_spend.currency, "UAH");
         assert_eq!(activity.last_order_at, None);
         assert_eq!(activity.orders_last_30_days, 0);
         assert_eq!(activity.orders_by_month.len(), MONTHS_IN_SPARKLINE);
@@ -714,7 +758,7 @@ mod activity_tests {
             row(OrderStatus::Draft, 999, "2026-07-15T09:00:00+00:00"),
             row(OrderStatus::Cancelled, 200, "2025-08-01T09:00:00+00:00"),
         ];
-        let activity = aggregate_activity(rows, now());
+        let activity = aggregate_activity(rows, now(), "EUR");
 
         assert_eq!(activity.total_orders, 4);
         assert_eq!(count_for(&activity, OrderStatus::Completed), 2);
@@ -723,6 +767,7 @@ mod activity_tests {
 
         // Spend counts completed orders only; the draft's amount is excluded.
         assert_eq!(activity.total_spend.amount_minor, 1500);
+        assert_eq!(activity.total_spend.currency, "EUR");
 
         assert_eq!(
             activity.last_order_at.as_deref(),
@@ -745,13 +790,26 @@ mod activity_tests {
     }
 
     #[test]
+    fn spend_does_not_mix_currencies() {
+        let rows = vec![
+            row_in(OrderStatus::Completed, 1000, "EUR", "2026-07-10T09:00:00+00:00"),
+            row_in(OrderStatus::Completed, 50000, "UAH", "2026-07-11T09:00:00+00:00"),
+            row_in(OrderStatus::Completed, 250, "EUR", "2026-07-12T09:00:00+00:00"),
+        ];
+        let activity = aggregate_activity(rows, now(), "UAH");
+
+        assert_eq!(activity.total_spend.amount_minor, 1250);
+        assert_eq!(activity.total_spend.currency, "EUR");
+    }
+
+    #[test]
     fn status_counts_are_ordered_by_status_code() {
         let rows = vec![
             row(OrderStatus::Cancelled, 0, "2026-07-01T09:00:00+00:00"),
             row(OrderStatus::Draft, 0, "2026-07-01T09:00:00+00:00"),
             row(OrderStatus::Completed, 0, "2026-07-01T09:00:00+00:00"),
         ];
-        let activity = aggregate_activity(rows, now());
+        let activity = aggregate_activity(rows, now(), "EUR");
         let codes: Vec<u8> = activity
             .status_counts
             .iter()
@@ -776,7 +834,7 @@ mod activity_tests {
             row(OrderStatus::Completed, 100, "2026-07-15T10:00:00+02:00"),
             row(OrderStatus::Completed, 100, "2026-07-15T09:00:00+00:00"),
         ];
-        let activity = aggregate_activity(rows, now());
+        let activity = aggregate_activity(rows, now(), "EUR");
         assert_eq!(
             activity.last_order_at.as_deref(),
             Some("2026-07-15T09:00:00+00:00")
@@ -790,7 +848,7 @@ mod activity_tests {
             row(OrderStatus::Draft, 0, "2026-07-20T09:00:00+00:00"),
             row(OrderStatus::Cancelled, 0, "not-a-timestamp"),
         ];
-        let activity = aggregate_activity(rows, now());
+        let activity = aggregate_activity(rows, now(), "EUR");
 
         assert_eq!(activity.total_orders, 3);
         assert_eq!(activity.orders_last_30_days, 1);
@@ -817,7 +875,7 @@ mod activity_tests {
             row(OrderStatus::Completed, 100, "2026-06-16T14:00:00+02:00"), // 12:00Z — in
             row(OrderStatus::Completed, 100, "2026-06-16T13:00:00+02:00"), // 11:00Z — out
         ];
-        let activity = aggregate_activity(rows, now());
+        let activity = aggregate_activity(rows, now(), "EUR");
         assert_eq!(activity.orders_last_30_days, 1);
     }
 }
