@@ -1,15 +1,43 @@
-import { useState } from 'react'
-import { Alert, Badge, Button, Group, Loader, Stack, Table, Text, Title } from '@mantine/core'
+import { useState, type ReactNode } from 'react'
+import { Alert, Anchor, Badge, Button, Group, Loader, Stack, Table, Text, Title } from '@mantine/core'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useNavigate, useParams } from '@tanstack/react-router'
 import { useTranslation } from 'react-i18next'
 
 import { ApiError, apiErrorMessage, useApi } from '../../lib/api'
+import { formatMoney } from '../../lib/money'
 import { customersKeys, deleteCustomer, fetchCustomer, setCustomerStatus, updateCustomer } from './api'
 import { CustomerForm } from './Form'
-import { fromCustomer } from './types'
-import type { Customer, CustomerStatusId, NewCustomer } from './types'
+import { CUSTOMER_KIND, fromCustomer } from './types'
+import type { Address, Customer, CustomerKindId, CustomerStatusId, NewCustomer } from './types'
 import { useCustomerStatusDictionary } from './useCustomerStatusDictionary'
+
+const KIND_LABEL_KEYS: Record<CustomerKindId, string> = {
+  [CUSTOMER_KIND.LegalEntity]: 'kind.legalEntity',
+  [CUSTOMER_KIND.Fop]: 'kind.fop',
+  [CUSTOMER_KIND.Individual]: 'kind.individual',
+}
+
+function formatAddress(address: Address): string {
+  return [address.street, [address.zip, address.city].filter(Boolean).join(' '), address.country]
+    .filter(Boolean)
+    .join(', ')
+}
+
+function websiteHref(url: string): string {
+  return /^https?:\/\//i.test(url) ? url : `https://${url}`
+}
+
+function Field({ label, value }: { label: string; value: ReactNode }) {
+  return (
+    <Text>
+      <Text span c="dimmed" size="sm">
+        {label}:
+      </Text>{' '}
+      <Text span>{value}</Text>
+    </Text>
+  )
+}
 
 export function CustomerDetail() {
   const { t, i18n } = useTranslation('customers')
@@ -116,7 +144,12 @@ export function CustomerDetail() {
 
   const meta = statusDict.byId.get(customer.status)
   const nextStatuses = meta?.allowed_targets ?? []
-  const primaryContact = customer.contacts.find((contact) => contact.is_primary) ?? customer.contacts[0]
+  const hasFinance =
+    customer.payment_terms_days > 0 ||
+    customer.credit_limit !== null ||
+    customer.default_discount_bp > 0 ||
+    !!customer.iban ||
+    !!customer.bank_name
 
   return (
     <Stack>
@@ -125,22 +158,30 @@ export function CustomerDetail() {
         <Badge color={meta?.color}>{statusDict.labelFor(customer.status)}</Badge>
       </Group>
       {actionError && <Alert color="red">{actionError}</Alert>}
-      {customer.legal_name && <Text>{customer.legal_name}</Text>}
-      {customer.edrpou && (
-        <Text>
-          {t('fields.edrpou')}: {customer.edrpou}
-        </Text>
+
+      <Field label={t('fields.kind')} value={t(KIND_LABEL_KEYS[customer.kind])} />
+      {customer.legal_name && (
+        <Field
+          label={
+            customer.kind === CUSTOMER_KIND.Individual ? t('fields.fullName') : t('fields.legalName')
+          }
+          value={customer.legal_name}
+        />
       )}
-      {customer.tax_id && (
-        <Text>
-          {t('fields.taxId')}: {customer.tax_id}
-        </Text>
-      )}
-      {primaryContact && (
-        <Text>
-          {t('fields.contactName')}: {primaryContact.name}
-          {primaryContact.email ? ` (${primaryContact.email})` : ''}
-        </Text>
+      {customer.edrpou && <Field label={t('fields.edrpou')} value={customer.edrpou} />}
+      {customer.tax_id && <Field label={t('fields.taxId')} value={customer.tax_id} />}
+      {customer.vat_ipn && <Field label={t('fields.vatIpn')} value={customer.vat_ipn} />}
+      {customer.industry && <Field label={t('fields.industry')} value={customer.industry} />}
+      {customer.source && <Field label={t('fields.source')} value={customer.source} />}
+      {customer.website && (
+        <Field
+          label={t('fields.website')}
+          value={
+            <Anchor href={websiteHref(customer.website)} target="_blank" rel="noopener noreferrer">
+              {customer.website}
+            </Anchor>
+          }
+        />
       )}
       {customer.tags.length > 0 && (
         <Group gap="xs">
@@ -153,30 +194,73 @@ export function CustomerDetail() {
       )}
 
       {customer.contacts.length > 0 && (
-        <Table>
-          <Table.Thead>
-            <Table.Tr>
-              <Table.Th>{t('fields.contactName')}</Table.Th>
-              <Table.Th>{t('fields.contactRole')}</Table.Th>
-              <Table.Th>{t('fields.email')}</Table.Th>
-              <Table.Th>{t('fields.phone')}</Table.Th>
-            </Table.Tr>
-          </Table.Thead>
-          <Table.Tbody>
-            {customer.contacts.map((contact, index) => (
-              <Table.Tr key={index}>
-                <Table.Td>
-                  {contact.name}
-                  {contact.is_primary ? ` (${t('fields.primary')})` : ''}
-                </Table.Td>
-                <Table.Td>{contact.role}</Table.Td>
-                <Table.Td>{contact.email}</Table.Td>
-                <Table.Td>{contact.phone}</Table.Td>
+        <Stack gap="xs">
+          <Title order={4}>{t('sections.contacts')}</Title>
+          <Table>
+            <Table.Thead>
+              <Table.Tr>
+                <Table.Th>{t('fields.contactName')}</Table.Th>
+                <Table.Th>{t('fields.contactRole')}</Table.Th>
+                <Table.Th>{t('fields.email')}</Table.Th>
+                <Table.Th>{t('fields.phone')}</Table.Th>
               </Table.Tr>
-            ))}
-          </Table.Tbody>
-        </Table>
+            </Table.Thead>
+            <Table.Tbody>
+              {customer.contacts.map((contact, index) => (
+                <Table.Tr key={index}>
+                  <Table.Td>
+                    {contact.name}
+                    {contact.is_primary ? ` (${t('fields.primary')})` : ''}
+                  </Table.Td>
+                  <Table.Td>{contact.role}</Table.Td>
+                  <Table.Td>{contact.email}</Table.Td>
+                  <Table.Td>{contact.phone}</Table.Td>
+                </Table.Tr>
+              ))}
+            </Table.Tbody>
+          </Table>
+        </Stack>
       )}
+
+      {(customer.legal_address || customer.delivery_address) && (
+        <Stack gap="xs">
+          <Title order={4}>{t('sections.addresses')}</Title>
+          {customer.legal_address && (
+            <Field label={t('fields.legalAddress')} value={formatAddress(customer.legal_address)} />
+          )}
+          {customer.delivery_address && (
+            <Field label={t('fields.deliveryAddress')} value={formatAddress(customer.delivery_address)} />
+          )}
+        </Stack>
+      )}
+
+      <Stack gap="xs">
+        <Title order={4}>{t('sections.finance')}</Title>
+        <Field label={t('fields.defaultCurrency')} value={customer.default_currency} />
+        {hasFinance && (
+          <>
+            {customer.payment_terms_days > 0 && (
+              <Field label={t('fields.paymentTermsDays')} value={String(customer.payment_terms_days)} />
+            )}
+            {customer.credit_limit && (
+              <Field
+                label={t('fields.creditLimitAmount')}
+                value={formatMoney(customer.credit_limit, i18n.language)}
+              />
+            )}
+            {customer.default_discount_bp > 0 && (
+              <Field
+                label={t('fields.defaultDiscountPercent')}
+                value={String(customer.default_discount_bp / 100)}
+              />
+            )}
+            {customer.iban && <Field label={t('fields.iban')} value={customer.iban} />}
+            {customer.bank_name && <Field label={t('fields.bankName')} value={customer.bank_name} />}
+          </>
+        )}
+      </Stack>
+
+      {customer.notes && <Field label={t('fields.notes')} value={customer.notes} />}
 
       <Group>
         {nextStatuses.map((next) => (

@@ -86,8 +86,15 @@ export function CustomerForm({ initialValues, onSubmit, onSuccess, onCancel }: C
               value={String(form.values.kind)}
               onChange={(value) => form.setFieldValue('kind', Number(value) as CustomerKindId)}
             />
-            <TextInput label={t('fields.name')} withAsterisk {...form.getInputProps('name')} />
-            <TextInput label={t('fields.legalName')} {...form.getInputProps('legalName')} />
+            <TextInput
+              label={kind === CUSTOMER_KIND.Individual ? t('fields.nameIndividual') : t('fields.name')}
+              withAsterisk
+              {...form.getInputProps('name')}
+            />
+            <TextInput
+              label={kind === CUSTOMER_KIND.Individual ? t('fields.fullName') : t('fields.legalName')}
+              {...form.getInputProps('legalName')}
+            />
             {kind === CUSTOMER_KIND.LegalEntity && (
               <TextInput label={t('fields.edrpou')} {...form.getInputProps('edrpou')} />
             )}
