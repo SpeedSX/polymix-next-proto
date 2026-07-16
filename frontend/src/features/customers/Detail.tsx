@@ -213,7 +213,11 @@ export function CustomerDetail() {
                     {contact.is_primary ? ` (${t('fields.primary')})` : ''}
                   </Table.Td>
                   <Table.Td>{contact.role}</Table.Td>
-                  <Table.Td>{contact.email}</Table.Td>
+                  <Table.Td>
+                    {contact.email ? (
+                      <Anchor href={`mailto:${contact.email}`}>{contact.email}</Anchor>
+                    ) : null}
+                  </Table.Td>
                   <Table.Td>{contact.phone}</Table.Td>
                 </Table.Tr>
               ))}
