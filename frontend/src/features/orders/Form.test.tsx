@@ -26,7 +26,6 @@ const { fetchCustomer, fetchCustomers, fetchCustomerStatusDictionary } = await i
 
 const CUSTOMER: Customer = {
   id: 'customer1',
-  number: '000001',
   kind: 0,
   name: 'Acme Print',
   legal_name: null,
