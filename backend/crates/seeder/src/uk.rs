@@ -108,6 +108,16 @@ pub const PRODUCTS: &[&str] = &[
     "Каталоги",
 ];
 
+pub const ORDER_NOTES: &[&str] = &[
+    "Повторний друк: {product}",
+    "Нове замовлення: {product}",
+    "{product}, стандартний термін",
+    "Терміново: {product}",
+    "Щоквартальне поповнення: {product}",
+    "{product} з погодженням макета",
+    "{product} для нової кампанії",
+];
+
 pub fn company_name(rng: &mut impl Rng) -> String {
     let form = COMPANY_LEGAL_FORMS.choose(rng).unwrap();
     let name = COMPANY_NAMES.choose(rng).unwrap();

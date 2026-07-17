@@ -71,6 +71,18 @@ const PRODUCTS: &[&str] = &[
     "Catalogs",
 ];
 
+// Short, human-looking order summaries for demo data. `{product}` is filled
+// from the order's first line item.
+const ORDER_NOTES: &[&str] = &[
+    "Reprint of {product}",
+    "New {product} order",
+    "{product}, standard turnaround",
+    "Rush job: {product}",
+    "Quarterly {product} restock",
+    "{product} with proof approval",
+    "{product} for an upcoming campaign",
+];
+
 // Rough distribution of a print shop's order book: most orders have already
 // moved past draft, a healthy chunk are done, a few fell through.
 const ORDER_STATUS_WEIGHTS: &[(OrderStatus, u32)] = &[
@@ -218,6 +230,16 @@ fn random_digits(rng: &mut impl Rng, len: usize) -> String {
     (0..len)
         .map(|_| char::from_digit(rng.gen_range(0..10), 10).unwrap())
         .collect()
+}
+
+fn random_order_notes(rng: &mut impl Rng, line_items: &[LineItem], templates: &[&str]) -> Option<String> {
+    // A realistic order book has a minority of orders with no note.
+    if rng.gen_bool(0.2) {
+        return None;
+    }
+    let product = line_items.first()?.description.as_str();
+    let template = *templates.choose(rng)?;
+    Some(template.replace("{product}", product))
 }
 
 fn random_line_items(rng: &mut impl Rng, currency: &str, products: &[&str]) -> Vec<LineItem> {
@@ -452,6 +474,7 @@ async fn seed_orders(
     let mut remaining = count;
     let mut seeded = 0usize;
     let products = if ukrainian { uk::PRODUCTS } else { PRODUCTS };
+    let note_templates = if ukrainian { uk::ORDER_NOTES } else { ORDER_NOTES };
 
     // Same eligibility as `OrderRepo::create`: only lead/active may receive
     // orders. Inactive/blocked stay in the customer mix for list demos but
@@ -500,6 +523,7 @@ async fn seed_orders(
             }
             let line_items = random_line_items(&mut rng, currency, products);
             let total = line_items_total(&line_items, currency);
+            let notes = random_order_notes(&mut rng, &line_items, note_templates);
             let status = random_status(&mut rng);
             batch.push(OrderSeedRow {
                 id: RecordId::new(ORDER_TABLE, id),
@@ -511,7 +535,7 @@ async fn seed_orders(
                 currency: currency.to_string(),
                 line_items: line_items.into_iter().map(LineItemRow::from).collect(),
                 total: total.into(),
-                notes: None,
+                notes,
                 created_at: now.clone(),
                 updated_at: now.clone(),
             });
