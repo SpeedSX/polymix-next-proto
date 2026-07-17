@@ -7,7 +7,6 @@ import {
   Box,
   Button,
   Checkbox,
-  Fieldset,
   Group,
   NumberInput,
   Radio,
@@ -102,112 +101,122 @@ export function CustomerForm({
 
   const fields = (
     <Stack>
-      <Fieldset legend={t('sections.general')}>
-        <Stack>
-          <SegmentedControl
-            data={[
-              { value: String(CUSTOMER_KIND.LegalEntity), label: t('kind.legalEntity') },
-              { value: String(CUSTOMER_KIND.Fop), label: t('kind.fop') },
-              { value: String(CUSTOMER_KIND.Individual), label: t('kind.individual') },
-            ]}
-            value={String(form.values.kind)}
-            onChange={(value) => form.setFieldValue('kind', Number(value) as CustomerKindId)}
-          />
-          <SimpleGrid cols={{ base: 1, sm: 2 }}>
-            <TextInput
-              label={kind === CUSTOMER_KIND.Individual ? t('fields.nameIndividual') : t('fields.name')}
-              withAsterisk
-              {...form.getInputProps('name')}
-            />
-            <TextInput
-              label={kind === CUSTOMER_KIND.Individual ? t('fields.fullName') : t('fields.legalName')}
-              {...form.getInputProps('legalName')}
-            />
-            {kind === CUSTOMER_KIND.LegalEntity && (
-              <TextInput label={t('fields.edrpou')} {...form.getInputProps('edrpou')} />
-            )}
-            {kind !== CUSTOMER_KIND.LegalEntity && (
-              <TextInput label={t('fields.taxId')} {...form.getInputProps('taxId')} />
-            )}
-            <TextInput label={t('fields.vatIpn')} {...form.getInputProps('vatIpn')} />
-            <TextInput label={t('fields.industry')} {...form.getInputProps('industry')} />
-            <TextInput label={t('fields.source')} {...form.getInputProps('source')} />
-            <TextInput label={t('fields.website')} {...form.getInputProps('website')} />
-          </SimpleGrid>
-          <TagsInput
-            label={t('fields.tags')}
-            value={form.values.tags}
-            onChange={(value) => form.setFieldValue('tags', value)}
-          />
-        </Stack>
-      </Fieldset>
+      <Accordion multiple variant="separated" defaultValue={['general']}>
+        <Accordion.Item value="general">
+          <Accordion.Control>{t('sections.general')}</Accordion.Control>
+          <Accordion.Panel>
+            <Stack>
+              <SegmentedControl
+                data={[
+                  { value: String(CUSTOMER_KIND.LegalEntity), label: t('kind.legalEntity') },
+                  { value: String(CUSTOMER_KIND.Fop), label: t('kind.fop') },
+                  { value: String(CUSTOMER_KIND.Individual), label: t('kind.individual') },
+                ]}
+                value={String(form.values.kind)}
+                onChange={(value) => form.setFieldValue('kind', Number(value) as CustomerKindId)}
+              />
+              <SimpleGrid cols={{ base: 1, sm: 2 }}>
+                <TextInput
+                  label={kind === CUSTOMER_KIND.Individual ? t('fields.nameIndividual') : t('fields.name')}
+                  withAsterisk
+                  {...form.getInputProps('name')}
+                />
+                <TextInput
+                  label={kind === CUSTOMER_KIND.Individual ? t('fields.fullName') : t('fields.legalName')}
+                  {...form.getInputProps('legalName')}
+                />
+                {kind === CUSTOMER_KIND.LegalEntity && (
+                  <TextInput label={t('fields.edrpou')} {...form.getInputProps('edrpou')} />
+                )}
+                {kind !== CUSTOMER_KIND.LegalEntity && (
+                  <TextInput label={t('fields.taxId')} {...form.getInputProps('taxId')} />
+                )}
+                <TextInput label={t('fields.vatIpn')} {...form.getInputProps('vatIpn')} />
+                <TextInput label={t('fields.industry')} {...form.getInputProps('industry')} />
+                <TextInput label={t('fields.source')} {...form.getInputProps('source')} />
+                <TextInput label={t('fields.website')} {...form.getInputProps('website')} />
+              </SimpleGrid>
+              <TagsInput
+                label={t('fields.tags')}
+                value={form.values.tags}
+                onChange={(value) => form.setFieldValue('tags', value)}
+              />
+            </Stack>
+          </Accordion.Panel>
+        </Accordion.Item>
+      </Accordion>
 
-      <Fieldset legend={`${t('sections.contacts')}: ${form.values.contacts.length}`}>
-        <Stack>
-          <Group justify="flex-end">
-            <Button
-              variant="default"
-              size="xs"
-              leftSection={<IconPlus size={15} />}
-              onClick={() => form.insertListItem('contacts', { ...emptyContactFormValues })}
-            >
-              {t('form.addContact')}
-            </Button>
-          </Group>
-          {form.values.contacts.length > 0 && (
-            <Table>
-              <Table.Thead>
-                <Table.Tr>
-                  <Table.Th>{t('fields.contactName')}</Table.Th>
-                  <Table.Th>{t('fields.contactRole')}</Table.Th>
-                  <Table.Th>{t('fields.email')}</Table.Th>
-                  <Table.Th>{t('fields.phone')}</Table.Th>
-                  <Table.Th>{t('fields.primary')}</Table.Th>
-                  <Table.Th />
-                </Table.Tr>
-              </Table.Thead>
-              <Table.Tbody>
-                {form.values.contacts.map((contact, index) => (
-                  <Table.Tr key={index}>
-                    <Table.Td>
-                      <TextInput {...form.getInputProps(`contacts.${index}.name`)} />
-                    </Table.Td>
-                    <Table.Td>
-                      <TextInput {...form.getInputProps(`contacts.${index}.role`)} />
-                    </Table.Td>
-                    <Table.Td>
-                      <TextInput {...form.getInputProps(`contacts.${index}.email`)} />
-                    </Table.Td>
-                    <Table.Td>
-                      <TextInput {...form.getInputProps(`contacts.${index}.phone`)} />
-                    </Table.Td>
-                    <Table.Td>
-                      <Radio
-                        checked={contact.isPrimary}
-                        onChange={() => {
-                          form.values.contacts.forEach((_, otherIndex) => {
-                            form.setFieldValue(`contacts.${otherIndex}.isPrimary`, otherIndex === index)
-                          })
-                        }}
-                      />
-                    </Table.Td>
-                    <Table.Td>
-                      <ActionIcon
-                        color="red"
-                        variant="subtle"
-                        aria-label={t('form.removeContact')}
-                        onClick={() => form.removeListItem('contacts', index)}
-                      >
-                        <IconTrash size={16} />
-                      </ActionIcon>
-                    </Table.Td>
-                  </Table.Tr>
-                ))}
-              </Table.Tbody>
-            </Table>
-          )}
-        </Stack>
-      </Fieldset>
+      <Accordion multiple variant="separated" defaultValue={['contacts']}>
+        <Accordion.Item value="contacts">
+          <Accordion.Control>{`${t('sections.contacts')}: ${form.values.contacts.length}`}</Accordion.Control>
+          <Accordion.Panel>
+            <Stack>
+              <Group justify="flex-end">
+                <Button
+                  variant="default"
+                  size="xs"
+                  leftSection={<IconPlus size={15} />}
+                  onClick={() => form.insertListItem('contacts', { ...emptyContactFormValues })}
+                >
+                  {t('form.addContact')}
+                </Button>
+              </Group>
+              {form.values.contacts.length > 0 && (
+                <Table>
+                  <Table.Thead>
+                    <Table.Tr>
+                      <Table.Th>{t('fields.contactName')}</Table.Th>
+                      <Table.Th>{t('fields.contactRole')}</Table.Th>
+                      <Table.Th>{t('fields.email')}</Table.Th>
+                      <Table.Th>{t('fields.phone')}</Table.Th>
+                      <Table.Th>{t('fields.primary')}</Table.Th>
+                      <Table.Th />
+                    </Table.Tr>
+                  </Table.Thead>
+                  <Table.Tbody>
+                    {form.values.contacts.map((contact, index) => (
+                      <Table.Tr key={index}>
+                        <Table.Td>
+                          <TextInput {...form.getInputProps(`contacts.${index}.name`)} />
+                        </Table.Td>
+                        <Table.Td>
+                          <TextInput {...form.getInputProps(`contacts.${index}.role`)} />
+                        </Table.Td>
+                        <Table.Td>
+                          <TextInput {...form.getInputProps(`contacts.${index}.email`)} />
+                        </Table.Td>
+                        <Table.Td>
+                          <TextInput {...form.getInputProps(`contacts.${index}.phone`)} />
+                        </Table.Td>
+                        <Table.Td>
+                          <Radio
+                            checked={contact.isPrimary}
+                            onChange={() => {
+                              form.values.contacts.forEach((_, otherIndex) => {
+                                form.setFieldValue(`contacts.${otherIndex}.isPrimary`, otherIndex === index)
+                              })
+                            }}
+                          />
+                        </Table.Td>
+                        <Table.Td>
+                          <ActionIcon
+                            color="red"
+                            variant="subtle"
+                            aria-label={t('form.removeContact')}
+                            onClick={() => form.removeListItem('contacts', index)}
+                          >
+                            <IconTrash size={16} />
+                          </ActionIcon>
+                        </Table.Td>
+                      </Table.Tr>
+                    ))}
+                  </Table.Tbody>
+                </Table>
+              )}
+            </Stack>
+          </Accordion.Panel>
+        </Accordion.Item>
+      </Accordion>
 
       <Accordion
         multiple
@@ -265,28 +274,13 @@ export function CustomerForm({
         <Accordion.Item value="finance">
           <Accordion.Control>{t('sections.finance')}</Accordion.Control>
           <Accordion.Panel>
-            <Stack>
+            <SimpleGrid cols={{ base: 1, sm: 2 }}>
               <NumberInput
                 label={t('fields.paymentTermsDays')}
                 min={0}
                 max={365}
                 {...form.getInputProps('paymentTermsDays')}
               />
-              <Checkbox
-                label={t('fields.hasCreditLimit')}
-                checked={form.values.hasCreditLimit}
-                onChange={(event) => form.setFieldValue('hasCreditLimit', event.currentTarget.checked)}
-              />
-              {form.values.hasCreditLimit && (
-                <Group grow>
-                  <TextInput label={t('fields.creditLimitAmount')} {...form.getInputProps('creditLimitAmount')} />
-                  <Select
-                    label={t('fields.currency')}
-                    data={[...currencyOptions]}
-                    {...form.getInputProps('creditLimitCurrency')}
-                  />
-                </Group>
-              )}
               <Select
                 label={t('fields.defaultCurrency')}
                 data={[...currencyOptions]}
@@ -299,14 +293,37 @@ export function CustomerForm({
                 decimalScale={2}
                 {...form.getInputProps('defaultDiscountPercent')}
               />
+              <Checkbox
+                label={t('fields.hasCreditLimit')}
+                checked={form.values.hasCreditLimit}
+                onChange={(event) => form.setFieldValue('hasCreditLimit', event.currentTarget.checked)}
+                mt={{ sm: 28 }}
+              />
+              {form.values.hasCreditLimit && (
+                <TextInput label={t('fields.creditLimitAmount')} {...form.getInputProps('creditLimitAmount')} />
+              )}
+              {form.values.hasCreditLimit && (
+                <Select
+                  label={t('fields.currency')}
+                  data={[...currencyOptions]}
+                  {...form.getInputProps('creditLimitCurrency')}
+                />
+              )}
               <TextInput label={t('fields.iban')} {...form.getInputProps('iban')} />
               <TextInput label={t('fields.bankName')} {...form.getInputProps('bankName')} />
-            </Stack>
+            </SimpleGrid>
           </Accordion.Panel>
         </Accordion.Item>
       </Accordion>
 
-      <Textarea label={t('fields.notes')} {...form.getInputProps('notes')} />
+      <Accordion multiple variant="separated" defaultValue={['notes']}>
+        <Accordion.Item value="notes">
+          <Accordion.Control>{t('fields.notes')}</Accordion.Control>
+          <Accordion.Panel>
+            <Textarea {...form.getInputProps('notes')} />
+          </Accordion.Panel>
+        </Accordion.Item>
+      </Accordion>
     </Stack>
   )
 
