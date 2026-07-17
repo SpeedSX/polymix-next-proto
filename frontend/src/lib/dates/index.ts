@@ -15,6 +15,18 @@ export function formatDateTime(value: string, locale = 'en'): string {
   }
 }
 
+// `value` is a full timestamp; renders only its date portion in the viewer's
+// locale and timezone (same parsing as formatDateTime, minus the time).
+export function formatTimestampDate(value: string, locale = 'en'): string {
+  try {
+    return new Intl.DateTimeFormat(locale, { year: 'numeric', month: '2-digit', day: '2-digit' }).format(
+      new Date(value),
+    )
+  } catch {
+    return value
+  }
+}
+
 // `value` is a date-only string ("2026-01-15") — parsed as UTC midnight so
 // the displayed day never shifts with the viewer's timezone.
 export function formatDate(value: string, locale = 'en'): string {

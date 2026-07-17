@@ -16,6 +16,8 @@ function renderForm(props: Partial<React.ComponentProps<typeof CustomerForm>> = 
   const { container } = render(
     <MantineProvider>
       <CustomerForm
+        breadcrumb={['Customers', 'Edit']}
+        title="Adamant Print GmbH"
         initialValues={emptyCustomerFormValues('EUR')}
         onSubmit={onSubmit}
         onSuccess={onSuccess}

@@ -1,10 +1,11 @@
 import { useState } from 'react'
-import { Alert, Button, Group, Loader, Stack, Table, Text, Title } from '@mantine/core'
+import { Alert, Button, Group, Loader, Stack, Table, Text } from '@mantine/core'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useNavigate, useParams } from '@tanstack/react-router'
 import { useTranslation } from 'react-i18next'
 
-import { StatusBadge } from '../../components/StatusBadge'
+import { PageHeader } from '../../components/PageHeader'
+import { StatusTag } from '../../components/StatusBadge'
 import { ApiError, apiErrorMessage, useApi } from '../../lib/api'
 import { formatMoney } from '../../lib/money'
 import { createInvoiceFromOrder, deleteOrder, fetchOrder, ordersKeys, setOrderStatus, updateOrder } from './api'
@@ -106,34 +107,49 @@ export function OrderDetail() {
     return <Alert color="red">{t('detail.loadError')}</Alert>
   }
 
+  const meta = statusDict.byId.get(order.status)
+
   if (editing) {
     return (
-      <Stack>
-        <Title order={2}>{order.number}</Title>
-        <OrderForm
-          initialValues={fromOrder(order, i18n.language)}
-          onSubmit={(data) => updateMutation.mutateAsync(data)}
-          onSuccess={() => setEditing(false)}
-          onCancel={() => setEditing(false)}
-        />
-      </Stack>
+      <OrderForm
+        breadcrumb={[t('list.title'), t('form.edit')]}
+        title={order.number}
+        status={<StatusTag color={meta?.color} label={statusDict.labelFor(order.status)} />}
+        initialValues={fromOrder(order, i18n.language)}
+        onSubmit={(data) => updateMutation.mutateAsync(data)}
+        onSuccess={() => setEditing(false)}
+        onCancel={() => setEditing(false)}
+      />
     )
   }
 
-  const meta = statusDict.byId.get(order.status)
   const nextStatuses = meta?.allowed_targets ?? []
   const canInvoice = meta?.invoiceable ?? false
 
   return (
     <Stack>
-      <Group justify="space-between">
-        <Title order={2}>{order.number}</Title>
-        <StatusBadge
-          statusKey={meta?.key}
-          color={meta?.color}
-          label={statusDict.labelFor(order.status)}
-        />
-      </Group>
+      <PageHeader
+        breadcrumb={[t('list.title')]}
+        title={order.number}
+        status={<StatusTag color={meta?.color} label={statusDict.labelFor(order.status)} />}
+        actions={
+          <>
+            {order.status === ORDER_STATUS.Draft && (
+              <Button variant="subtle" onClick={() => setEditing(true)}>
+                {t('form.edit')}
+              </Button>
+            )}
+            <Button
+              color="red"
+              variant="subtle"
+              loading={deleteMutation.isPending}
+              onClick={() => deleteMutation.mutate()}
+            >
+              {t('detail.delete')}
+            </Button>
+          </>
+        }
+      />
       {actionError && <Alert color="red">{actionError}</Alert>}
       <Text>
         {t('fields.customer')}: {order.customer_name ?? order.customer_id}
@@ -161,36 +177,25 @@ export function OrderDetail() {
         {t('fields.total')}: {formatMoney(order.total, i18n.language)}
       </Text>
 
-      <Group>
-        {nextStatuses.map((next) => (
-          <Button
-            key={next}
-            variant="light"
-            loading={statusMutation.isPending}
-            onClick={() => statusMutation.mutate(next)}
-          >
-            {t(`actions.transitionTo`, { status: statusDict.labelFor(next) })}
-          </Button>
-        ))}
-        {canInvoice && (
-          <Button loading={invoiceMutation.isPending} onClick={() => invoiceMutation.mutate()}>
-            {t('actions.generateInvoice')}
-          </Button>
-        )}
-        {order.status === ORDER_STATUS.Draft && (
-          <Button variant="subtle" onClick={() => setEditing(true)}>
-            {t('form.edit')}
-          </Button>
-        )}
-        <Button
-          color="red"
-          variant="subtle"
-          loading={deleteMutation.isPending}
-          onClick={() => deleteMutation.mutate()}
-        >
-          {t('detail.delete')}
-        </Button>
-      </Group>
+      {(nextStatuses.length > 0 || canInvoice) && (
+        <Group>
+          {nextStatuses.map((next) => (
+            <Button
+              key={next}
+              variant="light"
+              loading={statusMutation.isPending}
+              onClick={() => statusMutation.mutate(next)}
+            >
+              {t(`actions.transitionTo`, { status: statusDict.labelFor(next) })}
+            </Button>
+          ))}
+          {canInvoice && (
+            <Button loading={invoiceMutation.isPending} onClick={() => invoiceMutation.mutate()}>
+              {t('actions.generateInvoice')}
+            </Button>
+          )}
+        </Group>
+      )}
     </Stack>
   )
 }

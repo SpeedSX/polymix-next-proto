@@ -75,7 +75,7 @@ describe('CustomerDetail optimistic concurrency', () => {
     vi.unstubAllGlobals()
   })
 
-  it('sends the If-Match version snapshotted at edit-start, not a WS-refreshed one', async () => {
+  it('sends the If-Match version snapshotted at form-load, not a WS-refreshed one', async () => {
     let putHeaders: Record<string, string> | undefined
     vi.stubGlobal(
       'fetch',
@@ -112,10 +112,9 @@ describe('CustomerDetail optimistic concurrency', () => {
 
     const { queryClient, container } = renderDetail()
 
+    // The form opens directly in edit mode — the OCC token is frozen at
+    // version 1 once the customer loads.
     expect(await screen.findByText('Adamant Print GmbH')).toBeInTheDocument()
-
-    // Enter edit mode — the OCC token is frozen at version 1 here.
-    fireEvent.click(screen.getByRole('button', { name: 'Edit' }))
 
     // A concurrent write by another user arrives over the live-updates socket
     // and refreshes the detail cache to the new server version.

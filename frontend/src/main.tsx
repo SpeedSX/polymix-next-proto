@@ -50,7 +50,7 @@ const theme = createTheme({
   },
   components: {
     Table: Table.extend({
-      defaultProps: { highlightOnHoverColor: '#FAF9F5' },
+      defaultProps: { highlightOnHoverColor: '#d6ebff' },
       styles: {
         th: {
           textTransform: 'uppercase',

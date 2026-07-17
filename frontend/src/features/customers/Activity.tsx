@@ -6,7 +6,7 @@ import { useTranslation } from 'react-i18next'
 
 import { StatusBadge, StatusMark } from '../../components/StatusBadge'
 import { useApi } from '../../lib/api'
-import { formatDateTime } from '../../lib/dates'
+import { formatDateTime, formatTimestampDate } from '../../lib/dates'
 import { formatMoney } from '../../lib/money'
 import { fetchCustomerActivity, customersKeys } from './api'
 import { fetchOrders, ordersKeys } from '../orders/api'
@@ -57,7 +57,20 @@ function Stat({ label, value }: { label: string; value: string }) {
   )
 }
 
-export function CustomerActivityPanel({ customerId }: { customerId: string }) {
+function StatRow({ label, value }: { label: string; value: string }) {
+  return (
+    <Group justify="space-between" gap="sm" wrap="nowrap">
+      <Text size="sm" c="dimmed">
+        {label}
+      </Text>
+      <Text size="sm" fw={600} style={{ fontVariantNumeric: 'tabular-nums' }}>
+        {value}
+      </Text>
+    </Group>
+  )
+}
+
+export function CustomerActivityPanel({ customerId, compact = false }: { customerId: string; compact?: boolean }) {
   const { t, i18n } = useTranslation('customers')
   const api = useApi()
   const navigate = useNavigate()
@@ -105,13 +118,23 @@ export function CustomerActivityPanel({ customerId }: { customerId: string }) {
     <Stack gap="sm">
       <Title order={4}>{t('sections.activity')}</Title>
 
-      <SimpleGrid cols={{ base: 2, sm: 3, md: 5 }}>
-        <Stat label={t('activity.totalOrders')} value={String(activity.total_orders)} />
-        <Stat label={t('activity.completedOrders')} value={String(completed)} />
-        <Stat label={t('activity.draftRatio')} value={`${draftRatio}%`} />
-        <Stat label={t('activity.totalSpend')} value={formatMoney(activity.total_spend, i18n.language)} />
-        <Stat label={t('activity.ordersLast30Days')} value={String(activity.orders_last_30_days)} />
-      </SimpleGrid>
+      {compact ? (
+        <Stack gap={9}>
+          <StatRow label={t('activity.totalOrders')} value={String(activity.total_orders)} />
+          <StatRow label={t('activity.completedOrders')} value={String(completed)} />
+          <StatRow label={t('activity.draftRatio')} value={`${draftRatio}%`} />
+          <StatRow label={t('activity.totalSpend')} value={formatMoney(activity.total_spend, i18n.language)} />
+          <StatRow label={t('activity.ordersLast30Days')} value={String(activity.orders_last_30_days)} />
+        </Stack>
+      ) : (
+        <SimpleGrid cols={{ base: 2, sm: 3, md: 5 }}>
+          <Stat label={t('activity.totalOrders')} value={String(activity.total_orders)} />
+          <Stat label={t('activity.completedOrders')} value={String(completed)} />
+          <Stat label={t('activity.draftRatio')} value={`${draftRatio}%`} />
+          <Stat label={t('activity.totalSpend')} value={formatMoney(activity.total_spend, i18n.language)} />
+          <Stat label={t('activity.ordersLast30Days')} value={String(activity.orders_last_30_days)} />
+        </SimpleGrid>
+      )}
 
       {activity.last_order_at && (
         <Text size="sm" c="dimmed">
@@ -149,13 +172,13 @@ export function CustomerActivityPanel({ customerId }: { customerId: string }) {
           <Text size="sm" fw={600}>
             {t('activity.recentOrders')}
           </Text>
-          <Table highlightOnHover>
+          <Table highlightOnHover style={{ tableLayout: 'fixed' }}>
             <Table.Thead>
               <Table.Tr>
-                <Table.Th w={40} />
-                <Table.Th>{t('activity.orderNumber')}</Table.Th>
-                <Table.Th ta="right">{t('activity.orderTotal')}</Table.Th>
-                <Table.Th>{t('activity.orderDate')}</Table.Th>
+                <Table.Th w={32} />
+                <Table.Th w={90}>{t('activity.orderNumber')}</Table.Th>
+                <Table.Th>{t('activity.orderNotes')}</Table.Th>
+                <Table.Th w={84}>{t('activity.orderDate')}</Table.Th>
               </Table.Tr>
             </Table.Thead>
             <Table.Tbody>
@@ -175,8 +198,12 @@ export function CustomerActivityPanel({ customerId }: { customerId: string }) {
                         {order.number}
                       </Anchor>
                     </Table.Td>
-                    <Table.Td ta="right">{formatMoney(order.total, i18n.language)}</Table.Td>
-                    <Table.Td>{formatDateTime(order.created_at, i18n.language)}</Table.Td>
+                    <Table.Td>
+                      <Text size="sm" c="dimmed" truncate="end" title={order.notes ?? undefined}>
+                        {order.notes}
+                      </Text>
+                    </Table.Td>
+                    <Table.Td>{formatTimestampDate(order.created_at, i18n.language)}</Table.Td>
                   </Table.Tr>
                 )
               })}

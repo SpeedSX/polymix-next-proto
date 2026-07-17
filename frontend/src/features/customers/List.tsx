@@ -67,6 +67,7 @@ export function CustomerList() {
 
   const columns = useMemo(
     () => [
+      columnHelper.accessor('name', { header: t('fields.name') }),
       columnHelper.accessor('status', {
         id: 'status',
         header: t('fields.status'),
@@ -77,7 +78,6 @@ export function CustomerList() {
           return <StatusTag color={meta?.color} label={statusDict.labelFor(statusId)} />
         },
       }),
-      columnHelper.accessor('name', { header: t('fields.name') }),
       columnHelper.accessor((row) => row.tags.join(', '), { id: 'tags', header: t('fields.tags'), enableSorting: false }),
       columnHelper.accessor(
         (row) => (row.contacts.find((c) => c.is_primary) ?? row.contacts[0])?.name ?? '',

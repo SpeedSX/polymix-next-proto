@@ -69,6 +69,7 @@ export function OrderList() {
 
   const columns = useMemo(
     () => [
+      columnHelper.accessor('number', { header: t('fields.number') }),
       columnHelper.accessor('status', {
         id: 'status',
         header: t('fields.status'),
@@ -79,11 +80,23 @@ export function OrderList() {
           return <StatusTag color={meta?.color} label={statusDict.labelFor(statusId)} />
         },
       }),
-      columnHelper.accessor('number', { header: t('fields.number') }),
       columnHelper.accessor((row) => row.customer_name ?? row.customer_id, {
         id: 'customer_name',
         header: t('fields.customer'),
         enableSorting: false,
+      }),
+      columnHelper.accessor('notes', {
+        id: 'notes',
+        header: t('fields.notes'),
+        enableSorting: false,
+        cell: (info) => {
+          const notes = info.getValue()
+          return (
+            <Text size="sm" c="dimmed" truncate="end" maw={220} title={notes ?? undefined}>
+              {notes}
+            </Text>
+          )
+        },
       }),
       columnHelper.accessor((row) => formatMoney(row.total, i18n.language), {
         id: 'total',

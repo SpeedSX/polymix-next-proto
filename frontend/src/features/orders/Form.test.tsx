@@ -64,6 +64,8 @@ function renderForm(props: Partial<React.ComponentProps<typeof OrderForm>> = {})
       <QueryClientProvider client={queryClient}>
         <AuthContext.Provider value={{ mode: 'dev', orgId: 'org1', getToken: async () => 'token', signOut: () => {} }}>
           <OrderForm
+            breadcrumb={['Orders', 'Edit']}
+            title="ORD-001"
             initialValues={emptyOrderFormValues('USD')}
             onSubmit={onSubmit}
             onSuccess={onSuccess}
