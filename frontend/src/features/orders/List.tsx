@@ -88,7 +88,7 @@ export function OrderList() {
         cell: (info) => formatDateTime(info.getValue(), i18n.language),
       }),
     ],
-    [t, i18n.language],
+    [t, i18n.language, statusDict],
   )
 
   const handleSortingChange = (updaterOrValue: Updater<SortingState>) => {

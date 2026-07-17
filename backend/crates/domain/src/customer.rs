@@ -217,7 +217,7 @@ pub struct Customer {
     pub updated_at: String,
     /// Optimistic-concurrency counter, incremented on every write. Callers
     /// pass the value they last saw back to `update` to detect a concurrent
-    /// modification (see [`CustomerRepository::update`]).
+    /// modification (see [`CustomerRepo::update`]).
     pub version: i64,
 }
 
