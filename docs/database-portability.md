@@ -23,27 +23,21 @@ differently.
   `repo.list()`, `repo.create()` etc. via the domain traits; DB errors are
   flattened into `DomainError::Store(String)` inside the store crate, so
   `api/src/error.rs` knows nothing about SurrealDB errors.
-- **Live updates are domain-typed.** `surreal-store/src/live.rs` enforces
-  the layering — the WS hub consumes `LiveChange` /
+- **Live updates are domain-typed.** `domain/src/live.rs` owns `LiveChange` /
   `ChangeEvent<Customer|Order|Invoice>`, which carry only domain entities;
-  it never sees `RecordId` or the row structs.
+  `surreal-store/src/live.rs` only maps database notifications into those
+  types. The WS hub never sees `RecordId` or the row structs.
 - **All SurrealQL is confined** to `surreal-store` (repos, migrations,
   provisioning). No query strings anywhere in `api`.
 
-## Where SurrealDB leaks into `api` (all mechanical to fix)
+## Remaining SurrealDB-specific API wiring
 
-1. **Concrete repo types instead of trait objects.** Each route file's
-   `repo_for()` returns `SurrealCustomerRepo` etc.
-   (`api/src/routes/customers.rs`, `orders.rs`, `invoices.rs`,
-   `search.rs`), and `api/src/lib.rs` constructs `SurrealTenantRepo`
-   directly. That's ~5 small functions to repoint — or generalize to
-   `Arc<dyn CustomerRepo>` now to make the swap config-selectable.
-2. **`Store` hands out `Surreal<Any>` sessions.** `store.system()` /
-   `for_tenant()` / `dedicated_for_tenant()` return `Arc<Surreal<Any>>`,
-   which `api` passes opaquely into repo constructors and
-   `live_changes()`. `api` never *calls* anything on the session, but it
-   names the type transitively. A Postgres store would replace this with a
-   pool handle; the call shape stays identical.
+1. **The WS stream producer.** `api/src/ws/hub.rs` still constructs
+   SurrealDB live-query streams from `Store`; the planned external hub mode
+   removes that dependency for PostgreSQL while preserving it for SurrealDB.
+2. **Startup construction.** `api/src/lib.rs` builds the SurrealDB store and
+   hub before erasing repository access behind `Arc<dyn Backend>`. Routes,
+   auth, and `AppState` no longer expose concrete store types.
 3. **Config naming.** `SURREALDB_URL/USER/PASS/NS` env vars in
    `api/src/config.rs` — cosmetic.
 4. **`seeder`** talks to SurrealDB directly and would be rewritten (it's a
@@ -55,12 +49,11 @@ differently.
 
 ## The real migration cost: capability gaps, not coupling
 
-- **Live queries.** The WS hub is built on `LIVE SELECT`; Postgres has no
-  equivalent, so a `pg-store` `live_changes()` would need triggers +
-  `LISTEN/NOTIFY` (or logical replication / polling). The stream contract
-  (`Stream<Item = Result<LiveChange, DomainError>>`) is already
-  database-neutral, so only the producer changes — but it's the biggest
-  piece of new work.
+- **Live queries.** The SurrealDB hub is built on `LIVE SELECT`. The
+  PostgreSQL experiment instead publishes successful mutations from API
+  handlers into an external-mode in-process hub. This deliberately supports
+  one API instance; scaling out would require transactional `NOTIFY` plus a
+  `LISTEN` consumer per instance.
 - **Search.** The `search()` trait methods promise "BM25-ranked hits".
   Postgres would use `tsvector` ranking or `pg_trgm` — the interface
   holds, but ranking semantics (and the perf numbers in `docs/perf.md`)
@@ -74,11 +67,7 @@ differently.
 
 ## Migration blast radius, summarized
 
-Swap the store crate behind the existing domain traits, touch ~5
-`repo_for`-style wiring points, config, seeder, and the test harness.
-`domain` and all route/business logic are untouched.
-
-**Optional prep step** if the escape hatch should be even cheaper: switch
-`repo_for()` / `AppState` to trait objects (`Arc<dyn CustomerRepo>` and a
-small session-factory abstraction over `Store`) — then a Postgres store
-becomes purely additive.
+The prep refactor is complete: `AppState` owns a backend facade and a
+change-publisher seam, and routes use trait-object repositories. Adding the
+PostgreSQL store is now additive apart from config/startup selection, the
+external hub mode, seeder support, and test-harness parameterization.

@@ -83,8 +83,8 @@ pub async fn authenticate_token(
     let (user_id, org_id, display_name) = validate_token(token, &state.jwks, &state.config).await?;
 
     let tenant = state
-        .provisioner
-        .ensure_tenant(&org_id, &display_name)
+        .backend
+        .provision_tenant(&org_id, &display_name)
         .await?;
 
     let auth_ctx = AuthContext {

@@ -257,6 +257,13 @@ is a no-op returning the existing registry row.
   `Hub::external()`. Existing hub unit tests stay green; add unit tests for the
   external mode (publish with/without subscribers, entry cleanup on last
   unsubscribe).
+- A write that changes more than the handler's returned entity must publish
+  every resulting change. In particular, creating an order for a lead promotes
+  that customer to active inside the repository today; the Postgres path must
+  also emit the corresponding `customer` update, preserving
+  `lead_promotion_emits_a_customer_update_event_over_ws`. Resolve this explicitly
+  in the Postgres write result/service boundary rather than adding extra
+  pre/post reads to the Surreal request path.
 - Document the known limitation in the ADR: in-process publishing is
   **single-API-instance** delivery. The recorded upgrade path when scaling out is
   `NOTIFY` inside the write transaction + a `LISTEN`er feeding each instance's hub —

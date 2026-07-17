@@ -4,10 +4,8 @@
 
 use std::sync::Arc;
 
-use domain::customer::Customer;
 use domain::error::DomainError;
-use domain::invoice::Invoice;
-use domain::order::Order;
+use domain::{ChangeAction, ChangeEvent, Invoice, LiveChange, Order};
 use futures::stream::{Stream, StreamExt, select_all};
 use surrealdb::engine::any::Any;
 use surrealdb::types::Action;
@@ -17,29 +15,6 @@ use crate::customer_repo::{CustomerRow, customer_from_row_untenanted};
 use crate::invoice_repo::InvoiceRow;
 use crate::order_repo::OrderRow;
 use crate::{customer_repo, invoice_repo, order_repo};
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum ChangeAction {
-    Create,
-    Update,
-    Delete,
-}
-
-#[derive(Debug, Clone)]
-pub struct ChangeEvent<T> {
-    pub action: ChangeAction,
-    pub id: String,
-    /// `Some(entity)` for create/update, `None` for delete — matches the WS
-    /// protocol's `data: null` on deletes.
-    pub data: Option<T>,
-}
-
-#[derive(Debug, Clone)]
-pub enum LiveChange {
-    Customer(Box<ChangeEvent<Customer>>),
-    Order(Box<ChangeEvent<Order>>),
-    Invoice(Box<ChangeEvent<Invoice>>),
-}
 
 fn map_err(err: surrealdb::Error) -> DomainError {
     DomainError::Store(err.to_string())

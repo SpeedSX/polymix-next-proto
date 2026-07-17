@@ -11,8 +11,9 @@ pub mod store;
 pub mod tenant_repo;
 
 pub use customer_repo::SurrealCustomerRepo;
+pub use domain::{ChangeAction, ChangeEvent, LiveChange};
 pub use invoice_repo::SurrealInvoiceRepo;
-pub use live::{ChangeAction, ChangeEvent, LiveChange, live_changes};
+pub use live::live_changes;
 pub use order_repo::SurrealOrderRepo;
 pub use provision::TenantProvisioner;
 pub use store::{DbConfig, Store};

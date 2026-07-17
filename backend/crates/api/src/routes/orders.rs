@@ -1,3 +1,7 @@
+use std::sync::Arc;
+
+use crate::error::ApiError;
+use crate::state::AppState;
 use axum::Extension;
 use axum::Json;
 use axum::extract::{Path, Query, State};
@@ -6,13 +10,9 @@ use domain::error::DomainError;
 use domain::order::{
     CustomerActivity, NewOrder, Order, OrderListQuery, OrderStatus, validate_line_item_currencies,
 };
-use domain::{AuthContext, OrderRepo, Paged, Tenant};
+use domain::{AuthContext, ChangeAction, ChangeEvent, LiveChange, OrderRepo, Paged, Tenant};
 use serde::Deserialize;
 use serde_json::{Value, json};
-use surreal_store::SurrealOrderRepo;
-
-use crate::error::ApiError;
-use crate::state::AppState;
 
 fn default_page() -> u32 {
     1
@@ -55,16 +55,8 @@ pub struct StatusBody {
     status: OrderStatus,
 }
 
-async fn repo_for(state: &AppState, auth: &AuthContext) -> Result<SurrealOrderRepo, ApiError> {
-    let session = state
-        .store
-        .for_tenant(&auth.tenant_db)
-        .await
-        .map_err(|err| {
-            tracing::error!(error = %err, "failed to open tenant session");
-            ApiError::internal("internal server error")
-        })?;
-    Ok(SurrealOrderRepo::new(session))
+async fn repo_for(state: &AppState, auth: &AuthContext) -> Result<Arc<dyn OrderRepo>, ApiError> {
+    Ok(state.backend.order_repo(&auth.tenant_db).await?)
 }
 
 /// Resolves the order's currency default and checks every line item is
@@ -112,6 +104,7 @@ pub async fn create(
     prepare(&mut body, &tenant)?;
     let repo = repo_for(&state, &auth).await?;
     let order = repo.create(body, &tenant).await?;
+    publish(&state, &auth, ChangeAction::Create, &order);
     Ok((StatusCode::CREATED, Json(order)))
 }
 
@@ -135,6 +128,7 @@ pub async fn update(
     prepare(&mut body, &tenant)?;
     let repo = repo_for(&state, &auth).await?;
     let order = repo.update(&id, body).await?;
+    publish(&state, &auth, ChangeAction::Update, &order);
     Ok(Json(order))
 }
 
@@ -145,6 +139,14 @@ pub async fn delete(
 ) -> Result<Json<Value>, ApiError> {
     let repo = repo_for(&state, &auth).await?;
     repo.delete(&id).await?;
+    state.publisher.publish(
+        &auth.tenant_db,
+        LiveChange::Order(Box::new(ChangeEvent {
+            action: ChangeAction::Delete,
+            id,
+            data: None,
+        })),
+    );
     Ok(Json(json!({})))
 }
 
@@ -156,5 +158,17 @@ pub async fn set_status(
 ) -> Result<Json<Order>, ApiError> {
     let repo = repo_for(&state, &auth).await?;
     let order = repo.set_status(&id, body.status).await?;
+    publish(&state, &auth, ChangeAction::Update, &order);
     Ok(Json(order))
+}
+
+fn publish(state: &AppState, auth: &AuthContext, action: ChangeAction, order: &Order) {
+    state.publisher.publish(
+        &auth.tenant_db,
+        LiveChange::Order(Box::new(ChangeEvent {
+            action,
+            id: order.id.clone(),
+            data: Some(order.clone()),
+        })),
+    );
 }

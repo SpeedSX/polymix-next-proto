@@ -28,9 +28,12 @@ In the entity's `*_repo.rs` (mirror `customer_repo.rs`):
 - A `Row → domain` conversion (`From` if infallible, `TryFrom<... Error =
   DomainError>` if parsing can fail — see `OrderRow` vs `CustomerRow`).
 
-## 2. surreal-store: `src/live.rs`
+## 2. domain + surreal-store: change type and stream
 
-- Add a variant to `LiveChange`: `Foo(ChangeEvent<Foo>)`.
+- Add the canonical variant in `backend/crates/domain/src/live.rs`:
+  `Foo(Box<ChangeEvent<Foo>>)`. Change types belong to `domain`; do not
+  redefine them in a store crate.
+- Keep `surreal-store`'s backward-compatible re-export in `src/lib.rs`.
 - In `live_changes()`, open the stream the same way as the existing three
   and add it to the `select_all([...])` merge:
 
@@ -41,7 +44,10 @@ In the entity's `*_repo.rs` (mirror `customer_repo.rs`):
       .await
       .map_err(map_err)?;
   let foos = foos
-      .map(|n| map_event(n, FooRow::key, Foo::try_from).map(LiveChange::Foo))
+      .map(|n| {
+          map_event(n, FooRow::key, Foo::try_from)
+              .map(|event| LiveChange::Foo(Box::new(event)))
+      })
       .boxed();
   ```
 
@@ -59,12 +65,19 @@ In the entity's `*_repo.rs` (mirror `customer_repo.rs`):
 One match arm in `to_server_event`:
 
 ```rust
-LiveChange::Foo(event) => envelope("foo", event),
+LiveChange::Foo(event) => envelope("foo", *event),
 ```
 
 The wire name is the singular snake_case entity name (`"customer"`,
 `"order"`, `"invoice"`). That string is the contract with the frontend —
 pick it once, use it identically in step 5.
+
+Every successful mutating API handler must also construct the matching
+`domain::LiveChange` and call `state.publisher.publish(...)`. Surreal mode
+uses `NoopPublisher` because the live query is already the emitter;
+external-hub backends rely on these calls. Publish create/update with the
+returned entity, delete with the path id and `data: None`, and publish every
+entity affected by a multi-entity mutation.
 
 ## 4. Backend tests
 

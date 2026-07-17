@@ -7,11 +7,12 @@ use std::sync::Arc;
 use std::time::Duration;
 
 use domain::error::DomainError;
+use domain::{ChangeAction, ChangeEvent, LiveChange};
 use futures::future::BoxFuture;
 use futures::stream::BoxStream;
 use futures::{FutureExt, StreamExt};
 use serde::Serialize;
-use surreal_store::{ChangeAction, ChangeEvent, LiveChange, Store, live_changes};
+use surreal_store::{Store, live_changes};
 use tokio::sync::{Mutex, broadcast};
 use tokio::task::JoinHandle;
 
