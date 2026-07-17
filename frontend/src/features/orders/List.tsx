@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { Badge, Button, Group, Select, Stack, Table, Text, TextInput, Title } from '@mantine/core'
+import { Button, Group, Select, Stack, Table, Text, TextInput, Title } from '@mantine/core'
 import { useDebouncedValue } from '@mantine/hooks'
 import { useQuery } from '@tanstack/react-query'
 import { useNavigate } from '@tanstack/react-router'
@@ -8,6 +8,11 @@ import type { SortingState, Updater } from '@tanstack/react-table'
 import { useTranslation } from 'react-i18next'
 
 import { ListPagination } from '../../components/ListPagination'
+import {
+  StatusMark,
+  renderStatusSelectOption,
+  statusMetaFor,
+} from '../../components/StatusBadge'
 import { useApi } from '../../lib/api'
 import { formatDateTime } from '../../lib/dates'
 import { formatMoney } from '../../lib/money'
@@ -63,23 +68,27 @@ export function OrderList() {
 
   const columns = useMemo(
     () => [
+      columnHelper.accessor('status', {
+        id: 'status',
+        header: '',
+        enableSorting: false,
+        cell: (info) => {
+          const statusId = info.getValue()
+          const meta = statusDict.byId.get(statusId)
+          return (
+            <StatusMark
+              statusKey={meta?.key}
+              color={meta?.color}
+              label={statusDict.labelFor(statusId)}
+            />
+          )
+        },
+      }),
       columnHelper.accessor('number', { header: t('fields.number') }),
       columnHelper.accessor((row) => row.customer_name ?? row.customer_id, {
         id: 'customer_name',
         header: t('fields.customer'),
         enableSorting: false,
-      }),
-      columnHelper.accessor('status', {
-        header: t('fields.status'),
-        cell: (info) => {
-          const statusId = info.getValue()
-          const meta = statusDict.byId.get(statusId)
-          return (
-            <Badge color={meta?.color} variant="light">
-              {statusDict.labelFor(statusId)}
-            </Badge>
-          )
-        },
       }),
       columnHelper.accessor((row) => formatMoney(row.total, i18n.language), {
         id: 'total',
@@ -94,6 +103,8 @@ export function OrderList() {
     ],
     [t, i18n.language, statusDict],
   )
+
+  const selectedStatus = statusMetaFor(statusDict.byId, status)
 
   const handleSortingChange = (updaterOrValue: Updater<SortingState>) => {
     const next = typeof updaterOrValue === 'function' ? updaterOrValue(sorting) : updaterOrValue
@@ -152,6 +163,19 @@ export function OrderList() {
             setStatus(value)
             setPage(1)
           }}
+          renderOption={renderStatusSelectOption(statusDict.byId)}
+          leftSection={
+            status != null ? (
+              <StatusMark
+                statusKey={selectedStatus.key}
+                color={selectedStatus.color}
+                label={statusDict.labelFor(Number(status) as OrderStatusId)}
+                size={18}
+                withTooltip={false}
+                variant="filled"
+              />
+            ) : undefined
+          }
         />
       </Group>
       {isError && <Text c="red">{t('list.loadError')}</Text>}
@@ -166,6 +190,7 @@ export function OrderList() {
                     key={header.id}
                     onClick={header.column.getToggleSortingHandler()}
                     ta={columnAlign(header.column)}
+                    w={header.column.id === 'status' ? 40 : undefined}
                     style={{ cursor: header.column.getCanSort() ? 'pointer' : undefined }}
                   >
                     {flexRender(header.column.columnDef.header, header.getContext())}

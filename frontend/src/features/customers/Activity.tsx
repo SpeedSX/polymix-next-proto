@@ -4,6 +4,7 @@ import { useQuery } from '@tanstack/react-query'
 import { useNavigate } from '@tanstack/react-router'
 import { useTranslation } from 'react-i18next'
 
+import { StatusBadge, StatusMark } from '../../components/StatusBadge'
 import { useApi } from '../../lib/api'
 import { formatDateTime } from '../../lib/dates'
 import { formatMoney } from '../../lib/money'
@@ -122,11 +123,18 @@ export function CustomerActivityPanel({ customerId }: { customerId: string }) {
       )}
 
       <Group gap="xs">
-        {activity.status_counts.map((entry) => (
-          <Badge key={entry.status} color={statusDict.byId.get(entry.status)?.color} variant="light">
-            {statusDict.labelFor(entry.status)}: {entry.count}
-          </Badge>
-        ))}
+        {activity.status_counts.map((entry) => {
+          const meta = statusDict.byId.get(entry.status)
+          return (
+            <StatusBadge
+              key={entry.status}
+              statusKey={meta?.key}
+              color={meta?.color}
+              label={statusDict.labelFor(entry.status)}
+              count={entry.count}
+            />
+          )
+        })}
       </Group>
 
       <Stack gap={4}>
@@ -144,29 +152,34 @@ export function CustomerActivityPanel({ customerId }: { customerId: string }) {
           <Table highlightOnHover>
             <Table.Thead>
               <Table.Tr>
+                <Table.Th w={40} />
                 <Table.Th>{t('activity.orderNumber')}</Table.Th>
-                <Table.Th>{t('fields.status')}</Table.Th>
                 <Table.Th ta="right">{t('activity.orderTotal')}</Table.Th>
                 <Table.Th>{t('activity.orderDate')}</Table.Th>
               </Table.Tr>
             </Table.Thead>
             <Table.Tbody>
-              {recent.items.map((order) => (
-                <Table.Tr key={order.id}>
-                  <Table.Td>
-                    <Anchor onClick={() => navigate({ to: '/orders/$id', params: { id: order.id } })}>
-                      {order.number}
-                    </Anchor>
-                  </Table.Td>
-                  <Table.Td>
-                    <Badge color={statusDict.byId.get(order.status)?.color} variant="light">
-                      {statusDict.labelFor(order.status)}
-                    </Badge>
-                  </Table.Td>
-                  <Table.Td ta="right">{formatMoney(order.total, i18n.language)}</Table.Td>
-                  <Table.Td>{formatDateTime(order.created_at, i18n.language)}</Table.Td>
-                </Table.Tr>
-              ))}
+              {recent.items.map((order) => {
+                const meta = statusDict.byId.get(order.status)
+                return (
+                  <Table.Tr key={order.id}>
+                    <Table.Td>
+                      <StatusMark
+                        statusKey={meta?.key}
+                        color={meta?.color}
+                        label={statusDict.labelFor(order.status)}
+                      />
+                    </Table.Td>
+                    <Table.Td>
+                      <Anchor onClick={() => navigate({ to: '/orders/$id', params: { id: order.id } })}>
+                        {order.number}
+                      </Anchor>
+                    </Table.Td>
+                    <Table.Td ta="right">{formatMoney(order.total, i18n.language)}</Table.Td>
+                    <Table.Td>{formatDateTime(order.created_at, i18n.language)}</Table.Td>
+                  </Table.Tr>
+                )
+              })}
             </Table.Tbody>
           </Table>
         </Stack>

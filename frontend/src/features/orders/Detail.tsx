@@ -1,9 +1,10 @@
 import { useState } from 'react'
-import { Alert, Badge, Button, Group, Loader, Stack, Table, Text, Title } from '@mantine/core'
+import { Alert, Button, Group, Loader, Stack, Table, Text, Title } from '@mantine/core'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useNavigate, useParams } from '@tanstack/react-router'
 import { useTranslation } from 'react-i18next'
 
+import { StatusBadge } from '../../components/StatusBadge'
 import { ApiError, apiErrorMessage, useApi } from '../../lib/api'
 import { formatMoney } from '../../lib/money'
 import { createInvoiceFromOrder, deleteOrder, fetchOrder, ordersKeys, setOrderStatus, updateOrder } from './api'
@@ -127,9 +128,11 @@ export function OrderDetail() {
     <Stack>
       <Group justify="space-between">
         <Title order={2}>{order.number}</Title>
-        <Badge color={meta?.color} variant="light">
-          {statusDict.labelFor(order.status)}
-        </Badge>
+        <StatusBadge
+          statusKey={meta?.key}
+          color={meta?.color}
+          label={statusDict.labelFor(order.status)}
+        />
       </Group>
       {actionError && <Alert color="red">{actionError}</Alert>}
       <Text>

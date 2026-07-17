@@ -4,6 +4,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useNavigate, useParams } from '@tanstack/react-router'
 import { useTranslation } from 'react-i18next'
 
+import { StatusBadge } from '../../components/StatusBadge'
 import { ApiError, apiErrorMessage, useApi } from '../../lib/api'
 import { formatMoney } from '../../lib/money'
 import { CustomerActivityPanel } from './Activity'
@@ -167,9 +168,11 @@ export function CustomerDetail() {
     <Stack>
       <Group justify="space-between">
         <Title order={2}>{customer.name}</Title>
-        <Badge color={meta?.color} variant="light">
-          {statusDict.labelFor(customer.status)}
-        </Badge>
+        <StatusBadge
+          statusKey={meta?.key}
+          color={meta?.color}
+          label={statusDict.labelFor(customer.status)}
+        />
       </Group>
       {actionError && <Alert color="red">{actionError}</Alert>}
 

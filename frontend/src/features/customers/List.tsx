@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { Badge, Button, Group, Select, Stack, Table, Text, TextInput, Title } from '@mantine/core'
+import { Button, Group, Select, Stack, Table, Text, TextInput, Title } from '@mantine/core'
 import { useDebouncedValue } from '@mantine/hooks'
 import { useQuery } from '@tanstack/react-query'
 import { useNavigate } from '@tanstack/react-router'
@@ -8,6 +8,11 @@ import type { SortingState, Updater } from '@tanstack/react-table'
 import { useTranslation } from 'react-i18next'
 
 import { ListPagination } from '../../components/ListPagination'
+import {
+  StatusMark,
+  renderStatusSelectOption,
+  statusMetaFor,
+} from '../../components/StatusBadge'
 import { useApi } from '../../lib/api'
 import { formatDateTime } from '../../lib/dates'
 import { customersKeys, fetchCustomers } from './api'
@@ -61,19 +66,23 @@ export function CustomerList() {
 
   const columns = useMemo(
     () => [
-      columnHelper.accessor('name', { header: t('fields.name') }),
       columnHelper.accessor('status', {
-        header: t('fields.status'),
+        id: 'status',
+        header: '',
         enableSorting: false,
         cell: (info) => {
-          const meta = statusDict.byId.get(info.getValue())
+          const statusId = info.getValue()
+          const meta = statusDict.byId.get(statusId)
           return (
-            <Badge color={meta?.color} variant="light">
-              {statusDict.labelFor(info.getValue())}
-            </Badge>
+            <StatusMark
+              statusKey={meta?.key}
+              color={meta?.color}
+              label={statusDict.labelFor(statusId)}
+            />
           )
         },
       }),
+      columnHelper.accessor('name', { header: t('fields.name') }),
       columnHelper.accessor((row) => row.tags.join(', '), { id: 'tags', header: t('fields.tags'), enableSorting: false }),
       columnHelper.accessor(
         (row) => (row.contacts.find((c) => c.is_primary) ?? row.contacts[0])?.name ?? '',
@@ -86,6 +95,8 @@ export function CustomerList() {
     ],
     [t, i18n.language, statusDict],
   )
+
+  const selectedStatus = statusMetaFor(statusDict.byId, statusFilter)
 
   const handleSortingChange = (updaterOrValue: Updater<SortingState>) => {
     const next = typeof updaterOrValue === 'function' ? updaterOrValue(sorting) : updaterOrValue
@@ -134,6 +145,19 @@ export function CustomerList() {
             setPage(1)
           }}
           clearable
+          renderOption={renderStatusSelectOption(statusDict.byId)}
+          leftSection={
+            statusFilter != null ? (
+              <StatusMark
+                statusKey={selectedStatus.key}
+                color={selectedStatus.color}
+                label={statusDict.labelFor(Number(statusFilter) as CustomerStatusId)}
+                size={18}
+                withTooltip={false}
+                variant="filled"
+              />
+            ) : undefined
+          }
         />
         <TextInput
           placeholder={t('list.filterTag')}
@@ -155,6 +179,7 @@ export function CustomerList() {
                   <Table.Th
                     key={header.id}
                     onClick={header.column.getToggleSortingHandler()}
+                    w={header.column.id === 'status' ? 40 : undefined}
                     style={{ cursor: header.column.getCanSort() ? 'pointer' : undefined }}
                   >
                     {flexRender(header.column.columnDef.header, header.getContext())}
