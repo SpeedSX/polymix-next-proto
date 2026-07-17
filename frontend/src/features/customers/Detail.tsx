@@ -74,8 +74,12 @@ function CustomerEditor({ customer, onReload }: { customer: Customer; onReload: 
     },
     onSuccess: (updated) => {
       setActionError(null)
-      setBaseVersion(updated.version)
       queryClient.setQueryData(customersKeys.detail(id), updated)
+      // A status change bumps the server version, but the form fields still
+      // hold the mount-time snapshot. Advancing baseVersion here would let a
+      // later form save pass the OCC guard and clobber any field a concurrent
+      // writer changed. Resync the form from the authoritative record instead.
+      onReload()
     },
     onError: (err, _status, context) => {
       if (context?.previous) {
