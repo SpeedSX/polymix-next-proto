@@ -50,6 +50,7 @@ const theme = createTheme({
   },
   components: {
     Table: Table.extend({
+      defaultProps: { highlightOnHoverColor: '#FAF9F5' },
       styles: {
         th: {
           textTransform: 'uppercase',
@@ -69,8 +70,11 @@ const theme = createTheme({
       },
     }),
     Fieldset: Fieldset.extend({
-      defaultProps: { variant: 'unstyled' },
       styles: {
+        root: {
+          backgroundColor: 'transparent',
+          borderColor: 'var(--mantine-color-gray-3)',
+        },
         legend: {
           fontFamily: 'var(--mantine-font-family-headings)',
           fontWeight: 600,
