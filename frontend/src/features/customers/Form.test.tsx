@@ -56,6 +56,7 @@ function customer(overrides: Partial<Customer> = {}): Customer {
     notes: null,
     created_at: '2026-01-01T00:00:00Z',
     updated_at: '2026-01-01T00:00:00Z',
+    version: 1,
     ...overrides,
   }
 }
@@ -92,5 +93,22 @@ describe('CustomerForm', () => {
 
     await vi.waitFor(() => expect(onSuccess).toHaveBeenCalledWith(created))
     expect(onSubmit).toHaveBeenCalledWith(expect.objectContaining({ name: 'Adamant Print GmbH' }))
+  })
+
+  it('offers a reload action on a concurrent-modification conflict', async () => {
+    const onSubmit = vi
+      .fn()
+      .mockRejectedValue(new ApiError(409, { code: 'customer_modified', message: 'stale' }))
+    const onConflict = vi.fn()
+    const { onSuccess, getField } = renderForm({ onSubmit, onConflict })
+
+    fireEvent.change(getField('name'), { target: { value: 'Adamant Print GmbH' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Save' }))
+
+    const reload = await screen.findByRole('button', { name: 'Reload latest' })
+    expect(onSuccess).not.toHaveBeenCalled()
+
+    fireEvent.click(reload)
+    expect(onConflict).toHaveBeenCalledOnce()
   })
 })

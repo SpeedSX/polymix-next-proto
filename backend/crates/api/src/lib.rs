@@ -150,7 +150,11 @@ pub fn build_router(state: AppState) -> Router {
                     Method::DELETE,
                     Method::OPTIONS,
                 ])
-                .allow_headers([header::AUTHORIZATION, header::CONTENT_TYPE]),
+                .allow_headers([
+                    header::AUTHORIZATION,
+                    header::CONTENT_TYPE,
+                    header::IF_MATCH,
+                ]),
         )
         .with_state(state)
 }

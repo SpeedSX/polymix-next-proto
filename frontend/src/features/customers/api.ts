@@ -35,8 +35,14 @@ export function createCustomer(api: Api, data: NewCustomer) {
   return api<Customer>('/api/customers', { method: 'POST', body: data })
 }
 
-export function updateCustomer(api: Api, id: string, data: NewCustomer) {
-  return api<Customer>(`/api/customers/${id}`, { method: 'PUT', body: data })
+export function updateCustomer(api: Api, id: string, data: NewCustomer, expectedVersion: number) {
+  return api<Customer>(`/api/customers/${id}`, {
+    method: 'PUT',
+    body: data,
+    // Optimistic concurrency: the server rejects (409 customer_modified) if
+    // the record moved on since this version was loaded.
+    headers: { 'if-match': String(expectedVersion) },
+  })
 }
 
 export function deleteCustomer(api: Api, id: string) {

@@ -198,7 +198,8 @@ fn recent_month_keys(now: DateTime<Utc>) -> Vec<String> {
 /// 30-day window and monthly sparkline.
 ///
 /// Completed spend is summed in a single currency only — the first completed
-/// order's currency — so minor units are never combined across currencies.
+/// order's currency (callers must supply rows ordered by `created_at` ASC, `id`
+/// ASC) — so minor units are never combined across currencies.
 /// With no orders, `total_spend` is zero in `default_currency`.
 fn aggregate_activity(
     rows: Vec<ActivityRow>,
@@ -254,7 +255,9 @@ fn aggregate_activity(
 
     let mut status_counts: Vec<StatusCount> = status_counts
         .into_iter()
-        .filter_map(|(code, count)| OrderStatus::from_code(code).map(|status| StatusCount { status, count }))
+        .filter_map(|(code, count)| {
+            OrderStatus::from_code(code).map(|status| StatusCount { status, count })
+        })
         .collect();
     status_counts.sort_by_key(|entry| entry.status.code());
 
@@ -266,9 +269,7 @@ fn aggregate_activity(
         })
         .collect();
 
-    let currency = spend_currency
-        .or(any_currency)
-        .unwrap_or_else(|| default_currency.to_string());
+    let currency = spend_currency.unwrap_or_else(|| default_currency.to_string());
 
     CustomerActivity {
         total_orders: rows.len() as u64,
@@ -576,8 +577,9 @@ impl OrderRepo for SurrealOrderRepo {
         let mut response = self
             .session
             .query(
-                "SELECT status, total.amount_minor AS amount, currency, created_at \
-                 FROM type::table($table) WHERE customer_id = $customer_id",
+                "SELECT id, status, total.amount_minor AS amount, currency, created_at \
+                 FROM type::table($table) WHERE customer_id = $customer_id \
+                 ORDER BY created_at ASC, id ASC",
             )
             .bind(("table", TABLE))
             .bind(("customer_id", customer_id.to_string()))
@@ -792,9 +794,24 @@ mod activity_tests {
     #[test]
     fn spend_does_not_mix_currencies() {
         let rows = vec![
-            row_in(OrderStatus::Completed, 1000, "EUR", "2026-07-10T09:00:00+00:00"),
-            row_in(OrderStatus::Completed, 50000, "UAH", "2026-07-11T09:00:00+00:00"),
-            row_in(OrderStatus::Completed, 250, "EUR", "2026-07-12T09:00:00+00:00"),
+            row_in(
+                OrderStatus::Completed,
+                1000,
+                "EUR",
+                "2026-07-10T09:00:00+00:00",
+            ),
+            row_in(
+                OrderStatus::Completed,
+                50000,
+                "UAH",
+                "2026-07-11T09:00:00+00:00",
+            ),
+            row_in(
+                OrderStatus::Completed,
+                250,
+                "EUR",
+                "2026-07-12T09:00:00+00:00",
+            ),
         ];
         let activity = aggregate_activity(rows, now(), "UAH");
 

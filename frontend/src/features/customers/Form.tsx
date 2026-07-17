@@ -34,12 +34,16 @@ export interface CustomerFormProps {
   onSubmit: (data: ReturnType<typeof toNewCustomer>) => Promise<Customer>
   onSuccess: (customer: Customer) => void
   onCancel: () => void
+  /** Called when the save is rejected because the record was modified
+   * concurrently (409 customer_modified) — wire it to reload the latest. */
+  onConflict?: () => void
 }
 
-export function CustomerForm({ initialValues, onSubmit, onSuccess, onCancel }: CustomerFormProps) {
+export function CustomerForm({ initialValues, onSubmit, onSuccess, onCancel, onConflict }: CustomerFormProps) {
   const { t, i18n } = useTranslation('customers')
   const [submitting, setSubmitting] = useState(false)
   const [formError, setFormError] = useState<string | null>(null)
+  const [conflict, setConflict] = useState(false)
   const form = useForm<CustomerFormValues>({
     initialValues,
     validate: zodResolver(customerFormSchema),
@@ -53,6 +57,7 @@ export function CustomerForm({ initialValues, onSubmit, onSuccess, onCancel }: C
 
   const handleSubmit = form.onSubmit(async (values) => {
     setFormError(null)
+    setConflict(false)
     setSubmitting(true)
     try {
       const customer = await onSubmit(toNewCustomer(values, i18n.language))
@@ -62,6 +67,8 @@ export function CustomerForm({ initialValues, onSubmit, onSuccess, onCancel }: C
         for (const [field, fieldError] of Object.entries(err.details)) {
           form.setFieldError(mapApiErrorField(field), validationMessage(fieldError, t))
         }
+      } else if (err instanceof ApiError && err.code === 'customer_modified') {
+        setConflict(true)
       } else {
         setFormError(apiErrorMessage(err, t, 'form.unexpectedError'))
       }
@@ -73,7 +80,20 @@ export function CustomerForm({ initialValues, onSubmit, onSuccess, onCancel }: C
   return (
     <form onSubmit={handleSubmit}>
       <Stack maw={720}>
-        {formError && <Alert color="red">{formError}</Alert>}
+        {conflict ? (
+          <Alert color="yellow" title={t('errors.customer_modified_title')}>
+            <Stack gap="xs" align="flex-start">
+              {t('errors.customer_modified')}
+              {onConflict && (
+                <Button variant="light" size="xs" onClick={onConflict}>
+                  {t('form.reload')}
+                </Button>
+              )}
+            </Stack>
+          </Alert>
+        ) : (
+          formError && <Alert color="red">{formError}</Alert>
+        )}
 
         <Fieldset legend={t('sections.general')}>
           <Stack>

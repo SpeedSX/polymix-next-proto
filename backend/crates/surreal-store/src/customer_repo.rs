@@ -19,6 +19,10 @@ use crate::status::{customer_kind_from_db, customer_status_from_db};
 pub(crate) const TABLE: &str = "customer";
 const ORDER_TABLE: &str = "order";
 
+/// Version a freshly created customer starts at; migration 0011 backfills
+/// pre-existing rows to the same value.
+const INITIAL_VERSION: i64 = 1;
+
 // Whitelisted, not bound as a query parameter: SurrealQL identifiers (unlike
 // values) can't be passed as bind parameters, so the sort field is validated
 // against this list before being interpolated into the ORDER BY clause.
@@ -120,6 +124,11 @@ pub(crate) struct CustomerRow {
     notes: Option<String>,
     created_at: String,
     updated_at: String,
+    /// Optimistic-concurrency counter, bumped on every write. The client
+    /// echoes it back via `If-Match`; the guarded `UPDATE ... WHERE version`
+    /// only lands when it still matches. Backfilled for all pre-existing rows
+    /// by migration 0011, so every row carries it.
+    version: i64,
     /// BM25 score projected by the per-field search statements; absent on
     /// every non-search read.
     score: Option<f64>,
@@ -151,6 +160,7 @@ struct CustomerContent {
     notes: Option<String>,
     created_at: String,
     updated_at: String,
+    version: i64,
 }
 
 #[derive(Debug, SurrealValue)]
@@ -158,6 +168,7 @@ struct CustomerContent {
 struct StatusPatch {
     status: i64,
     updated_at: String,
+    version: i64,
 }
 
 #[derive(Debug, SurrealValue)]
@@ -220,6 +231,7 @@ fn customer_from_row_with_currency(
         notes: row.notes,
         created_at: row.created_at,
         updated_at: row.updated_at,
+        version: row.version,
     })
 }
 
@@ -242,6 +254,7 @@ fn content_from(
     status: CustomerStatus,
     created_at: String,
     updated_at: String,
+    version: i64,
 ) -> CustomerContent {
     CustomerContent {
         kind: data.kind.code() as i64,
@@ -267,6 +280,7 @@ fn content_from(
         notes: data.notes,
         created_at,
         updated_at,
+        version,
     }
 }
 
@@ -617,7 +631,7 @@ impl CustomerRepo for SurrealCustomerRepo {
             _ => CustomerStatus::Active,
         };
         let now = chrono::Utc::now().to_rfc3339();
-        let content = content_from(data, status, now.clone(), now);
+        let content = content_from(data, status, now.clone(), now, INITIAL_VERSION);
         let id = Ulid::new().to_string();
 
         let row: Option<CustomerRow> = self
@@ -636,6 +650,7 @@ impl CustomerRepo for SurrealCustomerRepo {
         &self,
         id: &str,
         mut data: NewCustomer,
+        expected_version: Option<i64>,
         tenant: &Tenant,
     ) -> Result<Customer, DomainError> {
         let existing = self.get_row(id).await?.ok_or(DomainError::NotFound)?;
@@ -643,21 +658,59 @@ impl CustomerRepo for SurrealCustomerRepo {
         // (if any) is ignored entirely.
         data.status = None;
         let now = chrono::Utc::now().to_rfc3339();
-        let content = content_from(
-            data,
-            customer_status_from_db(existing.status)?,
-            existing.created_at.clone(),
-            now,
-        );
 
-        let row: Option<CustomerRow> = self
-            .session
-            .update((TABLE, id))
-            .content(content)
-            .await
-            .map_err(map_err)?;
+        let row = match expected_version {
+            // Optimistic concurrency: the guarded UPDATE only writes while the
+            // stored `version` still equals what the caller last saw, so two
+            // racing saves can't both clobber — the loser matches zero rows.
+            // The guard is in the statement itself (not a separate read-check),
+            // so there's no TOCTOU window. An empty result means the version
+            // moved on (the earlier `get_row` already proved the row exists),
+            // hence a conflict rather than a 404.
+            Some(expected) => {
+                let content = content_from(
+                    data,
+                    customer_status_from_db(existing.status)?,
+                    existing.created_at.clone(),
+                    now,
+                    expected + 1,
+                );
+                let mut response = self
+                    .session
+                    .query(
+                        "UPDATE type::record($tb, $id) CONTENT $content \
+                         WHERE version = $expected RETURN AFTER",
+                    )
+                    .bind(("tb", TABLE))
+                    .bind(("id", id.to_string()))
+                    .bind(("content", content))
+                    .bind(("expected", expected))
+                    .await
+                    .map_err(map_err)?;
+                let rows: Vec<CustomerRow> = response.take(0).map_err(map_err)?;
+                rows.into_iter()
+                    .next()
+                    .ok_or(DomainError::Conflict(ConflictReason::CustomerModified))?
+            }
+            // No token supplied: unconditional last-write-wins.
+            None => {
+                let content = content_from(
+                    data,
+                    customer_status_from_db(existing.status)?,
+                    existing.created_at.clone(),
+                    now,
+                    existing.version + 1,
+                );
+                let row: Option<CustomerRow> = self
+                    .session
+                    .update((TABLE, id))
+                    .content(content)
+                    .await
+                    .map_err(map_err)?;
+                row.ok_or(DomainError::NotFound)?
+            }
+        };
 
-        let row = row.ok_or(DomainError::NotFound)?;
         customer_from_row(row, tenant)
     }
 
@@ -681,6 +734,7 @@ impl CustomerRepo for SurrealCustomerRepo {
         let patch = StatusPatch {
             status: status.code() as i64,
             updated_at: chrono::Utc::now().to_rfc3339(),
+            version: existing.version + 1,
         };
         let row: Option<CustomerRow> = self
             .session

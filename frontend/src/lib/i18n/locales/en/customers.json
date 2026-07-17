@@ -14,6 +14,7 @@
   "form.save": "Save",
   "form.edit": "Edit",
   "form.addContact": "Add contact",
+  "form.reload": "Reload latest",
   "form.unexpectedError": "Something went wrong. Please try again.",
   "sections.general": "General",
   "sections.contacts": "Contacts",
@@ -77,5 +78,7 @@
   "status.inactive": "Inactive",
   "status.blocked": "Blocked",
   "errors.customer_has_orders": "This customer has orders and cannot be deleted.",
-  "errors.customer_status_transition": "Cannot change the customer status from {from} to {to}."
+  "errors.customer_status_transition": "Cannot change the customer status from {from} to {to}.",
+  "errors.customer_modified_title": "Customer was changed",
+  "errors.customer_modified": "Someone else changed this customer since you opened it. Reload to see the latest version, then reapply your changes."
 }

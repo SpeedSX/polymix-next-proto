@@ -145,7 +145,7 @@ async fn delivers_customer_create_update_delete() {
         other => panic!("expected a customer change, got {other:?}"),
     }
 
-    repo.update(&created.id, new_customer("Adamant Print AG"), &tenant)
+    repo.update(&created.id, new_customer("Adamant Print AG"), None, &tenant)
         .await
         .unwrap();
     match next_change(&mut stream).await {

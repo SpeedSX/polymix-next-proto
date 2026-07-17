@@ -1,7 +1,7 @@
 use axum::Extension;
 use axum::Json;
 use axum::extract::{Path, Query, State};
-use axum::http::StatusCode;
+use axum::http::{HeaderMap, StatusCode, header};
 use domain::customer::{Customer, CustomerStatus, ListQuery, NewCustomer, Paged};
 use domain::error::DomainError;
 use domain::{AuthContext, CustomerRepo, Tenant};
@@ -115,11 +115,31 @@ pub async fn update(
     Extension(auth): Extension<AuthContext>,
     Extension(tenant): Extension<Tenant>,
     Path(id): Path<String>,
+    headers: HeaderMap,
     Json(mut body): Json<NewCustomer>,
 ) -> Result<Json<Customer>, ApiError> {
     prepare(&mut body, &tenant)?;
+    // `If-Match` carries the customer `version` the client last saw — an
+    // optimistic-concurrency token. Absent means an unconditional write; a
+    // present-but-unparseable value is a client bug, not a silent full write.
+    let expected_version = match headers.get(header::IF_MATCH) {
+        Some(value) => Some(
+            value
+                .to_str()
+                .ok()
+                .and_then(|raw| raw.trim_matches('"').parse::<i64>().ok())
+                .ok_or_else(|| {
+                    ApiError::new(
+                        StatusCode::BAD_REQUEST,
+                        "invalid_if_match",
+                        "If-Match must be an integer customer version",
+                    )
+                })?,
+        ),
+        None => None,
+    };
     let repo = repo_for(&state, &auth).await?;
-    let customer = repo.update(&id, body, &tenant).await?;
+    let customer = repo.update(&id, body, expected_version, &tenant).await?;
     Ok(Json(customer))
 }
 

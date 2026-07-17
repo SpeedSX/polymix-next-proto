@@ -215,6 +215,10 @@ pub struct Customer {
     pub notes: Option<String>,
     pub created_at: String,
     pub updated_at: String,
+    /// Optimistic-concurrency counter, incremented on every write. Callers
+    /// pass the value they last saw back to `update` to detect a concurrent
+    /// modification (see [`CustomerRepository::update`]).
+    pub version: i64,
 }
 
 #[derive(Debug, Clone, Deserialize, Validate)]
@@ -422,10 +426,16 @@ pub trait CustomerRepo: Send + Sync {
     -> Result<Paged<Customer>, DomainError>;
     async fn get(&self, id: &str, tenant: &Tenant) -> Result<Option<Customer>, DomainError>;
     async fn create(&self, data: NewCustomer, tenant: &Tenant) -> Result<Customer, DomainError>;
+    /// `expected_version` is the [`Customer::version`] the caller last saw;
+    /// when `Some`, the update is rejected with
+    /// [`ConflictReason::CustomerModified`] if the stored record has moved on
+    /// since (optimistic concurrency). When `None`, the write is
+    /// unconditional (last-write-wins).
     async fn update(
         &self,
         id: &str,
         data: NewCustomer,
+        expected_version: Option<i64>,
         tenant: &Tenant,
     ) -> Result<Customer, DomainError>;
     async fn delete(&self, id: &str) -> Result<(), DomainError>;

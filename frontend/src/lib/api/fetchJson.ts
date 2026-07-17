@@ -7,6 +7,7 @@ export interface FetchJsonOptions {
   method?: 'GET' | 'POST' | 'PUT' | 'DELETE'
   body?: unknown
   params?: Record<string, string | number | undefined>
+  headers?: Record<string, string>
   getToken: () => Promise<string | null>
 }
 
@@ -22,7 +23,7 @@ function buildUrl(path: string, params: FetchJsonOptions['params']): string {
 
 export async function fetchJson<T>(path: string, options: FetchJsonOptions): Promise<T> {
   const token = await options.getToken()
-  const headers: Record<string, string> = {}
+  const headers: Record<string, string> = { ...options.headers }
   if (token) {
     headers.authorization = `Bearer ${token}`
   }

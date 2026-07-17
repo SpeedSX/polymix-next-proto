@@ -1,0 +1,11 @@
+-- Optimistic concurrency: `customer.version` is bumped on every write and
+-- echoed back by clients via `If-Match`, so a concurrent edit is rejected
+-- (409) instead of silently clobbering the first writer. See PLAN.md B3.
+--
+-- Backfill pre-existing rows to the same starting value new rows get
+-- (customer_repo::INITIAL_VERSION). Guarded on `version IS NONE` so it's
+-- idempotent and a no-op for rows created after this migration.
+-- RETURN NONE: the default UPDATE response echoes every mutated record,
+-- which against a large tenant blows past the WS transport's message-size
+-- limit and resets the connection mid-migration (see 0008/0009).
+UPDATE customer SET version = 1 WHERE version IS NONE RETURN NONE;

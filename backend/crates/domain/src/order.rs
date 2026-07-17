@@ -218,7 +218,8 @@ pub struct CustomerActivity {
     pub status_counts: Vec<StatusCount>,
     /// Sum of `total` across completed orders in a single currency (the first
     /// completed order's). Minor units are never mixed across currencies.
-    /// Zero in the customer's default currency when there are no orders.
+    /// Zero in the customer's default currency when there are no completed
+    /// orders (including when only draft or cancelled orders exist).
     pub total_spend: Money,
     /// Most recent order's `created_at` (RFC3339), or `None` with no orders.
     pub last_order_at: Option<String>,

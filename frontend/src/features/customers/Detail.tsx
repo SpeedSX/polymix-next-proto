@@ -48,6 +48,13 @@ export function CustomerDetail() {
   const queryClient = useQueryClient()
   const statusDict = useCustomerStatusDictionary()
   const [editing, setEditing] = useState(false)
+  // Snapshot of the version at the moment editing began — the optimistic-
+  // concurrency token. It must NOT be re-read from the query cache at save
+  // time: a live WS update from another user's write refreshes that cache to
+  // the new server version, which would make a stale editor's guard pass and
+  // silently clobber. Freezing it here means a concurrent change instead
+  // trips the 409 → reload path.
+  const [editBaseVersion, setEditBaseVersion] = useState(0)
   const [actionError, setActionError] = useState<string | null>(null)
 
   const {
@@ -94,7 +101,7 @@ export function CustomerDetail() {
   })
 
   const updateMutation = useMutation({
-    mutationFn: (data: NewCustomer) => updateCustomer(api, id, data),
+    mutationFn: (data: NewCustomer) => updateCustomer(api, id, data, editBaseVersion),
     onMutate: async (data) => {
       await queryClient.cancelQueries({ queryKey: customersKeys.detail(id) })
       const previous = queryClient.getQueryData<Customer>(customersKeys.detail(id))
@@ -138,6 +145,10 @@ export function CustomerDetail() {
           onSubmit={(data) => updateMutation.mutateAsync(data)}
           onSuccess={() => setEditing(false)}
           onCancel={() => setEditing(false)}
+          onConflict={() => {
+            void queryClient.invalidateQueries({ queryKey: customersKeys.detail(id) })
+            setEditing(false)
+          }}
         />
       </Stack>
     )
@@ -280,7 +291,13 @@ export function CustomerDetail() {
             {t('actions.transitionTo', { status: statusDict.labelFor(next) })}
           </Button>
         ))}
-        <Button variant="subtle" onClick={() => setEditing(true)}>
+        <Button
+          variant="subtle"
+          onClick={() => {
+            setEditBaseVersion(customer.version)
+            setEditing(true)
+          }}
+        >
           {t('form.edit')}
         </Button>
         <Button

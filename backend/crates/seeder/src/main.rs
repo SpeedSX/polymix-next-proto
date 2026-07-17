@@ -127,6 +127,7 @@ struct CustomerSeedRow {
     notes: Option<String>,
     created_at: String,
     updated_at: String,
+    version: i64,
 }
 
 #[derive(Debug, SurrealValue)]
@@ -420,6 +421,7 @@ async fn seed_customers(
                 notes: None,
                 created_at: now.clone(),
                 updated_at: now.clone(),
+                version: 1,
             });
             customers.push(SeededCustomer { id, status });
             seq += 1;
