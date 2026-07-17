@@ -10,6 +10,7 @@ import { useTranslation } from 'react-i18next'
 import { ListPagination } from '../../components/ListPagination'
 import {
   StatusMark,
+  StatusTag,
   renderStatusSelectOption,
   statusMetaFor,
 } from '../../components/StatusBadge'
@@ -70,18 +71,12 @@ export function OrderList() {
     () => [
       columnHelper.accessor('status', {
         id: 'status',
-        header: '',
+        header: t('fields.status'),
         enableSorting: false,
         cell: (info) => {
           const statusId = info.getValue()
           const meta = statusDict.byId.get(statusId)
-          return (
-            <StatusMark
-              statusKey={meta?.key}
-              color={meta?.color}
-              label={statusDict.labelFor(statusId)}
-            />
-          )
+          return <StatusTag color={meta?.color} label={statusDict.labelFor(statusId)} />
         },
       }),
       columnHelper.accessor('number', { header: t('fields.number') }),
@@ -190,7 +185,6 @@ export function OrderList() {
                     key={header.id}
                     onClick={header.column.getToggleSortingHandler()}
                     ta={columnAlign(header.column)}
-                    w={header.column.id === 'status' ? 40 : undefined}
                     style={{ cursor: header.column.getCanSort() ? 'pointer' : undefined }}
                   >
                     {flexRender(header.column.columnDef.header, header.getContext())}

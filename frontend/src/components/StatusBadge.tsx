@@ -131,6 +131,36 @@ export function StatusBadge({ statusKey, color = 'gray', label, count }: StatusB
   )
 }
 
+export interface StatusTagProps {
+  color?: string
+  label: string
+}
+
+/** Industry-style status tag: a square, hairline-bordered tinted label — no
+ * icon. Reads its tint from the status color's Mantine palette. */
+export function StatusTag({ color = 'gray', label }: StatusTagProps) {
+  return (
+    <Badge
+      variant="light"
+      color={color as MantineColor}
+      radius={0}
+      size="md"
+      tt="none"
+      fw={600}
+      styles={{
+        root: {
+          border: `1px solid var(--mantine-color-${color}-3)`,
+          backgroundColor: `var(--mantine-color-${color}-1)`,
+          color: `var(--mantine-color-${color}-8)`,
+          letterSpacing: '0.02em',
+        },
+      }}
+    >
+      {label}
+    </Badge>
+  )
+}
+
 export interface StatusOptionMeta {
   key?: string
   color?: string
