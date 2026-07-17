@@ -29,6 +29,741 @@
 
 <div style="display:flex; flex-wrap:wrap; gap:44px; align-items:flex-start; padding:60px;">
 
+  <!-- ============ 7a — Inventory ============ -->
+  <section id="7a" style="display:flex; flex-direction:column; gap:16px; width:1440px; flex:none;">
+    <div style="display:flex; align-items:center; gap:8px;">
+      <span class="opt-badge">7a</span>
+      <span class="tagline" style="font-size:10px;">application &mdash; inventory</span>
+    </div>
+
+    <div class="blueprint" style="background:var(--color-bg); display:flex; height:840px; overflow:hidden;">
+      <i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i>
+
+      <!-- rail -->
+      <aside style="width:60px; flex:none; background:var(--color-accent-900); display:flex; flex-direction:column; align-items:center; gap:6px; padding:18px 0;">
+        <svg width="30" height="30" viewBox="0 0 120 120" aria-label="PolyMix" style="margin-bottom:12px;">
+          <rect x="8" y="8" width="48" height="48" rx="15" fill="#94bce3"/><rect x="64" y="8" width="48" height="48" rx="15" fill="#cfe4fa"/><rect x="8" y="64" width="48" height="48" rx="15" fill="#7e9cb8"/><rect x="64" y="64" width="48" height="48" rx="15" fill="#b5d9fd"/>
+        </svg>
+        <a href="#" style="width:38px; height:38px; display:flex; align-items:center; justify-content:center; color:#c4d2e0;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9"/><rect x="14" y="3" width="7" height="5"/><rect x="14" y="12" width="7" height="9"/><rect x="3" y="16" width="7" height="5"/></svg></a>
+        <a href="#" style="width:38px; height:38px; display:flex; align-items:center; justify-content:center; color:#c4d2e0;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="1"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/></svg></a>
+        <a href="#" style="width:38px; height:38px; display:flex; align-items:center; justify-content:center; color:#c4d2e0;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/></svg></a>
+        <a href="#" aria-current="page" style="width:38px; height:38px; display:flex; align-items:center; justify-content:center; color:#ffffff; background:rgba(148,188,227,0.18); box-shadow:inset 2px 0 0 #94bce3;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 7H4"/><path d="M20 12H4"/><path d="M20 17H4"/></svg></a>
+        <a href="#" style="width:38px; height:38px; display:flex; align-items:center; justify-content:center; color:#c4d2e0;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><rect x="7" y="10" width="3" height="7"/><rect x="13" y="6" width="3" height="11"/></svg></a>
+      </aside>
+
+      <!-- main -->
+      <div style="flex:1; display:flex; flex-direction:column; min-width:0;">
+        <header style="display:flex; align-items:center; gap:16px; padding:18px 26px; border-bottom:1px solid var(--color-divider);">
+          <div style="min-width:0;">
+            <h3 style="margin:0; font-size:24px;">Inventory</h3>
+            <span class="text-muted" style="font-size:12px;">214 SKUs &middot; 3 below reorder point</span>
+          </div>
+          <div class="input" style="display:flex; align-items:center; gap:8px; width:240px; margin-left:auto; min-height:36px;">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--color-accent)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+            <span class="text-muted" style="font-size:13px;">Search stock&hellip;</span>
+          </div>
+          <button class="btn btn-secondary"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 3H2l8 9.46V19l4 2v-8.54L22 3z"/></svg>Filter</button>
+          <button class="btn btn-secondary"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="M12 5v14"/></svg>Stock take</button>
+          <button class="btn btn-primary blueprint"><i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i>Add item</button>
+        </header>
+
+        <!-- stat band -->
+        <div style="display:grid; grid-template-columns:repeat(4,1fr); border-bottom:1px solid var(--color-divider);">
+          <div style="padding:16px 26px; border-right:1px solid var(--color-divider);"><div class="text-muted" style="font-size:11px; letter-spacing:0.08em; text-transform:uppercase;">Stock value</div><div style="font-family:var(--font-heading); font-weight:600; font-size:26px; font-variant-numeric:tabular-nums;">&pound;86,420</div></div>
+          <div style="padding:16px 26px; border-right:1px solid var(--color-divider);"><div class="text-muted" style="font-size:11px; letter-spacing:0.08em; text-transform:uppercase;">SKUs</div><div style="font-family:var(--font-heading); font-weight:600; font-size:26px; font-variant-numeric:tabular-nums;">214</div></div>
+          <div style="padding:16px 26px; border-right:1px solid var(--color-divider);"><div class="text-muted" style="font-size:11px; letter-spacing:0.08em; text-transform:uppercase;">Below reorder</div><div style="font-family:var(--font-heading); font-weight:600; font-size:26px; font-variant-numeric:tabular-nums; color:var(--color-accent-900);">3</div></div>
+          <div style="padding:16px 26px;"><div class="text-muted" style="font-size:11px; letter-spacing:0.08em; text-transform:uppercase;">On order</div><div style="font-family:var(--font-heading); font-weight:600; font-size:26px; font-variant-numeric:tabular-nums;">7</div></div>
+        </div>
+
+        <!-- category tabs -->
+        <div style="display:flex; align-items:center; gap:22px; padding:12px 26px; border-bottom:1px solid var(--color-divider); font-family:var(--font-heading); font-weight:600; font-size:13px;">
+          <span style="color:var(--color-accent); box-shadow:inset 0 -2px 0 var(--color-accent); padding-bottom:12px; margin-bottom:-12px;">All <span class="text-muted">214</span></span>
+          <span class="text-muted">Paper &amp; board <span>96</span></span>
+          <span class="text-muted">Inks <span>38</span></span>
+          <span class="text-muted">Consumables <span>54</span></span>
+          <span class="text-muted">Finishing <span>26</span></span>
+        </div>
+
+        <!-- table -->
+        <div style="flex:1; overflow:auto; padding:8px 26px 26px;">
+          <table class="table">
+            <thead><tr>
+              <th style="width:110px;">SKU</th><th>Material</th><th>Category</th>
+              <th style="text-align:right; width:110px;">On hand</th><th style="width:120px;">Reorder at</th>
+              <th style="width:150px;">Level</th><th style="text-align:right; width:110px;">Unit cost</th><th style="width:120px;">Status</th>
+            </tr></thead>
+            <tbody style="font-variant-numeric:tabular-nums;">
+              <tr>
+                <td style="font-family:var(--font-heading); font-weight:600; color:var(--color-accent-700);">PB-0901</td>
+                <td>Munken Print 90gsm</td><td class="text-muted">Paper &amp; board</td>
+                <td style="text-align:right;">1,800 sht</td><td>2,000</td>
+                <td><div style="height:6px; background:var(--color-accent-200);"><div style="height:6px; width:38%; background:var(--color-accent-900);"></div></div></td>
+                <td style="text-align:right;">&pound;0.09</td><td><span class="tag tag-outline">Low</span></td>
+              </tr>
+              <tr>
+                <td style="font-family:var(--font-heading); font-weight:600; color:var(--color-accent-700);">PB-1203</td>
+                <td>Colorplan 270gsm</td><td class="text-muted">Paper &amp; board</td>
+                <td style="text-align:right;">6,400 sht</td><td>2,500</td>
+                <td><div style="height:6px; background:var(--color-accent-200);"><div style="height:6px; width:86%; background:var(--color-accent);"></div></div></td>
+                <td style="text-align:right;">&pound;0.31</td><td><span class="tag tag-accent">In stock</span></td>
+              </tr>
+              <tr>
+                <td style="font-family:var(--font-heading); font-weight:600; color:var(--color-accent-700);">IN-2204</td>
+                <td>Process Cyan &mdash; 2.5kg</td><td class="text-muted">Inks</td>
+                <td style="text-align:right;">9 tins</td><td>6</td>
+                <td><div style="height:6px; background:var(--color-accent-200);"><div style="height:6px; width:70%; background:var(--color-accent);"></div></div></td>
+                <td style="text-align:right;">&pound;42.00</td><td><span class="tag tag-accent">In stock</span></td>
+              </tr>
+              <tr>
+                <td style="font-family:var(--font-heading); font-weight:600; color:var(--color-accent-700);">IN-2208</td>
+                <td>Opaque White &mdash; 2.5kg</td><td class="text-muted">Inks</td>
+                <td style="text-align:right;">2 tins</td><td>4</td>
+                <td><div style="height:6px; background:var(--color-accent-200);"><div style="height:6px; width:22%; background:var(--color-accent-900);"></div></div></td>
+                <td style="text-align:right;">&pound;48.00</td><td><span class="tag tag-outline">Reorder</span></td>
+              </tr>
+              <tr>
+                <td style="font-family:var(--font-heading); font-weight:600; color:var(--color-accent-700);">CN-3310</td>
+                <td>Fountain solution &mdash; 5L</td><td class="text-muted">Consumables</td>
+                <td style="text-align:right;">14 btl</td><td>8</td>
+                <td><div style="height:6px; background:var(--color-accent-200);"><div style="height:6px; width:78%; background:var(--color-accent);"></div></div></td>
+                <td style="text-align:right;">&pound;18.50</td><td><span class="tag tag-accent">In stock</span></td>
+              </tr>
+              <tr>
+                <td style="font-family:var(--font-heading); font-weight:600; color:var(--color-accent-700);">CN-3318</td>
+                <td>Blanket wash &mdash; 5L</td><td class="text-muted">Consumables</td>
+                <td style="text-align:right;">1 btl</td><td>3</td>
+                <td><div style="height:6px; background:var(--color-accent-200);"><div style="height:6px; width:14%; background:var(--color-accent-900);"></div></div></td>
+                <td style="text-align:right;">&pound;22.00</td><td><span class="tag tag-outline">Reorder</span></td>
+              </tr>
+              <tr>
+                <td style="font-family:var(--font-heading); font-weight:600; color:var(--color-accent-700);">FN-4102</td>
+                <td>Matt lamination film &mdash; 320mm</td><td class="text-muted">Finishing</td>
+                <td style="text-align:right;">22 rolls</td><td>10</td>
+                <td><div style="height:6px; background:var(--color-accent-200);"><div style="height:6px; width:92%; background:var(--color-accent);"></div></div></td>
+                <td style="text-align:right;">&pound;36.00</td><td><span class="tag tag-accent">In stock</span></td>
+              </tr>
+              <tr>
+                <td style="font-family:var(--font-heading); font-weight:600; color:var(--color-accent-700);">FN-4115</td>
+                <td>Wire binding spools &mdash; 3:1</td><td class="text-muted">Finishing</td>
+                <td style="text-align:right;">40 rolls</td><td>15</td>
+                <td><div style="height:6px; background:var(--color-accent-200);"><div style="height:6px; width:64%; background:var(--color-accent);"></div></div></td>
+                <td style="text-align:right;">&pound;12.40</td><td><span class="tag tag-accent">In stock</span></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <footer style="display:flex; align-items:center; gap:12px; padding:12px 26px; border-top:1px solid var(--color-divider); font-size:12px;">
+          <span class="text-muted">Showing 1&ndash;8 of 214 items</span>
+          <div style="margin-left:auto; display:flex; gap:6px;">
+            <button class="btn btn-secondary btn-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg></button>
+            <button class="btn btn-secondary btn-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></button>
+          </div>
+        </footer>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ 8a — User management ============ -->
+  <section id="8a" style="display:flex; flex-direction:column; gap:16px; width:1440px; flex:none;">
+    <div style="display:flex; align-items:center; gap:8px;">
+      <span class="opt-badge">8a</span>
+      <span class="tagline" style="font-size:10px;">settings &mdash; users &amp; roles</span>
+    </div>
+
+    <div class="blueprint" style="background:var(--color-bg); display:flex; height:840px; overflow:hidden;">
+      <i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i>
+
+      <!-- rail -->
+      <aside style="width:60px; flex:none; background:var(--color-accent-900); display:flex; flex-direction:column; align-items:center; gap:6px; padding:18px 0;">
+        <svg width="30" height="30" viewBox="0 0 120 120" aria-label="PolyMix" style="margin-bottom:12px;">
+          <rect x="8" y="8" width="48" height="48" rx="15" fill="#94bce3"/><rect x="64" y="8" width="48" height="48" rx="15" fill="#cfe4fa"/><rect x="8" y="64" width="48" height="48" rx="15" fill="#7e9cb8"/><rect x="64" y="64" width="48" height="48" rx="15" fill="#b5d9fd"/>
+        </svg>
+        <a href="#" style="width:38px; height:38px; display:flex; align-items:center; justify-content:center; color:#c4d2e0;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9"/><rect x="14" y="3" width="7" height="5"/><rect x="14" y="12" width="7" height="9"/><rect x="3" y="16" width="7" height="5"/></svg></a>
+        <a href="#" style="width:38px; height:38px; display:flex; align-items:center; justify-content:center; color:#c4d2e0;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="1"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/></svg></a>
+        <a href="#" style="width:38px; height:38px; display:flex; align-items:center; justify-content:center; color:#c4d2e0;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/></svg></a>
+        <a href="#" style="width:38px; height:38px; display:flex; align-items:center; justify-content:center; color:#c4d2e0;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 7H4"/><path d="M20 12H4"/><path d="M20 17H4"/></svg></a>
+        <a href="#" aria-current="page" style="margin-top:auto; width:38px; height:38px; display:flex; align-items:center; justify-content:center; color:#ffffff; background:rgba(148,188,227,0.18); box-shadow:inset 2px 0 0 #94bce3;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></a>
+      </aside>
+
+      <!-- settings sub-nav -->
+      <aside style="width:190px; flex:none; border-right:1px solid var(--color-divider); padding:22px 14px; display:flex; flex-direction:column; gap:2px; font-family:var(--font-heading); font-weight:600; font-size:14px;">
+        <div class="text-muted" style="font-size:11px; letter-spacing:0.08em; text-transform:uppercase; padding:0 12px 10px;">Settings</div>
+        <a href="#" style="padding:9px 12px; color:var(--color-text); text-decoration:none;">Company</a>
+        <a href="#" style="padding:9px 12px; color:var(--color-text); text-decoration:none;">Presses &amp; capacity</a>
+        <a href="#" style="padding:9px 12px; color:var(--color-text); text-decoration:none;">Pricing &amp; tax</a>
+        <a href="#" aria-current="page" style="padding:9px 12px; color:var(--color-accent-900); text-decoration:none; background:var(--color-accent-100); box-shadow:inset 2px 0 0 var(--color-accent);">Users &amp; roles</a>
+        <a href="#" style="padding:9px 12px; color:var(--color-text); text-decoration:none;">Integrations</a>
+        <a href="#" style="padding:9px 12px; color:var(--color-text); text-decoration:none;">Audit log</a>
+      </aside>
+
+      <!-- main -->
+      <div style="flex:1; display:flex; flex-direction:column; min-width:0;">
+        <header style="display:flex; align-items:center; gap:16px; padding:18px 26px; border-bottom:1px solid var(--color-divider);">
+          <div style="min-width:0;">
+            <h3 style="margin:0; font-size:24px;">Users &amp; roles</h3>
+            <span class="text-muted" style="font-size:12px;">9 users &middot; 3 seats remaining</span>
+          </div>
+          <div class="input" style="display:flex; align-items:center; gap:8px; width:220px; margin-left:auto; min-height:36px;">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--color-accent)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+            <span class="text-muted" style="font-size:13px;">Search users&hellip;</span>
+          </div>
+          <button class="btn btn-secondary">Manage roles</button>
+          <button class="btn btn-primary blueprint"><i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i>Invite user</button>
+        </header>
+
+        <!-- table -->
+        <div style="flex:1; overflow:auto; padding:8px 26px 26px;">
+          <table class="table">
+            <thead><tr>
+              <th>User</th><th style="width:150px;">Role</th><th style="width:130px;">Department</th>
+              <th style="width:130px;">Last active</th><th style="width:110px;">Status</th><th style="width:100px; text-align:right;">Actions</th>
+            </tr></thead>
+            <tbody>
+              <tr>
+                <td><div style="display:flex; align-items:center; gap:11px;"><span style="flex:none; width:32px; height:32px; background:var(--color-accent-900); color:#fff; display:flex; align-items:center; justify-content:center; font-family:var(--font-heading); font-weight:600; font-size:13px;">LO</span><div><div style="font-family:var(--font-heading); font-weight:600; font-size:14px;">Lena Osei</div><div class="text-muted" style="font-size:12px;">lena@polymix.co</div></div></div></td>
+                <td><span class="tag tag-accent">Owner</span></td><td class="text-muted">Management</td><td class="text-muted">Just now</td>
+                <td><span class="tag tag-accent">Active</span></td>
+                <td style="text-align:right;"><button class="btn btn-ghost btn-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="1"/><circle cx="12" cy="5" r="1"/><circle cx="12" cy="19" r="1"/></svg></button></td>
+              </tr>
+              <tr>
+                <td><div style="display:flex; align-items:center; gap:11px;"><span style="flex:none; width:32px; height:32px; background:var(--color-accent); color:#fff; display:flex; align-items:center; justify-content:center; font-family:var(--font-heading); font-weight:600; font-size:13px;">TR</span><div><div style="font-family:var(--font-heading); font-weight:600; font-size:14px;">Tomas Reid</div><div class="text-muted" style="font-size:12px;">tomas@polymix.co</div></div></div></td>
+                <td><span class="tag tag-outline">Administrator</span></td><td class="text-muted">Accounts</td><td class="text-muted">12 min ago</td>
+                <td><span class="tag tag-accent">Active</span></td>
+                <td style="text-align:right;"><button class="btn btn-ghost btn-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="1"/><circle cx="12" cy="5" r="1"/><circle cx="12" cy="19" r="1"/></svg></button></td>
+              </tr>
+              <tr>
+                <td><div style="display:flex; align-items:center; gap:11px;"><span style="flex:none; width:32px; height:32px; background:var(--color-accent); color:#fff; display:flex; align-items:center; justify-content:center; font-family:var(--font-heading); font-weight:600; font-size:13px;">PS</span><div><div style="font-family:var(--font-heading); font-weight:600; font-size:14px;">Priya Shah</div><div class="text-muted" style="font-size:12px;">priya@polymix.co</div></div></div></td>
+                <td><span class="tag tag-outline">Estimator</span></td><td class="text-muted">Prepress</td><td class="text-muted">1 hr ago</td>
+                <td><span class="tag tag-accent">Active</span></td>
+                <td style="text-align:right;"><button class="btn btn-ghost btn-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="1"/><circle cx="12" cy="5" r="1"/><circle cx="12" cy="19" r="1"/></svg></button></td>
+              </tr>
+              <tr>
+                <td><div style="display:flex; align-items:center; gap:11px;"><span style="flex:none; width:32px; height:32px; background:var(--color-accent); color:#fff; display:flex; align-items:center; justify-content:center; font-family:var(--font-heading); font-weight:600; font-size:13px;">MK</span><div><div style="font-family:var(--font-heading); font-weight:600; font-size:14px;">Marcus Kane</div><div class="text-muted" style="font-size:12px;">marcus@polymix.co</div></div></div></td>
+                <td><span class="tag tag-outline">Press operator</span></td><td class="text-muted">Production</td><td class="text-muted">3 hr ago</td>
+                <td><span class="tag tag-accent">Active</span></td>
+                <td style="text-align:right;"><button class="btn btn-ghost btn-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="1"/><circle cx="12" cy="5" r="1"/><circle cx="12" cy="19" r="1"/></svg></button></td>
+              </tr>
+              <tr>
+                <td><div style="display:flex; align-items:center; gap:11px;"><span style="flex:none; width:32px; height:32px; background:var(--color-accent); color:#fff; display:flex; align-items:center; justify-content:center; font-family:var(--font-heading); font-weight:600; font-size:13px;">HN</span><div><div style="font-family:var(--font-heading); font-weight:600; font-size:14px;">Hana Novak</div><div class="text-muted" style="font-size:12px;">hana@polymix.co</div></div></div></td>
+                <td><span class="tag tag-outline">Finishing</span></td><td class="text-muted">Production</td><td class="text-muted">Yesterday</td>
+                <td><span class="tag tag-accent">Active</span></td>
+                <td style="text-align:right;"><button class="btn btn-ghost btn-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="1"/><circle cx="12" cy="5" r="1"/><circle cx="12" cy="19" r="1"/></svg></button></td>
+              </tr>
+              <tr>
+                <td><div style="display:flex; align-items:center; gap:11px;"><span style="flex:none; width:32px; height:32px; background:var(--color-accent-300); color:var(--color-accent-900); display:flex; align-items:center; justify-content:center; font-family:var(--font-heading); font-weight:600; font-size:13px;">DB</span><div><div style="font-family:var(--font-heading); font-weight:600; font-size:14px;">Dan Boyd</div><div class="text-muted" style="font-size:12px;">dan@polymix.co</div></div></div></td>
+                <td><span class="tag tag-outline">Estimator</span></td><td class="text-muted">Prepress</td><td class="text-muted">6 days ago</td>
+                <td><span class="tag tag-neutral">Invited</span></td>
+                <td style="text-align:right;"><button class="btn btn-ghost btn-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="1"/><circle cx="12" cy="5" r="1"/><circle cx="12" cy="19" r="1"/></svg></button></td>
+              </tr>
+              <tr>
+                <td><div style="display:flex; align-items:center; gap:11px;"><span style="flex:none; width:32px; height:32px; background:var(--color-accent-300); color:var(--color-accent-900); display:flex; align-items:center; justify-content:center; font-family:var(--font-heading); font-weight:600; font-size:13px;">EF</span><div><div style="font-family:var(--font-heading); font-weight:600; font-size:14px;">Elise Ferrand</div><div class="text-muted" style="font-size:12px;">elise@polymix.co</div></div></div></td>
+                <td><span class="tag tag-outline">Viewer</span></td><td class="text-muted">Sales</td><td class="text-muted">2 wks ago</td>
+                <td><span class="tag tag-neutral">Suspended</span></td>
+                <td style="text-align:right;"><button class="btn btn-ghost btn-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="1"/><circle cx="12" cy="5" r="1"/><circle cx="12" cy="19" r="1"/></svg></button></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <footer style="display:flex; align-items:center; gap:12px; padding:12px 26px; border-top:1px solid var(--color-divider); font-size:12px;">
+          <span class="text-muted">9 users &middot; Growth plan (12 seats)</span>
+          <a href="#" style="margin-left:auto; font-size:12px;">Manage subscription</a>
+        </footer>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ 6a — Customer create / edit ============ -->
+  <section id="6a" style="display:flex; flex-direction:column; gap:16px; width:1440px; flex:none;">
+    <div style="display:flex; align-items:center; gap:8px;">
+      <span class="opt-badge">6a</span>
+      <span class="tagline" style="font-size:10px;">application &mdash; edit customer</span>
+    </div>
+
+    <div class="blueprint" style="background:var(--color-bg); display:flex; overflow:hidden;">
+      <i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i>
+
+      <!-- ── Left toolbar (collapsed rail) ── -->
+      <aside style="width:60px; flex:none; background:var(--color-accent-900); display:flex; flex-direction:column; align-items:center; gap:6px; padding:18px 0;">
+        <svg width="30" height="30" viewBox="0 0 120 120" aria-label="PolyMix" style="margin-bottom:12px;">
+          <rect x="8"  y="8"  width="48" height="48" rx="15" fill="#94bce3"/>
+          <rect x="64" y="8"  width="48" height="48" rx="15" fill="#cfe4fa"/>
+          <rect x="8"  y="64" width="48" height="48" rx="15" fill="#7e9cb8"/>
+          <rect x="64" y="64" width="48" height="48" rx="15" fill="#b5d9fd"/>
+        </svg>
+        <a href="#" style="width:38px; height:38px; display:flex; align-items:center; justify-content:center; color:#c4d2e0;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9"/><rect x="14" y="3" width="7" height="5"/><rect x="14" y="12" width="7" height="9"/><rect x="3" y="16" width="7" height="5"/></svg></a>
+        <a href="#" style="width:38px; height:38px; display:flex; align-items:center; justify-content:center; color:#c4d2e0;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="1"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/></svg></a>
+        <a href="#" style="width:38px; height:38px; display:flex; align-items:center; justify-content:center; color:#c4d2e0;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7V4h16v3"/><path d="M9 20h6"/><path d="M12 4v16"/></svg></a>
+        <a href="#" aria-current="page" style="width:38px; height:38px; display:flex; align-items:center; justify-content:center; color:#ffffff; background:rgba(148,188,227,0.18); box-shadow:inset 2px 0 0 #94bce3;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/></svg></a>
+        <a href="#" style="width:38px; height:38px; display:flex; align-items:center; justify-content:center; color:#c4d2e0;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><rect x="7" y="10" width="3" height="7"/><rect x="13" y="6" width="3" height="11"/></svg></a>
+      </aside>
+
+      <!-- ── Main ── -->
+      <div style="flex:1; display:flex; flex-direction:column; min-width:0;">
+
+        <!-- top bar -->
+        <header style="display:flex; align-items:center; gap:16px; padding:16px 26px; border-bottom:1px solid var(--color-divider);">
+          <div style="min-width:0;">
+            <div class="text-muted" style="font-size:11px; letter-spacing:0.08em; text-transform:uppercase; font-family:var(--font-body); display:flex; align-items:center; gap:6px;">
+              Clients <span style="opacity:0.5;">/</span> Edit
+            </div>
+            <h3 style="margin:2px 0 0; font-size:24px; display:flex; align-items:center; gap:10px;">Meridian Press <span class="tag tag-accent" style="vertical-align:middle;">Active</span></h3>
+          </div>
+          <div style="margin-left:auto; display:flex; gap:8px;">
+            <button class="btn btn-ghost">Cancel</button>
+            <button class="btn btn-primary blueprint" style="padding-inline:18px;"><i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i>Save customer</button>
+          </div>
+        </header>
+
+        <!-- body: form + side -->
+        <div style="display:grid; grid-template-columns:1fr 320px; gap:0; align-items:stretch;">
+
+          <!-- form column -->
+          <div style="padding:24px 26px; display:flex; flex-direction:column; gap:26px; border-right:1px solid var(--color-divider);">
+
+            <!-- Company -->
+            <fieldset style="border:0; margin:0; padding:0; display:flex; flex-direction:column; gap:14px;">
+              <legend style="font-family:var(--font-heading); font-weight:600; font-size:13px; letter-spacing:0.06em; text-transform:uppercase; color:var(--color-accent-700); padding:0; margin-bottom:2px;">Company</legend>
+              <div style="display:grid; grid-template-columns:1.6fr 1fr; gap:16px;">
+                <div class="field"><label for="c-name">Company name</label>
+                  <input class="input" id="c-name" value="Meridian Press"></div>
+                <div class="field"><label for="c-acct">Account code</label>
+                  <input class="input" id="c-acct" value="MER-014"></div>
+              </div>
+              <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:16px;">
+                <div class="field"><label for="c-type">Type</label>
+                  <select class="input" id="c-type"><option>Publisher</option><option>Agency</option><option>Retailer</option><option>Direct</option></select></div>
+                <div class="field"><label for="c-terms">Payment terms</label>
+                  <select class="input" id="c-terms"><option>Net 30</option><option>Net 14</option><option>On delivery</option><option>Pro forma</option></select></div>
+                <div class="field"><label for="c-vat">VAT number</label>
+                  <input class="input" id="c-vat" value="GB 421 8890 55"></div>
+              </div>
+            </fieldset>
+
+            <!-- Billing address -->
+            <fieldset style="border:0; margin:0; padding:0; display:flex; flex-direction:column; gap:14px;">
+              <legend style="font-family:var(--font-heading); font-weight:600; font-size:13px; letter-spacing:0.06em; text-transform:uppercase; color:var(--color-accent-700); padding:0; margin-bottom:2px;">Billing address</legend>
+              <div class="field"><label for="c-addr">Street</label><input class="input" id="c-addr" value="41 Halyard Wharf"></div>
+              <div style="display:grid; grid-template-columns:1.4fr 1fr 1fr; gap:16px;">
+                <div class="field"><label for="c-city">City</label><input class="input" id="c-city" value="Bristol"></div>
+                <div class="field"><label for="c-post">Postcode</label><input class="input" id="c-post" value="BS1 6TG"></div>
+                <div class="field"><label for="c-country">Country</label><select class="input" id="c-country"><option>United Kingdom</option><option>Ireland</option><option>France</option></select></div>
+              </div>
+            </fieldset>
+
+            <!-- Contacts — editable list -->
+            <fieldset style="border:0; margin:0; padding:0; display:flex; flex-direction:column; gap:12px;">
+              <div style="display:flex; align-items:center; gap:10px;">
+                <legend style="font-family:var(--font-heading); font-weight:600; font-size:13px; letter-spacing:0.06em; text-transform:uppercase; color:var(--color-accent-700); padding:0; float:none;">Contacts</legend>
+                <span class="text-muted" style="font-size:12px;">3</span>
+                <button class="btn btn-secondary" style="margin-left:auto;">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14"/><path d="M5 12h14"/></svg>
+                  Add contact
+                </button>
+              </div>
+
+              <!-- column header -->
+              <div style="display:grid; grid-template-columns:1.1fr 1.2fr 1.4fr 1fr 96px 40px; gap:12px; padding:0 12px; font-family:var(--font-body); font-size:11px; letter-spacing:0.08em; text-transform:uppercase; color:var(--color-text-muted);">
+                <span>Name</span><span>Role</span><span>Email</span><span>Phone</span><span style="text-align:center;">Primary</span><span></span>
+              </div>
+
+              <!-- rows -->
+              <div style="display:flex; flex-direction:column; gap:8px;">
+                <!-- row 1 (primary) -->
+                <div class="blueprint" style="display:grid; grid-template-columns:1.1fr 1.2fr 1.4fr 1fr 96px 40px; gap:12px; align-items:center; padding:8px 12px; background:var(--color-accent-100);">
+                  <i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i>
+                  <input class="input" value="Lena Osei" style="min-height:34px;">
+                  <input class="input" value="Production lead" style="min-height:34px;">
+                  <input class="input" value="lena@meridianpress.co" style="min-height:34px;">
+                  <input class="input" value="0117 496 2210" style="min-height:34px;">
+                  <div style="display:flex; justify-content:center;"><input type="radio" name="c-primary" checked style="accent-color:var(--color-accent); width:16px; height:16px;"></div>
+                  <button class="btn btn-ghost btn-icon" aria-label="Remove contact"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/></svg></button>
+                </div>
+                <!-- row 2 -->
+                <div class="blueprint" style="display:grid; grid-template-columns:1.1fr 1.2fr 1.4fr 1fr 96px 40px; gap:12px; align-items:center; padding:8px 12px;">
+                  <i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i>
+                  <input class="input" value="Tomas Reid" style="min-height:34px;">
+                  <input class="input" value="Accounts" style="min-height:34px;">
+                  <input class="input" value="ap@meridianpress.co" style="min-height:34px;">
+                  <input class="input" value="0117 496 2218" style="min-height:34px;">
+                  <div style="display:flex; justify-content:center;"><input type="radio" name="c-primary" style="accent-color:var(--color-accent); width:16px; height:16px;"></div>
+                  <button class="btn btn-ghost btn-icon" aria-label="Remove contact"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/></svg></button>
+                </div>
+                <!-- row 3 -->
+                <div class="blueprint" style="display:grid; grid-template-columns:1.1fr 1.2fr 1.4fr 1fr 96px 40px; gap:12px; align-items:center; padding:8px 12px;">
+                  <i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i>
+                  <input class="input" value="Priya Shah" style="min-height:34px;">
+                  <input class="input" value="Editorial" style="min-height:34px;">
+                  <input class="input" value="priya@meridianpress.co" style="min-height:34px;">
+                  <input class="input" value="0117 496 2231" style="min-height:34px;">
+                  <div style="display:flex; justify-content:center;"><input type="radio" name="c-primary" style="accent-color:var(--color-accent); width:16px; height:16px;"></div>
+                  <button class="btn btn-ghost btn-icon" aria-label="Remove contact"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/></svg></button>
+                </div>
+              </div>
+            </fieldset>
+          </div>
+
+          <!-- side column -->
+          <aside style="padding:24px 22px; display:flex; flex-direction:column; gap:16px; background:var(--color-accent-100);">
+            <div style="font-family:var(--font-heading); font-weight:600; font-size:13px; letter-spacing:0.06em; text-transform:uppercase; color:var(--color-accent-700);">Account</div>
+            <div style="display:flex; flex-direction:column; gap:9px; font-size:13px; font-variant-numeric:tabular-nums;">
+              <div style="display:flex; justify-content:space-between;"><span class="text-muted">Open jobs</span><span>4</span></div>
+              <div style="display:flex; justify-content:space-between;"><span class="text-muted">Lifetime value</span><span>&pound;142,600</span></div>
+              <div style="display:flex; justify-content:space-between;"><span class="text-muted">Outstanding</span><span style="color:var(--color-accent-900); font-weight:600;">&pound;8,240</span></div>
+              <div style="display:flex; justify-content:space-between;"><span class="text-muted">Since</span><span>Mar 2021</span></div>
+            </div>
+            <div style="height:1px; background:var(--color-accent-300);"></div>
+            <div class="field" style="gap:5px;"><label style="font-size:11px;">Credit limit</label><input class="input" value="£20,000" style="background:#fff;"></div>
+            <div class="field" style="gap:5px;"><label style="font-size:11px;">Status</label>
+              <select class="input" style="background:#fff;"><option>Active</option><option>On hold</option><option>Archived</option></select></div>
+            <label class="radio" style="width:auto; font-size:13px;"><input type="checkbox" checked style="accent-color:var(--color-accent); width:16px; height:16px;"> Send statements automatically</label>
+            <div style="margin-top:auto; display:flex; flex-direction:column; gap:8px;">
+              <button class="btn btn-primary btn-block blueprint"><i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i>Save customer</button>
+              <button class="btn btn-ghost btn-block">Archive customer</button>
+            </div>
+          </aside>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ 4a — Validation dialog (errors / warnings) ============ -->
+  <section id="4a" style="display:flex; flex-direction:column; gap:16px; width:520px; flex:none;">
+    <div style="display:flex; align-items:center; gap:8px;">
+      <span class="opt-badge">4a</span>
+      <span class="tagline" style="font-size:10px;">dialog &mdash; errors &amp; warnings</span>
+    </div>
+
+    <!-- backdrop -->
+    <div style="position:relative; background:color-mix(in srgb, var(--color-accent-900) 42%, transparent); padding:44px 34px; display:flex; justify-content:center;">
+      <div class="blueprint elev-lg" style="background:var(--color-bg); width:420px;">
+        <i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i>
+
+        <!-- header -->
+        <div style="display:flex; align-items:flex-start; gap:13px; padding:20px 22px 14px; border-bottom:1px solid var(--color-divider);">
+          <span style="flex:none; width:34px; height:34px; display:flex; align-items:center; justify-content:center; background:var(--color-accent-100); color:var(--color-accent-700);">
+            <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>
+          </span>
+          <div style="min-width:0; flex:1;">
+            <h3 style="margin:0; font-size:19px;">Can't save order</h3>
+            <p class="text-muted" style="margin:2px 0 0; font-size:12.5px;">Resolve 2 errors before saving. 1 warning can be ignored.</p>
+          </div>
+          <button class="btn btn-ghost btn-icon" style="flex:none; margin:-4px -6px 0 0;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg></button>
+        </div>
+
+        <!-- issue list -->
+        <div style="padding:14px 22px 6px; display:flex; flex-direction:column; gap:10px;">
+          <!-- error -->
+          <div class="blueprint" style="display:flex; gap:11px; padding:11px 13px; border-color:var(--color-accent-700); background:var(--color-accent-100);">
+            <i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i>
+            <span style="flex:none; color:var(--color-accent-700); margin-top:1px;"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="m15 9-6 6"/><path d="m9 9 6 6"/></svg></span>
+            <div style="min-width:0;">
+              <div style="font-family:var(--font-heading); font-weight:600; font-size:14px;">Quantity exceeds stock on hand</div>
+              <div class="text-muted" style="font-size:12.5px;">2,500 ordered &middot; 1,800 sheets of Munken Print 90gsm available. <a href="#">Reorder stock</a></div>
+            </div>
+          </div>
+          <!-- error -->
+          <div class="blueprint" style="display:flex; gap:11px; padding:11px 13px; border-color:var(--color-accent-700); background:var(--color-accent-100);">
+            <i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i>
+            <span style="flex:none; color:var(--color-accent-700); margin-top:1px;"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="m15 9-6 6"/><path d="m9 9 6 6"/></svg></span>
+            <div style="min-width:0;">
+              <div style="font-family:var(--font-heading); font-weight:600; font-size:14px;">No press assigned</div>
+              <div class="text-muted" style="font-size:12.5px;">Full-colour jobs require a litho or digital press before scheduling.</div>
+            </div>
+          </div>
+          <!-- warning -->
+          <div class="blueprint" style="display:flex; gap:11px; padding:11px 13px;">
+            <i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i>
+            <span style="flex:none; color:var(--color-accent); margin-top:1px;"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg></span>
+            <div style="min-width:0;">
+              <div style="font-family:var(--font-heading); font-weight:600; font-size:14px;">Due date is tight</div>
+              <div class="text-muted" style="font-size:12.5px;">Finishing capacity is 85% booked for Jul 15. Delivery may slip a day.</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- actions -->
+        <div style="display:flex; align-items:center; gap:8px; padding:14px 22px 20px;">
+          <button class="btn btn-ghost" style="margin-right:auto;">Save as draft</button>
+          <button class="btn btn-secondary">Back to order</button>
+          <button class="btn btn-primary blueprint"><i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i>Fix errors</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ 5a — Login ============ -->
+  <section id="5a" style="display:flex; flex-direction:column; gap:16px; width:840px; flex:none;">
+    <div style="display:flex; align-items:center; gap:8px;">
+      <span class="opt-badge">5a</span>
+      <span class="tagline" style="font-size:10px;">login</span>
+    </div>
+
+    <div class="blueprint" style="background:var(--color-bg); display:flex; overflow:hidden; min-height:520px;">
+      <i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i>
+
+      <!-- brand panel -->
+      <div style="width:44%; flex:none; background:var(--color-accent-900); color:#e8eef5; padding:34px 32px; display:flex; flex-direction:column;">
+        <div style="display:flex; align-items:center; gap:12px;">
+          <svg width="34" height="34" viewBox="0 0 120 120" aria-label="PolyMix">
+            <rect x="8"  y="8"  width="48" height="48" rx="15" fill="#94bce3"/>
+            <rect x="64" y="8"  width="48" height="48" rx="15" fill="#cfe4fa"/>
+            <rect x="8"  y="64" width="48" height="48" rx="15" fill="#7e9cb8"/>
+            <rect x="64" y="64" width="48" height="48" rx="15" fill="#b5d9fd"/>
+          </svg>
+          <span style="font-family:var(--font-heading); font-weight:600; font-size:24px; letter-spacing:-0.02em; color:#fff;">Poly<span style="color:#b5d9fd;">Mix</span></span>
+        </div>
+        <div style="margin-top:auto;">
+          <div style="font-family:var(--font-heading); font-weight:600; font-size:30px; line-height:1.08; letter-spacing:-0.01em;">Print management,<br>press to pallet.</div>
+          <p style="margin:14px 0 0; font-size:13.5px; color:#c4d2e0; max-width:34ch; line-height:1.5;">Estimates, typesetting, scheduling and dispatch for your whole shop &mdash; one board.</p>
+        </div>
+        <div style="margin-top:28px; font-size:11px; letter-spacing:0.08em; text-transform:uppercase; color:#8fa6bd; display:flex; gap:6px; align-items:center;"><span style="width:16px; height:1px; background:#8fa6bd;"></span>Print MIS</div>
+      </div>
+
+      <!-- form panel -->
+      <div style="flex:1; display:flex; flex-direction:column; justify-content:center; padding:40px 44px;">
+        <h3 style="margin:0; font-size:26px;">Sign in</h3>
+        <p class="text-muted" style="margin:4px 0 24px; font-size:13px;">Welcome back. Enter your credentials to continue.</p>
+
+        <div style="display:flex; flex-direction:column; gap:15px;">
+          <div class="field"><label for="l-email">Work email</label>
+            <input class="input" id="l-email" type="email" value="lena@meridianpress.co"></div>
+          <div class="field"><label for="l-pass" style="display:flex; justify-content:space-between; align-items:baseline;">Password <a href="#" style="font-size:12px; text-transform:none; letter-spacing:0;">Forgot?</a></label>
+            <input class="input" id="l-pass" type="password" value="............"></div>
+          <label class="radio" style="width:auto; font-size:13px;"><input type="checkbox" checked style="accent-color:var(--color-accent); width:16px; height:16px;"> Keep me signed in on this workstation</label>
+          <button class="btn btn-primary btn-block blueprint" style="margin-top:4px;"><i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i>Sign in</button>
+        </div>
+
+        <div style="display:flex; align-items:center; gap:12px; margin:22px 0; color:var(--color-text-muted);">
+          <span style="flex:1; height:1px; background:var(--color-divider);"></span>
+          <span style="font-size:11px; letter-spacing:0.1em; text-transform:uppercase; opacity:0.6;">or</span>
+          <span style="flex:1; height:1px; background:var(--color-divider);"></span>
+        </div>
+        <button class="btn btn-secondary btn-block">Continue with SSO</button>
+        <p class="text-muted" style="margin:22px 0 0; font-size:13px;">New to PolyMix? <a href="#5b">Create an account</a></p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ 5b — Registration ============ -->
+  <section id="5b" style="display:flex; flex-direction:column; gap:16px; width:840px; flex:none;">
+    <div style="display:flex; align-items:center; gap:8px;">
+      <span class="opt-badge">5b</span>
+      <span class="tagline" style="font-size:10px;">registration</span>
+    </div>
+
+    <div class="blueprint" style="background:var(--color-bg); display:flex; overflow:hidden; min-height:520px;">
+      <i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i>
+
+      <!-- brand panel -->
+      <div style="width:44%; flex:none; background:var(--color-accent-900); color:#e8eef5; padding:34px 32px; display:flex; flex-direction:column;">
+        <div style="display:flex; align-items:center; gap:12px;">
+          <svg width="34" height="34" viewBox="0 0 120 120" aria-label="PolyMix">
+            <rect x="8"  y="8"  width="48" height="48" rx="15" fill="#94bce3"/>
+            <rect x="64" y="8"  width="48" height="48" rx="15" fill="#cfe4fa"/>
+            <rect x="8"  y="64" width="48" height="48" rx="15" fill="#7e9cb8"/>
+            <rect x="64" y="64" width="48" height="48" rx="15" fill="#b5d9fd"/>
+          </svg>
+          <span style="font-family:var(--font-heading); font-weight:600; font-size:24px; letter-spacing:-0.02em; color:#fff;">Poly<span style="color:#b5d9fd;">Mix</span></span>
+        </div>
+        <div style="margin-top:auto; display:flex; flex-direction:column; gap:16px;">
+          <div style="font-family:var(--font-heading); font-weight:600; font-size:30px; line-height:1.08; letter-spacing:-0.01em;">Set up your<br>print shop.</div>
+          <div style="display:flex; flex-direction:column; gap:11px; font-size:13.5px; color:#c4d2e0;">
+            <div style="display:flex; gap:10px; align-items:flex-start;"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#b5d9fd" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="flex:none; margin-top:1px;"><path d="M20 6 9 17l-5-5"/></svg>Unlimited jobs &amp; estimates</div>
+            <div style="display:flex; gap:10px; align-items:flex-start;"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#b5d9fd" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="flex:none; margin-top:1px;"><path d="M20 6 9 17l-5-5"/></svg>Press &amp; finishing scheduling</div>
+            <div style="display:flex; gap:10px; align-items:flex-start;"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#b5d9fd" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="flex:none; margin-top:1px;"><path d="M20 6 9 17l-5-5"/></svg>14-day trial, no card required</div>
+          </div>
+        </div>
+        <div style="margin-top:28px; font-size:11px; letter-spacing:0.08em; text-transform:uppercase; color:#8fa6bd; display:flex; gap:6px; align-items:center;"><span style="width:16px; height:1px; background:#8fa6bd;"></span>Print MIS</div>
+      </div>
+
+      <!-- form panel -->
+      <div style="flex:1; display:flex; flex-direction:column; justify-content:center; padding:36px 44px;">
+        <h3 style="margin:0; font-size:26px;">Create account</h3>
+        <p class="text-muted" style="margin:4px 0 22px; font-size:13px;">Start your 14-day trial. No credit card needed.</p>
+
+        <div style="display:flex; flex-direction:column; gap:15px;">
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px;">
+            <div class="field"><label for="r-first">First name</label><input class="input" id="r-first" placeholder="Lena"></div>
+            <div class="field"><label for="r-last">Last name</label><input class="input" id="r-last" placeholder="Osei"></div>
+          </div>
+          <div class="field"><label for="r-company">Company</label><input class="input" id="r-company" placeholder="Meridian Press"></div>
+          <div class="field"><label for="r-email">Work email</label><input class="input" id="r-email" type="email" placeholder="you@company.co"></div>
+          <div class="field"><label for="r-pass">Password</label>
+            <input class="input" id="r-pass" type="password" placeholder="At least 10 characters">
+            <span class="text-muted" style="font-size:11.5px; margin-top:5px;">Use 10+ characters with a number and a symbol.</span></div>
+          <label class="radio" style="width:auto; font-size:13px;"><input type="checkbox" style="accent-color:var(--color-accent); width:16px; height:16px; margin-top:1px;"> I agree to the <a href="#">Terms</a> &amp; <a href="#">Privacy Policy</a></label>
+          <button class="btn btn-primary btn-block blueprint" style="margin-top:4px;"><i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i>Create account</button>
+        </div>
+        <p class="text-muted" style="margin:20px 0 0; font-size:13px;">Already have an account? <a href="#5a">Sign in</a></p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ 3a — Order create / edit form ============ -->
+  <section id="3a" style="display:flex; flex-direction:column; gap:16px; width:1440px; flex:none;">
+    <div style="display:flex; align-items:center; gap:8px;">
+      <span class="opt-badge">3a</span>
+      <span class="tagline" style="font-size:10px;">application &mdash; edit order</span>
+    </div>
+
+    <div class="blueprint" style="background:var(--color-bg); display:flex; overflow:hidden;">
+      <i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i>
+
+      <!-- ── Left toolbar (collapsed rail) ── -->
+      <aside style="width:60px; flex:none; background:var(--color-accent-900); display:flex; flex-direction:column; align-items:center; gap:6px; padding:18px 0;">
+        <svg width="30" height="30" viewBox="0 0 120 120" aria-label="PolyMix" style="margin-bottom:12px;">
+          <rect x="8"  y="8"  width="48" height="48" rx="15" fill="#94bce3"/>
+          <rect x="64" y="8"  width="48" height="48" rx="15" fill="#cfe4fa"/>
+          <rect x="8"  y="64" width="48" height="48" rx="15" fill="#7e9cb8"/>
+          <rect x="64" y="64" width="48" height="48" rx="15" fill="#b5d9fd"/>
+        </svg>
+        <a href="#" style="width:38px; height:38px; display:flex; align-items:center; justify-content:center; color:#c4d2e0;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9"/><rect x="14" y="3" width="7" height="5"/><rect x="14" y="12" width="7" height="9"/><rect x="3" y="16" width="7" height="5"/></svg></a>
+        <a href="#" aria-current="page" style="width:38px; height:38px; display:flex; align-items:center; justify-content:center; color:#ffffff; background:rgba(148,188,227,0.18); box-shadow:inset 2px 0 0 #94bce3;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="1"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/></svg></a>
+        <a href="#" style="width:38px; height:38px; display:flex; align-items:center; justify-content:center; color:#c4d2e0;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7V4h16v3"/><path d="M9 20h6"/><path d="M12 4v16"/></svg></a>
+        <a href="#" style="width:38px; height:38px; display:flex; align-items:center; justify-content:center; color:#c4d2e0;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/></svg></a>
+        <a href="#" style="width:38px; height:38px; display:flex; align-items:center; justify-content:center; color:#c4d2e0;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><rect x="7" y="10" width="3" height="7"/><rect x="13" y="6" width="3" height="11"/></svg></a>
+      </aside>
+
+      <!-- ── Main ── -->
+      <div style="flex:1; display:flex; flex-direction:column; min-width:0;">
+
+        <!-- top bar: breadcrumb + title + actions -->
+        <header style="display:flex; align-items:center; gap:16px; padding:16px 26px; border-bottom:1px solid var(--color-divider);">
+          <div style="min-width:0;">
+            <div class="text-muted" style="font-size:11px; letter-spacing:0.08em; text-transform:uppercase; font-family:var(--font-body); display:flex; align-items:center; gap:6px;">
+              Production jobs <span style="opacity:0.5;">/</span> Edit
+            </div>
+            <h3 style="margin:2px 0 0; font-size:24px; display:flex; align-items:center; gap:10px;">Edit order <span style="color:var(--color-accent-700);">JOB-4820</span> <span class="tag tag-accent" style="vertical-align:middle;">In press</span></h3>
+          </div>
+          <div style="margin-left:auto; display:flex; gap:8px;">
+            <button class="btn btn-ghost">Cancel</button>
+            <button class="btn btn-secondary">Save draft</button>
+            <button class="btn btn-primary blueprint" style="padding-inline:18px;"><i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i>Save order</button>
+          </div>
+        </header>
+
+        <!-- body: form + summary -->
+        <div style="display:grid; grid-template-columns:1fr 336px; gap:0; align-items:stretch;">
+
+          <!-- form column -->
+          <div style="padding:24px 26px; display:flex; flex-direction:column; gap:26px; border-right:1px solid var(--color-divider);">
+
+            <!-- Client & job -->
+            <fieldset style="border:0; margin:0; padding:0; display:flex; flex-direction:column; gap:14px;">
+              <legend style="font-family:var(--font-heading); font-weight:600; font-size:13px; letter-spacing:0.06em; text-transform:uppercase; color:var(--color-accent-700); padding:0; margin-bottom:2px;">Client &amp; job</legend>
+              <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px;">
+                <div class="field"><label for="o-client">Client</label>
+                  <input class="input" id="o-client" value="Meridian Press"></div>
+                <div class="field"><label for="o-contact">Contact</label>
+                  <input class="input" id="o-contact" value="Lena Osei"></div>
+              </div>
+              <div class="field"><label for="o-title">Job title</label>
+                <input class="input" id="o-title" value="Meridian — Field Notes, Vol. II"></div>
+            </fieldset>
+
+            <!-- Specification -->
+            <fieldset style="border:0; margin:0; padding:0; display:flex; flex-direction:column; gap:14px;">
+              <legend style="font-family:var(--font-heading); font-weight:600; font-size:13px; letter-spacing:0.06em; text-transform:uppercase; color:var(--color-accent-700); padding:0; margin-bottom:2px;">Specification</legend>
+              <div style="display:grid; grid-template-columns:1.4fr 1fr 1fr; gap:16px;">
+                <div class="field"><label for="o-product">Product</label>
+                  <select class="input" id="o-product">
+                    <option>Softcover book</option>
+                    <option>Hardcover book</option>
+                    <option>Perfect-bound journal</option>
+                    <option>Folded flyer</option>
+                  </select></div>
+                <div class="field"><label for="o-pages">Extent (pp)</label>
+                  <input class="input" id="o-pages" value="148"></div>
+                <div class="field"><label for="o-qty">Quantity</label>
+                  <input class="input" id="o-qty" value="2,500"></div>
+              </div>
+              <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px;">
+                <div class="field"><label for="o-text-stock">Text stock</label>
+                  <select class="input" id="o-text-stock">
+                    <option>Munken Print 90gsm</option>
+                    <option>Amber Graphic 100gsm</option>
+                    <option>Coated silk 130gsm</option>
+                  </select></div>
+                <div class="field"><label for="o-cover-stock">Cover stock</label>
+                  <select class="input" id="o-cover-stock">
+                    <option>Colorplan 270gsm</option>
+                    <option>Invercote 300gsm</option>
+                    <option>Kraft board 280gsm</option>
+                  </select></div>
+              </div>
+              <div class="field"><label id="o-color-label">Colour</label>
+                <div class="seg" role="radiogroup" aria-labelledby="o-color-label">
+                  <label class="seg-opt"><input type="radio" name="ocolor" checked>1 colour</label>
+                  <label class="seg-opt"><input type="radio" name="ocolor">2 colour</label>
+                  <label class="seg-opt"><input type="radio" name="ocolor">Full colour</label>
+                </div></div>
+              <div class="field"><label>Finishing</label>
+                <div style="display:flex; flex-wrap:wrap; gap:8px 20px;">
+                  <label class="radio" style="width:auto;"><input type="checkbox" checked style="accent-color:var(--color-accent); width:16px; height:16px;"> Trim &amp; bind</label>
+                  <label class="radio" style="width:auto;"><input type="checkbox" checked style="accent-color:var(--color-accent); width:16px; height:16px;"> Matt lamination</label>
+                  <label class="radio" style="width:auto;"><input type="checkbox" style="accent-color:var(--color-accent); width:16px; height:16px;"> Spot UV</label>
+                  <label class="radio" style="width:auto;"><input type="checkbox" style="accent-color:var(--color-accent); width:16px; height:16px;"> Foil</label>
+                  <label class="radio" style="width:auto;"><input type="checkbox" style="accent-color:var(--color-accent); width:16px; height:16px;"> Shrink-wrap</label>
+                </div></div>
+            </fieldset>
+
+            <!-- Schedule -->
+            <fieldset style="border:0; margin:0; padding:0; display:flex; flex-direction:column; gap:14px;">
+              <legend style="font-family:var(--font-heading); font-weight:600; font-size:13px; letter-spacing:0.06em; text-transform:uppercase; color:var(--color-accent-700); padding:0; margin-bottom:2px;">Schedule</legend>
+              <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:16px;">
+                <div class="field"><label for="o-received">Received</label>
+                  <input class="input" id="o-received" value="2026-07-08"></div>
+                <div class="field"><label for="o-due">Due date</label>
+                  <input class="input" id="o-due" value="2026-07-15"></div>
+                <div class="field"><label id="o-pri-label">Priority</label>
+                  <div class="seg" role="radiogroup" aria-labelledby="o-pri-label">
+                    <label class="seg-opt"><input type="radio" name="opri">Low</label>
+                    <label class="seg-opt"><input type="radio" name="opri" checked>Std</label>
+                    <label class="seg-opt"><input type="radio" name="opri">Rush</label>
+                  </div></div>
+              </div>
+              <div class="field"><label for="o-notes">Production notes</label>
+                <textarea class="input" id="o-notes" rows="2">Endpapers on Colorplan Pristine White. Match spine colour to Vol. I.</textarea></div>
+            </fieldset>
+          </div>
+
+          <!-- summary column -->
+          <aside style="padding:24px 22px; display:flex; flex-direction:column; gap:16px; background:var(--color-accent-100);">
+            <div style="font-family:var(--font-heading); font-weight:600; font-size:13px; letter-spacing:0.06em; text-transform:uppercase; color:var(--color-accent-700);">Cost summary</div>
+            <div style="display:flex; flex-direction:column; gap:9px; font-size:13px; font-variant-numeric:tabular-nums;">
+              <div style="display:flex; justify-content:space-between;"><span class="text-muted">Prepress &amp; typesetting</span><span>&pound;640</span></div>
+              <div style="display:flex; justify-content:space-between;"><span class="text-muted">Print &middot; 2,500 &times; 148pp</span><span>&pound;5,900</span></div>
+              <div style="display:flex; justify-content:space-between;"><span class="text-muted">Stock</span><span>&pound;980</span></div>
+              <div style="display:flex; justify-content:space-between;"><span class="text-muted">Finishing</span><span>&pound;720</span></div>
+            </div>
+            <div style="height:1px; background:var(--color-accent-300);"></div>
+            <div style="display:flex; flex-direction:column; gap:9px; font-size:13px; font-variant-numeric:tabular-nums;">
+              <div style="display:flex; justify-content:space-between;"><span class="text-muted">Subtotal</span><span>&pound;8,240</span></div>
+              <div style="display:flex; justify-content:space-between;"><span class="text-muted">VAT 20%</span><span>&pound;1,648</span></div>
+              <div style="display:flex; justify-content:space-between; align-items:baseline; font-family:var(--font-heading); font-weight:600;"><span style="font-size:15px;">Total</span><span style="font-size:22px; color:var(--color-accent-900);">&pound;9,888</span></div>
+            </div>
+            <div style="height:1px; background:var(--color-accent-300);"></div>
+            <div style="display:flex; flex-direction:column; gap:8px;">
+              <div class="field" style="gap:5px;"><label style="font-size:11px;">Assigned press</label>
+                <select class="input" style="background:#fff;">
+                  <option>Press 2 — Heidelberg SM 74</option>
+                  <option>Press 1 — Komori GL-540</option>
+                  <option>Digital — HP Indigo 12000</option>
+                </select></div>
+              <label class="radio" style="width:auto; font-size:13px;"><input type="checkbox" checked style="accent-color:var(--color-accent); width:16px; height:16px;"> Notify client on status change</label>
+            </div>
+            <div style="margin-top:auto; display:flex; flex-direction:column; gap:8px;">
+              <button class="btn btn-primary btn-block blueprint"><i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i>Save order</button>
+              <button class="btn btn-ghost btn-block">Delete order</button>
+            </div>
+          </aside>
+        </div>
+      </div>
+    </div>
+  </section>
+
   <!-- ============ 2a — Application screen ============ -->
   <section id="2a" style="display:flex; flex-direction:column; gap:16px; width:1440px; flex:none;">
     <div style="display:flex; align-items:center; gap:8px;">
