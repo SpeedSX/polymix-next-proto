@@ -1,8 +1,8 @@
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import { ClerkProvider } from '@clerk/react'
-import { MantineProvider, createTheme } from '@mantine/core'
-import type { MantineColorsTuple } from '@mantine/core'
+import { MantineProvider, Table, createTheme } from '@mantine/core'
+import type { CSSVariablesResolver, MantineColorsTuple } from '@mantine/core'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { RouterProvider } from '@tanstack/react-router'
 import '@mantine/core/styles.css'
@@ -15,28 +15,53 @@ import { router } from './app/routes'
 
 const queryClient = new QueryClient()
 
-const myColor: MantineColorsTuple = [
-  '#ecf4ff',
-  '#dce4f5',
-  '#b9c7e2',
-  '#94a8d0',
-  '#748dc0',
-  '#5f7cb7',
-  '#5474b4',
-  '#44639f',
-  '#3a5890',
-  '#2c4b80'
-];
+// "Industry" design-system steel accent (docs/design), OKLCH ramp 100–900
+// widened to Mantine's 10 steps; index 6 (#597ea3) is the base accent.
+const steel: MantineColorsTuple = [
+  '#eef6ff',
+  '#d6ebff',
+  '#b5d9fd',
+  '#94bce3',
+  '#749dc4',
+  '#678eb4',
+  '#597ea3',
+  '#416180',
+  '#2c455d',
+  '#1d2d3d',
+]
 
 const theme = createTheme({
-  colors: {
-    myColor,
+  primaryColor: 'steel',
+  primaryShade: 6,
+  colors: { steel },
+  defaultRadius: 0,
+  fontFamily: 'Fira Sans, system-ui, sans-serif',
+  headings: {
+    fontFamily: '"Fira Sans Condensed", system-ui, sans-serif',
+    fontWeight: '600',
   },
-  primaryColor: 'myColor',
-});
+  components: {
+    Table: Table.extend({
+      styles: {
+        th: {
+          textTransform: 'uppercase',
+          fontSize: '11px',
+          letterSpacing: '0.08em',
+          fontWeight: 600,
+        },
+      },
+    }),
+  },
+})
+
+const cssVariablesResolver: CSSVariablesResolver = () => ({
+  variables: {},
+  light: { '--mantine-color-body': '#f2f2f3' },
+  dark: {},
+})
 
 const app = (
-  <MantineProvider theme={theme}>
+  <MantineProvider theme={theme} forceColorScheme="light" cssVariablesResolver={cssVariablesResolver}>
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
         <LiveUpdatesProvider>

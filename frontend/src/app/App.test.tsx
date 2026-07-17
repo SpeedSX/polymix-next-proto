@@ -33,6 +33,6 @@ describe('app shell', () => {
 
     fireEvent.click(await screen.findByRole('button', { name: 'Sign in' }))
 
-    expect(await screen.findAllByText('PolyMix Next')).not.toHaveLength(0)
+    expect(await screen.findAllByText('Customers')).not.toHaveLength(0)
   })
 })
