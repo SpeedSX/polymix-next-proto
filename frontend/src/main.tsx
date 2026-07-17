@@ -1,7 +1,15 @@
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import { ClerkProvider } from '@clerk/react'
-import { MantineProvider, Table, createTheme } from '@mantine/core'
+import {
+  Accordion,
+  Button,
+  Fieldset,
+  InputWrapper,
+  MantineProvider,
+  Table,
+  createTheme,
+} from '@mantine/core'
 import type { CSSVariablesResolver, MantineColorsTuple } from '@mantine/core'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { RouterProvider } from '@tanstack/react-router'
@@ -48,6 +56,46 @@ const theme = createTheme({
           fontSize: '11px',
           letterSpacing: '0.08em',
           fontWeight: 600,
+        },
+      },
+    }),
+    Button: Button.extend({
+      styles: {
+        root: {
+          fontFamily: 'var(--mantine-font-family-headings)',
+          fontWeight: 600,
+          letterSpacing: '0.01em',
+        },
+      },
+    }),
+    Fieldset: Fieldset.extend({
+      defaultProps: { variant: 'unstyled' },
+      styles: {
+        legend: {
+          fontFamily: 'var(--mantine-font-family-headings)',
+          fontWeight: 600,
+          fontSize: '13px',
+          letterSpacing: '0.06em',
+          textTransform: 'uppercase',
+          color: 'var(--mantine-color-steel-7)',
+          marginBottom: '4px',
+        },
+      },
+    }),
+    Accordion: Accordion.extend({
+      styles: {
+        control: {
+          fontFamily: 'var(--mantine-font-family-headings)',
+          fontWeight: 600,
+        },
+      },
+    }),
+    InputWrapper: InputWrapper.extend({
+      styles: {
+        label: {
+          fontWeight: 500,
+          fontSize: '13px',
+          marginBottom: '4px',
         },
       },
     }),
