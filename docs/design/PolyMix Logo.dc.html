@@ -24,6 +24,9 @@
     .lockup-name { font-family: var(--font-heading); font-weight: 600; letter-spacing: -0.02em; line-height: 0.92; }
     .tagline { font-family: var(--font-body); text-transform: uppercase; letter-spacing: 0.2em; color: color-mix(in srgb, var(--color-text) 52%, transparent); }
     .opt-badge { font-family: var(--font-heading); font-size: 12px; letter-spacing: 0.06em; color: var(--color-bg); background: var(--color-accent); padding: 2px 9px; }
+    /* light input fields */
+    .input { background: #ffffff; }
+    select.input { background: #ffffff; }
   </style>
 </helmet>
 
@@ -55,7 +58,7 @@
       <div style="flex:1; display:flex; flex-direction:column; min-width:0;">
         <header style="display:flex; align-items:center; gap:16px; padding:18px 26px; border-bottom:1px solid var(--color-divider);">
           <div style="min-width:0;">
-            <h3 style="margin:0; font-size:24px;">Inventory</h3>
+            <h3 style="margin:0; font-size:24px;">Склад</h3>
             <span class="text-muted" style="font-size:12px;">214 SKUs &middot; 3 below reorder point</span>
           </div>
           <div class="input" style="display:flex; align-items:center; gap:8px; width:240px; margin-left:auto; min-height:36px;">
@@ -663,49 +666,125 @@
                 <input class="input" id="o-title" value="Meridian — Field Notes, Vol. II"></div>
             </fieldset>
 
-            <!-- Specification -->
+            <!-- Product & run -->
             <fieldset style="border:0; margin:0; padding:0; display:flex; flex-direction:column; gap:14px;">
-              <legend style="font-family:var(--font-heading); font-weight:600; font-size:13px; letter-spacing:0.06em; text-transform:uppercase; color:var(--color-accent-700); padding:0; margin-bottom:2px;">Specification</legend>
-              <div style="display:grid; grid-template-columns:1.4fr 1fr 1fr; gap:16px;">
+              <legend style="font-family:var(--font-heading); font-weight:600; font-size:13px; letter-spacing:0.06em; text-transform:uppercase; color:var(--color-accent-700); padding:0; margin-bottom:2px;">Product &amp; run</legend>
+              <div style="display:grid; grid-template-columns:1.6fr 1fr 1fr; gap:16px;">
                 <div class="field"><label for="o-product">Product</label>
                   <select class="input" id="o-product">
+                    <option>Hardcover book — cased</option>
                     <option>Softcover book</option>
-                    <option>Hardcover book</option>
                     <option>Perfect-bound journal</option>
                     <option>Folded flyer</option>
                   </select></div>
-                <div class="field"><label for="o-pages">Extent (pp)</label>
-                  <input class="input" id="o-pages" value="148"></div>
                 <div class="field"><label for="o-qty">Quantity</label>
                   <input class="input" id="o-qty" value="2,500"></div>
+                <div class="field"><label for="o-trim">Trim size</label>
+                  <input class="input" id="o-trim" value="198 × 129 mm"></div>
               </div>
-              <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px;">
-                <div class="field"><label for="o-text-stock">Text stock</label>
-                  <select class="input" id="o-text-stock">
-                    <option>Munken Print 90gsm</option>
-                    <option>Amber Graphic 100gsm</option>
-                    <option>Coated silk 130gsm</option>
-                  </select></div>
-                <div class="field"><label for="o-cover-stock">Cover stock</label>
-                  <select class="input" id="o-cover-stock">
-                    <option>Colorplan 270gsm</option>
-                    <option>Invercote 300gsm</option>
-                    <option>Kraft board 280gsm</option>
-                  </select></div>
+            </fieldset>
+
+            <!-- Components -->
+            <fieldset style="border:0; margin:0; padding:0; display:flex; flex-direction:column; gap:12px;">
+              <div style="display:flex; align-items:center; gap:10px;">
+                <legend style="font-family:var(--font-heading); font-weight:600; font-size:13px; letter-spacing:0.06em; text-transform:uppercase; color:var(--color-accent-700); padding:0; float:none;">Components</legend>
+                <span class="text-muted" style="font-size:12px;">4 &middot; hardcover build</span>
+                <button class="btn btn-secondary" style="margin-left:auto;">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14"/><path d="M5 12h14"/></svg>
+                  Add component
+                </button>
               </div>
-              <div class="field"><label id="o-color-label">Colour</label>
-                <div class="seg" role="radiogroup" aria-labelledby="o-color-label">
-                  <label class="seg-opt"><input type="radio" name="ocolor" checked>1 colour</label>
-                  <label class="seg-opt"><input type="radio" name="ocolor">2 colour</label>
-                  <label class="seg-opt"><input type="radio" name="ocolor">Full colour</label>
-                </div></div>
-              <div class="field"><label>Finishing</label>
-                <div style="display:flex; flex-wrap:wrap; gap:8px 20px;">
-                  <label class="radio" style="width:auto;"><input type="checkbox" checked style="accent-color:var(--color-accent); width:16px; height:16px;"> Trim &amp; bind</label>
-                  <label class="radio" style="width:auto;"><input type="checkbox" checked style="accent-color:var(--color-accent); width:16px; height:16px;"> Matt lamination</label>
-                  <label class="radio" style="width:auto;"><input type="checkbox" style="accent-color:var(--color-accent); width:16px; height:16px;"> Spot UV</label>
-                  <label class="radio" style="width:auto;"><input type="checkbox" style="accent-color:var(--color-accent); width:16px; height:16px;"> Foil</label>
-                  <label class="radio" style="width:auto;"><input type="checkbox" style="accent-color:var(--color-accent); width:16px; height:16px;"> Shrink-wrap</label>
+
+              <div style="display:flex; flex-direction:column; gap:10px;">
+
+                <!-- Component 1 — Text block (expanded) -->
+                <div class="blueprint" style="background:var(--color-accent-100);">
+                  <i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i>
+                  <div style="display:flex; align-items:center; gap:12px; padding:11px 14px; border-bottom:1px solid var(--color-divider);">
+                    <span style="flex:none; width:26px; height:26px; background:var(--color-accent-900); color:#fff; display:flex; align-items:center; justify-content:center; font-family:var(--font-heading); font-weight:600; font-size:12px;">01</span>
+                    <div style="font-family:var(--font-heading); font-weight:600; font-size:15px;">Text block</div>
+                    <span class="tag tag-neutral">Interior</span>
+                    <span class="text-muted" style="font-size:12px; margin-left:2px;">148pp &middot; 1 colour</span>
+                    <div style="margin-left:auto; display:flex; gap:4px;">
+                      <button class="btn btn-ghost btn-icon" aria-label="Collapse"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="m6 15 6-6 6 6"/></svg></button>
+                      <button class="btn btn-ghost btn-icon" aria-label="Remove"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/></svg></button>
+                    </div>
+                  </div>
+                  <div style="padding:14px; display:flex; flex-direction:column; gap:14px;">
+                    <div style="display:grid; grid-template-columns:1.6fr 1fr 1fr; gap:14px;">
+                      <div class="field"><label>Stock</label>
+                        <select class="input"><option>Munken Print 90gsm</option><option>Amber Graphic 100gsm</option><option>Coated silk 130gsm</option></select></div>
+                      <div class="field"><label>Extent (pp)</label><input class="input" value="148"></div>
+                      <div class="field"><label>Sections</label><input class="input" value="10 × 16pp"></div>
+                    </div>
+                    <div style="display:grid; grid-template-columns:auto 1fr; gap:14px; align-items:end;">
+                      <div class="field" style="min-width:220px;"><label id="tb-color">Colour</label>
+                        <div class="seg" role="radiogroup" aria-labelledby="tb-color">
+                          <label class="seg-opt"><input type="radio" name="tbcolor" checked>1 colour</label>
+                          <label class="seg-opt"><input type="radio" name="tbcolor">2 colour</label>
+                          <label class="seg-opt"><input type="radio" name="tbcolor">Full colour</label>
+                        </div></div>
+                      <div class="field"><label>Finishing</label>
+                        <div style="display:flex; flex-wrap:wrap; gap:8px 18px;">
+                          <label class="radio" style="width:auto;"><input type="checkbox" checked style="accent-color:var(--color-accent); width:16px; height:16px;"> Section sew</label>
+                          <label class="radio" style="width:auto;"><input type="checkbox" style="accent-color:var(--color-accent); width:16px; height:16px;"> Head &amp; tail bands</label>
+                        </div></div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Component 2 — Case / cover (collapsed) -->
+                <div class="blueprint" style="background:var(--color-bg);">
+                  <i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i>
+                  <div style="display:flex; align-items:center; gap:12px; padding:11px 14px;">
+                    <span style="flex:none; width:26px; height:26px; background:var(--color-accent); color:#fff; display:flex; align-items:center; justify-content:center; font-family:var(--font-heading); font-weight:600; font-size:12px;">02</span>
+                    <div style="font-family:var(--font-heading); font-weight:600; font-size:15px;">Hard case</div>
+                    <span class="tag tag-neutral">Cover</span>
+                    <span class="text-muted" style="font-size:12px; margin-left:2px;">Colorplan 270gsm on 2.5mm greyboard &middot; full colour &middot; matt lam + spot UV</span>
+                    <div style="margin-left:auto; display:flex; gap:4px;">
+                      <button class="btn btn-ghost btn-icon" aria-label="Expand"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg></button>
+                      <button class="btn btn-ghost btn-icon" aria-label="Remove"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/></svg></button>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Component 3 — Dust jacket (collapsed) -->
+                <div class="blueprint" style="background:var(--color-bg);">
+                  <i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i>
+                  <div style="display:flex; align-items:center; gap:12px; padding:11px 14px;">
+                    <span style="flex:none; width:26px; height:26px; background:var(--color-accent); color:#fff; display:flex; align-items:center; justify-content:center; font-family:var(--font-heading); font-weight:600; font-size:12px;">03</span>
+                    <div style="font-family:var(--font-heading); font-weight:600; font-size:15px;">Dust jacket</div>
+                    <span class="tag tag-neutral">Cover</span>
+                    <span class="text-muted" style="font-size:12px; margin-left:2px;">Coated silk 150gsm &middot; full colour &middot; matt lam &middot; 80mm flaps</span>
+                    <div style="margin-left:auto; display:flex; gap:4px;">
+                      <button class="btn btn-ghost btn-icon" aria-label="Expand"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg></button>
+                      <button class="btn btn-ghost btn-icon" aria-label="Remove"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/></svg></button>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Component 4 — Endpapers (collapsed) -->
+                <div class="blueprint" style="background:var(--color-bg);">
+                  <i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i>
+                  <div style="display:flex; align-items:center; gap:12px; padding:11px 14px;">
+                    <span style="flex:none; width:26px; height:26px; background:var(--color-accent); color:#fff; display:flex; align-items:center; justify-content:center; font-family:var(--font-heading); font-weight:600; font-size:12px;">04</span>
+                    <div style="font-family:var(--font-heading); font-weight:600; font-size:15px;">Endpapers</div>
+                    <span class="tag tag-neutral">Interior</span>
+                    <span class="text-muted" style="font-size:12px; margin-left:2px;">Colorplan Pristine White 135gsm &middot; unprinted &middot; 2 leaves</span>
+                    <div style="margin-left:auto; display:flex; gap:4px;">
+                      <button class="btn btn-ghost btn-icon" aria-label="Expand"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg></button>
+                      <button class="btn btn-ghost btn-icon" aria-label="Remove"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/></svg></button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Assembly -->
+              <div class="field" style="margin-top:2px;"><label id="o-bind-label">Binding &amp; assembly</label>
+                <div class="seg" role="radiogroup" aria-labelledby="o-bind-label" style="max-width:420px;">
+                  <label class="seg-opt"><input type="radio" name="obind" checked>Cased-in</label>
+                  <label class="seg-opt"><input type="radio" name="obind">Perfect</label>
+                  <label class="seg-opt"><input type="radio" name="obind">Saddle</label>
                 </div></div>
             </fieldset>
 
@@ -734,9 +813,11 @@
             <div style="font-family:var(--font-heading); font-weight:600; font-size:13px; letter-spacing:0.06em; text-transform:uppercase; color:var(--color-accent-700);">Cost summary</div>
             <div style="display:flex; flex-direction:column; gap:9px; font-size:13px; font-variant-numeric:tabular-nums;">
               <div style="display:flex; justify-content:space-between;"><span class="text-muted">Prepress &amp; typesetting</span><span>&pound;640</span></div>
-              <div style="display:flex; justify-content:space-between;"><span class="text-muted">Print &middot; 2,500 &times; 148pp</span><span>&pound;5,900</span></div>
-              <div style="display:flex; justify-content:space-between;"><span class="text-muted">Stock</span><span>&pound;980</span></div>
-              <div style="display:flex; justify-content:space-between;"><span class="text-muted">Finishing</span><span>&pound;720</span></div>
+              <div style="display:flex; justify-content:space-between;"><span class="text-muted">01 &middot; Text block</span><span>&pound;4,180</span></div>
+              <div style="display:flex; justify-content:space-between;"><span class="text-muted">02 &middot; Hard case</span><span>&pound;1,760</span></div>
+              <div style="display:flex; justify-content:space-between;"><span class="text-muted">03 &middot; Dust jacket</span><span>&pound;980</span></div>
+              <div style="display:flex; justify-content:space-between;"><span class="text-muted">04 &middot; Endpapers</span><span>&pound;140</span></div>
+              <div style="display:flex; justify-content:space-between;"><span class="text-muted">Case-in &amp; assembly</span><span>&pound;540</span></div>
             </div>
             <div style="height:1px; background:var(--color-accent-300);"></div>
             <div style="display:flex; flex-direction:column; gap:9px; font-size:13px; font-variant-numeric:tabular-nums;">
