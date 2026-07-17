@@ -67,7 +67,11 @@ export function CustomerList() {
         enableSorting: false,
         cell: (info) => {
           const meta = statusDict.byId.get(info.getValue())
-          return <Badge color={meta?.color}>{statusDict.labelFor(info.getValue())}</Badge>
+          return (
+            <Badge color={meta?.color} variant="light">
+              {statusDict.labelFor(info.getValue())}
+            </Badge>
+          )
         },
       }),
       columnHelper.accessor((row) => row.tags.join(', '), { id: 'tags', header: t('fields.tags'), enableSorting: false }),

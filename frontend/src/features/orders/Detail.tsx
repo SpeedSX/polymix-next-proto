@@ -127,7 +127,9 @@ export function OrderDetail() {
     <Stack>
       <Group justify="space-between">
         <Title order={2}>{order.number}</Title>
-        <Badge color={meta?.color}>{statusDict.labelFor(order.status)}</Badge>
+        <Badge color={meta?.color} variant="light">
+          {statusDict.labelFor(order.status)}
+        </Badge>
       </Group>
       {actionError && <Alert color="red">{actionError}</Alert>}
       <Text>

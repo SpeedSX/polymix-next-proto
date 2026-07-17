@@ -167,7 +167,9 @@ export function CustomerDetail() {
     <Stack>
       <Group justify="space-between">
         <Title order={2}>{customer.name}</Title>
-        <Badge color={meta?.color}>{statusDict.labelFor(customer.status)}</Badge>
+        <Badge color={meta?.color} variant="light">
+          {statusDict.labelFor(customer.status)}
+        </Badge>
       </Group>
       {actionError && <Alert color="red">{actionError}</Alert>}
 

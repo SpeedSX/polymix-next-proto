@@ -74,7 +74,11 @@ export function OrderList() {
         cell: (info) => {
           const statusId = info.getValue()
           const meta = statusDict.byId.get(statusId)
-          return <Badge color={meta?.color}>{statusDict.labelFor(statusId)}</Badge>
+          return (
+            <Badge color={meta?.color} variant="light">
+              {statusDict.labelFor(statusId)}
+            </Badge>
+          )
         },
       }),
       columnHelper.accessor((row) => formatMoney(row.total, i18n.language), {
