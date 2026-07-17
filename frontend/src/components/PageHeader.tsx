@@ -26,7 +26,7 @@ export function PageHeader({ breadcrumb, title, status, actions, sticky }: PageH
         paddingBottom: 12,
       }}
     >
-      <Group justify="space-between" align="flex-end" wrap="nowrap" gap="md">
+      <Group justify="space-between" align="flex-end" wrap="wrap" gap="md">
         <div style={{ minWidth: 0 }}>
           <Text fz={11} fw={500} tt="uppercase" c="dimmed" style={{ letterSpacing: '0.08em' }}>
             {breadcrumb.map((crumb, index) => (
@@ -44,7 +44,7 @@ export function PageHeader({ breadcrumb, title, status, actions, sticky }: PageH
           </Group>
         </div>
         {actions && (
-          <Group gap="sm" wrap="nowrap" style={{ flex: 'none' }}>
+          <Group gap="sm" wrap="wrap" style={{ flex: 'none' }}>
             {actions}
           </Group>
         )}

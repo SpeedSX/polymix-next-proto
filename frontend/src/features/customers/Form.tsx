@@ -21,6 +21,7 @@ import {
   TagsInput,
 } from '@mantine/core'
 import { useForm, zodResolver } from '@mantine/form'
+import { useMediaQuery } from '@mantine/hooks'
 import { IconPlus, IconTrash } from '@tabler/icons-react'
 import { useTranslation } from 'react-i18next'
 
@@ -62,6 +63,7 @@ export function CustomerForm({
   sidePanel,
 }: CustomerFormProps) {
   const { t, i18n } = useTranslation('customers')
+  const isNarrow = useMediaQuery('(max-width: 48em)')
   const [submitting, setSubmitting] = useState(false)
   const [formError, setFormError] = useState<string | null>(null)
   const [conflict, setConflict] = useState(false)
@@ -348,8 +350,21 @@ export function CustomerForm({
         />
         {alerts}
         {sidePanel ? (
-          <Box style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) 320px', alignItems: 'stretch' }}>
-            <Box pr="xl" style={{ borderRight: '1px solid var(--mantine-color-gray-3)' }}>
+          <Box
+            style={{
+              display: 'grid',
+              gridTemplateColumns: isNarrow ? '1fr' : 'minmax(0, 1fr) 320px',
+              alignItems: 'stretch',
+            }}
+          >
+            <Box
+              pr={isNarrow ? undefined : 'xl'}
+              pb={isNarrow ? 'md' : undefined}
+              style={{
+                borderRight: isNarrow ? undefined : '1px solid var(--mantine-color-gray-3)',
+                borderBottom: isNarrow ? '1px solid var(--mantine-color-gray-3)' : undefined,
+              }}
+            >
               {fields}
             </Box>
             <Box component="aside" px="lg" py="md" style={{ background: 'var(--mantine-color-steel-0)' }}>
