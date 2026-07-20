@@ -69,6 +69,7 @@ export function StatusMark({
   const MarkIcon = filled ? markIcon(statusKey) : outlineIcon(statusKey)
   const iconSize = typeof size === 'number' ? Math.round(size * 0.55) : 10
 
+  const TooltipIcon = outlineIcon(statusKey)
   const mark = (
     <ThemeIcon
       size={size}
@@ -86,7 +87,22 @@ export function StatusMark({
   }
 
   return (
-    <Tooltip label={label} withArrow>
+    <Tooltip
+      label={
+        <Group gap={6} wrap="nowrap">
+          <TooltipIcon size={13} stroke={2} />
+          <span>{label}</span>
+        </Group>
+      }
+      color={color as MantineColor}
+      radius="md"
+      withArrow
+      arrowSize={6}
+      offset={6}
+      openDelay={150}
+      transitionProps={{ transition: 'pop', duration: 150 }}
+      styles={{ tooltip: { fontWeight: 600, letterSpacing: '0.01em', padding: '5px 10px' } }}
+    >
       {mark}
     </Tooltip>
   )
