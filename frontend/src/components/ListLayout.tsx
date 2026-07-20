@@ -1,6 +1,7 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import type { ReactNode } from 'react'
-import { ActionIcon, Box, Button, Group, Popover, Stack, Text, TextInput, Title, UnstyledButton } from '@mantine/core'
+import { ActionIcon, Box, Button, Group, Kbd, Popover, Stack, Text, TextInput, Title, UnstyledButton } from '@mantine/core'
+import { useHotkeys } from '@mantine/hooks'
 import { IconDownload, IconFilter, IconSearch, IconX } from '@tabler/icons-react'
 import { useTranslation } from 'react-i18next'
 
@@ -80,6 +81,10 @@ export function ListLayout({
 }: ListLayoutProps) {
   const { t } = useTranslation('common')
   const [filterOpen, setFilterOpen] = useState(false)
+  const [searchFocused, setSearchFocused] = useState(false)
+  const searchRef = useRef<HTMLInputElement>(null)
+
+  useHotkeys([['/', () => searchRef.current?.focus()]])
 
   return (
     <Box style={{ marginLeft: NEG_MD, marginRight: NEG_MD, marginBottom: NEG_MD }}>
@@ -120,11 +125,21 @@ export function ListLayout({
           <Group gap="sm" wrap="nowrap" style={{ flex: 'none' }}>
             {onSearchChange && (
               <TextInput
+                ref={searchRef}
                 w={240}
                 leftSection={<IconSearch size={15} stroke={1.5} />}
                 placeholder={searchPlaceholder}
                 value={searchValue}
                 onChange={(event) => onSearchChange(event.currentTarget.value)}
+                onFocus={() => setSearchFocused(true)}
+                onBlur={() => setSearchFocused(false)}
+                rightSection={
+                  !searchFocused && !searchValue ? (
+                    <Kbd size="xs" c="dimmed">
+                      /
+                    </Kbd>
+                  ) : undefined
+                }
               />
             )}
 
