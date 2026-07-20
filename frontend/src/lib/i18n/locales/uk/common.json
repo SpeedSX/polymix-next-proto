@@ -35,5 +35,10 @@
   "validation.invalid_creation_status": "Нові клієнти можуть починати лише як лід або активний.",
   "pagination.back": "Назад",
   "pagination.forward": "Вперед",
-  "pagination.range": "{from}–{to} з {total}"
+  "pagination.range": "{from}–{to} з {total}",
+  "list.filter": "Фільтр",
+  "list.export": "Експорт",
+  "list.filterTitle": "Фільтри",
+  "list.clearFilters": "Очистити",
+  "list.applyFilters": "Застосувати"
 }

@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react'
-import { Button, Group, Select, Stack, Table, Text, TextInput, Title } from '@mantine/core'
+import { Button, Select, Table, Text } from '@mantine/core'
+import { IconPlus } from '@tabler/icons-react'
 import { useDebouncedValue } from '@mantine/hooks'
 import { useQuery } from '@tanstack/react-query'
 import { useNavigate } from '@tanstack/react-router'
@@ -7,6 +8,7 @@ import { createColumnHelper, flexRender, getCoreRowModel, useReactTable } from '
 import type { SortingState, Updater } from '@tanstack/react-table'
 import { useTranslation } from 'react-i18next'
 
+import { LIST_HEADER_HEIGHT, ListLayout } from '../../components/ListLayout'
 import { ListPagination } from '../../components/ListPagination'
 import {
   StatusMark,
@@ -113,6 +115,13 @@ export function OrderList() {
   )
 
   const selectedStatus = statusMetaFor(statusDict.byId, status)
+  const filterCount = (customerId ? 1 : 0) + (status !== null ? 1 : 0)
+
+  const clearFilters = () => {
+    setCustomerId('')
+    setStatus(null)
+    setPage(1)
+  }
 
   const handleSortingChange = (updaterOrValue: Updater<SortingState>) => {
     const next = typeof updaterOrValue === 'function' ? updaterOrValue(sorting) : updaterOrValue
@@ -135,59 +144,69 @@ export function OrderList() {
   })
 
   return (
-    <Stack>
-      <Group justify="space-between">
-        <Title order={2}>{t('list.title')}</Title>
-        <Group gap="sm">
-          <ListPagination page={page} pageSize={PAGE_SIZE} total={data?.total ?? 0} onChange={setPage} />
-          <Button onClick={() => navigate({ to: '/orders/new' })}>{t('list.new')}</Button>
-        </Group>
-      </Group>
-      <Group>
-        <TextInput
-          placeholder={t('list.searchPlaceholder')}
-          value={search}
-          onChange={(event) => {
-            setSearch(event.currentTarget.value)
-            setPage(1)
-          }}
-        />
-        <CustomerSelect
-          label={null}
-          required={false}
-          placeholder={t('list.filterCustomer')}
-          value={customerId}
-          onChange={(next) => {
-            setCustomerId(next)
-            setPage(1)
-          }}
-        />
-        <Select
-          placeholder={t('list.filterStatus')}
-          clearable
-          data={statusDict.options}
-          value={status}
-          onChange={(value) => {
-            setStatus(value)
-            setPage(1)
-          }}
-          renderOption={renderStatusSelectOption(statusDict.byId)}
-          leftSection={
-            status != null ? (
-              <StatusMark
-                statusKey={selectedStatus.key}
-                color={selectedStatus.color}
-                label={statusDict.labelFor(Number(status) as OrderStatusId)}
-                size={18}
-                withTooltip={false}
-                variant="filled"
-              />
-            ) : undefined
-          }
-        />
-      </Group>
-      {isError && <Text c="red">{t('list.loadError')}</Text>}
-      <Table highlightOnHover>
+    <ListLayout
+      title={t('list.title')}
+      tabs={[{ label: t('list.tabAll'), count: data?.total ?? 0 }]}
+      searchValue={search}
+      onSearchChange={(value) => {
+        setSearch(value)
+        setPage(1)
+      }}
+      searchPlaceholder={t('list.searchPlaceholder')}
+      filterCount={filterCount}
+      onClearFilters={clearFilters}
+      onExport={() => {}}
+      primaryAction={
+        <Button leftSection={<IconPlus size={15} stroke={1.5} />} onClick={() => navigate({ to: '/orders/new' })}>
+          {t('list.new')}
+        </Button>
+      }
+      pagination={<ListPagination page={page} pageSize={PAGE_SIZE} total={data?.total ?? 0} onChange={setPage} />}
+      filters={
+        <>
+          <CustomerSelect
+            label={t('list.filterCustomer')}
+            required={false}
+            placeholder={t('list.filterCustomer')}
+            value={customerId}
+            onChange={(next) => {
+              setCustomerId(next)
+              setPage(1)
+            }}
+          />
+          <Select
+            label={t('list.filterStatus')}
+            placeholder={t('list.filterStatus')}
+            clearable
+            data={statusDict.options}
+            value={status}
+            onChange={(value) => {
+              setStatus(value)
+              setPage(1)
+            }}
+            renderOption={renderStatusSelectOption(statusDict.byId)}
+            leftSection={
+              status != null ? (
+                <StatusMark
+                  statusKey={selectedStatus.key}
+                  color={selectedStatus.color}
+                  label={statusDict.labelFor(Number(status) as OrderStatusId)}
+                  size={18}
+                  withTooltip={false}
+                  variant="filled"
+                />
+              ) : undefined
+            }
+          />
+        </>
+      }
+    >
+      {isError && (
+        <Text c="red" p="md">
+          {t('list.loadError')}
+        </Text>
+      )}
+      <Table highlightOnHover horizontalSpacing="md" stickyHeader stickyHeaderOffset={LIST_HEADER_HEIGHT}>
         <Table.Thead>
           {table.getHeaderGroups().map((headerGroup) => (
             <Table.Tr key={headerGroup.id}>
@@ -225,7 +244,11 @@ export function OrderList() {
           ))}
         </Table.Tbody>
       </Table>
-      {!isLoading && data?.items.length === 0 && <Text c="dimmed">{t('list.empty')}</Text>}
-    </Stack>
+      {!isLoading && data?.items.length === 0 && (
+        <Text c="dimmed" p="md">
+          {t('list.empty')}
+        </Text>
+      )}
+    </ListLayout>
   )
 }

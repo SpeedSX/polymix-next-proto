@@ -1,5 +1,6 @@
 {
   "list.title": "Customers",
+  "list.tabAll": "All customers",
   "list.new": "New customer",
   "list.loadError": "Failed to load customers.",
   "list.searchPlaceholder": "Search customers…",

@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { Badge, Group, Select, Stack, Table, Text, TextInput, Title } from '@mantine/core'
+import { Badge, Select, Table, Text, TextInput } from '@mantine/core'
 import { useDebouncedValue } from '@mantine/hooks'
 import { useQuery } from '@tanstack/react-query'
 import { useNavigate } from '@tanstack/react-router'
@@ -7,6 +7,7 @@ import { createColumnHelper, flexRender, getCoreRowModel, useReactTable } from '
 import type { SortingState, Updater } from '@tanstack/react-table'
 import { useTranslation } from 'react-i18next'
 
+import { LIST_HEADER_HEIGHT, ListLayout } from '../../components/ListLayout'
 import { ListPagination } from '../../components/ListPagination'
 import { useApi } from '../../lib/api'
 import { formatMoney } from '../../lib/money'
@@ -58,6 +59,14 @@ export function InvoiceList() {
     queryFn: () => fetchInvoices(api, params),
   })
 
+  const filterCount = (customerId ? 1 : 0) + (status ? 1 : 0)
+
+  const clearFilters = () => {
+    setCustomerId('')
+    setStatus(null)
+    setPage(1)
+  }
+
   const columns = useMemo(
     () => [
       columnHelper.accessor('number', { header: t('fields.number') }),
@@ -98,41 +107,50 @@ export function InvoiceList() {
   })
 
   return (
-    <Stack>
-      <Group justify="space-between">
-        <Title order={2}>{t('list.title')}</Title>
-        <ListPagination page={page} pageSize={PAGE_SIZE} total={data?.total ?? 0} onChange={setPage} />
-      </Group>
-      <Group>
-        <TextInput
-          placeholder={t('list.searchPlaceholder')}
-          value={search}
-          onChange={(event) => {
-            setSearch(event.currentTarget.value)
-            setPage(1)
-          }}
-        />
-        <TextInput
-          placeholder={t('list.filterCustomer')}
-          value={customerId}
-          onChange={(event) => {
-            setCustomerId(event.currentTarget.value)
-            setPage(1)
-          }}
-        />
-        <Select
-          placeholder={t('list.filterStatus')}
-          clearable
-          data={INVOICE_STATUSES.map((value) => ({ value, label: t(`status.${value}`) }))}
-          value={status}
-          onChange={(value) => {
-            setStatus(value)
-            setPage(1)
-          }}
-        />
-      </Group>
-      {isError && <Text c="red">{t('list.loadError')}</Text>}
-      <Table highlightOnHover>
+    <ListLayout
+      title={t('list.title')}
+      tabs={[{ label: t('list.tabAll'), count: data?.total ?? 0 }]}
+      searchValue={search}
+      onSearchChange={(value) => {
+        setSearch(value)
+        setPage(1)
+      }}
+      searchPlaceholder={t('list.searchPlaceholder')}
+      filterCount={filterCount}
+      onClearFilters={clearFilters}
+      onExport={() => {}}
+      pagination={<ListPagination page={page} pageSize={PAGE_SIZE} total={data?.total ?? 0} onChange={setPage} />}
+      filters={
+        <>
+          <TextInput
+            label={t('list.filterCustomer')}
+            placeholder={t('list.filterCustomer')}
+            value={customerId}
+            onChange={(event) => {
+              setCustomerId(event.currentTarget.value)
+              setPage(1)
+            }}
+          />
+          <Select
+            label={t('list.filterStatus')}
+            placeholder={t('list.filterStatus')}
+            clearable
+            data={INVOICE_STATUSES.map((value) => ({ value, label: t(`status.${value}`) }))}
+            value={status}
+            onChange={(value) => {
+              setStatus(value)
+              setPage(1)
+            }}
+          />
+        </>
+      }
+    >
+      {isError && (
+        <Text c="red" p="md">
+          {t('list.loadError')}
+        </Text>
+      )}
+      <Table highlightOnHover horizontalSpacing="md" stickyHeader stickyHeaderOffset={LIST_HEADER_HEIGHT}>
         <Table.Thead>
           {table.getHeaderGroups().map((headerGroup) => (
             <Table.Tr key={headerGroup.id}>
@@ -170,7 +188,11 @@ export function InvoiceList() {
           ))}
         </Table.Tbody>
       </Table>
-      {!isLoading && data?.items.length === 0 && <Text c="dimmed">{t('list.empty')}</Text>}
-    </Stack>
+      {!isLoading && data?.items.length === 0 && (
+        <Text c="dimmed" p="md">
+          {t('list.empty')}
+        </Text>
+      )}
+    </ListLayout>
   )
 }

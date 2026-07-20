@@ -1,5 +1,6 @@
 {
   "list.title": "Клієнти",
+  "list.tabAll": "Усі клієнти",
   "list.new": "Новий клієнт",
   "list.loadError": "Не вдалося завантажити клієнтів.",
   "list.searchPlaceholder": "Пошук клієнтів…",

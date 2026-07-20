@@ -1,5 +1,6 @@
 {
   "list.title": "Рахунки",
+  "list.tabAll": "Усі рахунки",
   "list.loadError": "Не вдалося завантажити рахунки.",
   "list.empty": "Рахунків ще немає.",
   "list.searchPlaceholder": "Пошук рахунків…",

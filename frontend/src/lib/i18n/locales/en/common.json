@@ -35,5 +35,10 @@
   "validation.invalid_creation_status": "New customers can only start as a lead or active.",
   "pagination.back": "Back",
   "pagination.forward": "Forward",
-  "pagination.range": "{from}–{to} of {total}"
+  "pagination.range": "{from}–{to} of {total}",
+  "list.filter": "Filter",
+  "list.export": "Export",
+  "list.filterTitle": "Filters",
+  "list.clearFilters": "Clear all",
+  "list.applyFilters": "Apply"
 }

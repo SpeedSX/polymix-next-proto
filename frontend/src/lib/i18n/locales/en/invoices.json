@@ -1,5 +1,6 @@
 {
   "list.title": "Invoices",
+  "list.tabAll": "All invoices",
   "list.loadError": "Failed to load invoices.",
   "list.empty": "No invoices yet.",
   "list.searchPlaceholder": "Search invoices…",
