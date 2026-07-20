@@ -400,9 +400,12 @@ async fn seed_customers(
             let contacts = seed_contacts(&mut rng, ukrainian, seq);
             let tags = seed_tags(&mut rng, ukrainian);
 
-            let (name, legal_address) = if ukrainian {
+            let (name, legal_name, legal_address) = if ukrainian {
+                let name = uk::company_name(&mut rng);
+                let legal_name = uk::legal_name(kind, &name);
                 (
-                    uk::company_name(&mut rng),
+                    name,
+                    legal_name,
                     AddressRow {
                         street: Some(uk::street(&mut rng)),
                         zip: Some(uk::zip(&mut rng)),
@@ -413,6 +416,7 @@ async fn seed_customers(
             } else {
                 (
                     CompanyName().fake_with_rng(&mut rng),
+                    None,
                     AddressRow {
                         street: Some(StreetName().fake_with_rng(&mut rng)),
                         zip: Some(ZipCode().fake_with_rng(&mut rng)),
@@ -426,7 +430,7 @@ async fn seed_customers(
                 id: RecordId::new(CUSTOMER_TABLE, id.clone()),
                 kind: kind.code() as i64,
                 name,
-                legal_name: None,
+                legal_name,
                 edrpou,
                 tax_id,
                 vat_ipn,

@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react'
-import { Button, Group, Select, Stack, Table, Text, TextInput, Title } from '@mantine/core'
+import { Button, Select, Table, Text, TextInput } from '@mantine/core'
+import { IconPlus } from '@tabler/icons-react'
 import { useDebouncedValue } from '@mantine/hooks'
 import { useQuery } from '@tanstack/react-query'
 import { useNavigate } from '@tanstack/react-router'
@@ -7,6 +8,7 @@ import { createColumnHelper, flexRender, getCoreRowModel, useReactTable } from '
 import type { SortingState, Updater } from '@tanstack/react-table'
 import { useTranslation } from 'react-i18next'
 
+import { LIST_HEADER_HEIGHT, ListLayout } from '../../components/ListLayout'
 import { ListPagination } from '../../components/ListPagination'
 import {
   StatusMark,
@@ -92,6 +94,13 @@ export function CustomerList() {
   )
 
   const selectedStatus = statusMetaFor(statusDict.byId, statusFilter)
+  const filterCount = (statusFilter ? 1 : 0) + (tagFilter.trim() !== '' ? 1 : 0)
+
+  const clearFilters = () => {
+    setStatusFilter(null)
+    setTagFilter('')
+    setPage(1)
+  }
 
   const handleSortingChange = (updaterOrValue: Updater<SortingState>) => {
     const next = typeof updaterOrValue === 'function' ? updaterOrValue(sorting) : updaterOrValue
@@ -114,57 +123,68 @@ export function CustomerList() {
   })
 
   return (
-    <Stack>
-      <Group justify="space-between">
-        <Title order={2}>{t('list.title')}</Title>
-        <Group gap="sm">
-          <ListPagination page={page} pageSize={PAGE_SIZE} total={data?.total ?? 0} onChange={setPage} />
-          <Button onClick={() => navigate({ to: '/customers/new' })}>{t('list.new')}</Button>
-        </Group>
-      </Group>
-      <Group grow>
-        <TextInput
-          placeholder={t('list.searchPlaceholder')}
-          value={search}
-          onChange={(event) => {
-            setSearch(event.currentTarget.value)
-            setPage(1)
-          }}
-        />
-        <Select
-          placeholder={t('list.filterStatus')}
-          data={statusDict.options}
-          value={statusFilter}
-          onChange={(value) => {
-            setStatusFilter(value)
-            setPage(1)
-          }}
-          clearable
-          renderOption={renderStatusSelectOption(statusDict.byId)}
-          leftSection={
-            statusFilter != null ? (
-              <StatusMark
-                statusKey={selectedStatus.key}
-                color={selectedStatus.color}
-                label={statusDict.labelFor(Number(statusFilter) as CustomerStatusId)}
-                size={18}
-                withTooltip={false}
-                variant="filled"
-              />
-            ) : undefined
-          }
-        />
-        <TextInput
-          placeholder={t('list.filterTag')}
-          value={tagFilter}
-          onChange={(event) => {
-            setTagFilter(event.currentTarget.value)
-            setPage(1)
-          }}
-        />
-      </Group>
-      {isError && <Text c="red">{t('list.loadError')}</Text>}
-      <Table highlightOnHover>
+    <ListLayout
+      title={t('list.title')}
+      tabs={[{ label: t('list.tabAll'), count: data?.total ?? 0 }]}
+      searchValue={search}
+      onSearchChange={(value) => {
+        setSearch(value)
+        setPage(1)
+      }}
+      searchPlaceholder={t('list.searchPlaceholder')}
+      filterCount={filterCount}
+      onClearFilters={clearFilters}
+      onExport={() => {}}
+      primaryAction={
+        <Button leftSection={<IconPlus size={15} stroke={1.5} />} onClick={() => navigate({ to: '/customers/new' })}>
+          {t('list.new')}
+        </Button>
+      }
+      pagination={<ListPagination page={page} pageSize={PAGE_SIZE} total={data?.total ?? 0} onChange={setPage} />}
+      filters={
+        <>
+          <Select
+            label={t('list.filterStatus')}
+            placeholder={t('list.filterStatus')}
+            data={statusDict.options}
+            value={statusFilter}
+            onChange={(value) => {
+              setStatusFilter(value)
+              setPage(1)
+            }}
+            clearable
+            renderOption={renderStatusSelectOption(statusDict.byId)}
+            leftSection={
+              statusFilter != null ? (
+                <StatusMark
+                  statusKey={selectedStatus.key}
+                  color={selectedStatus.color}
+                  label={statusDict.labelFor(Number(statusFilter) as CustomerStatusId)}
+                  size={18}
+                  withTooltip={false}
+                  variant="filled"
+                />
+              ) : undefined
+            }
+          />
+          <TextInput
+            label={t('list.filterTag')}
+            placeholder={t('list.filterTag')}
+            value={tagFilter}
+            onChange={(event) => {
+              setTagFilter(event.currentTarget.value)
+              setPage(1)
+            }}
+          />
+        </>
+      }
+    >
+      {isError && (
+        <Text c="red" p="md">
+          {t('list.loadError')}
+        </Text>
+      )}
+      <Table highlightOnHover horizontalSpacing="md" stickyHeader stickyHeaderOffset={LIST_HEADER_HEIGHT}>
         <Table.Thead>
           {table.getHeaderGroups().map((headerGroup) => (
             <Table.Tr key={headerGroup.id}>
@@ -199,7 +219,11 @@ export function CustomerList() {
           ))}
         </Table.Tbody>
       </Table>
-      {!isLoading && data?.items.length === 0 && <Text c="dimmed">{t('list.empty')}</Text>}
-    </Stack>
+      {!isLoading && data?.items.length === 0 && (
+        <Text c="dimmed" p="md">
+          {t('list.empty')}
+        </Text>
+      )}
+    </ListLayout>
   )
 }

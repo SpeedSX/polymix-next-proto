@@ -1108,19 +1108,19 @@
       <i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i>
 
       <!-- ── Left toolbar ── -->
-      <aside style="width:212px; flex:none; background:var(--color-accent-900); color:#e8eef5; display:flex; flex-direction:column; padding:20px 0;">
+      <aside style="width:212px; flex:none; background:var(--color-accent-900); color:#e8eef5; display:flex; flex-direction:column; padding:0 0 20px;">
         <!-- brand -->
-        <div style="display:flex; align-items:center; gap:11px; padding:0 20px 22px;">
+        <div style="display:flex; align-items:center; gap:11px; padding:0 20px; height:65px; box-sizing:border-box;">
           <svg width="30" height="30" viewBox="0 0 120 120" aria-label="PolyMix">
             <rect x="8" y="8" width="48" height="48" rx="15" fill="#94bce3"></rect>
             <rect x="64" y="8" width="48" height="48" rx="15" fill="#cfe4fa"></rect>
             <rect x="8" y="64" width="48" height="48" rx="15" fill="#7e9cb8"></rect>
             <rect x="64" y="64" width="48" height="48" rx="15" fill="#b5d9fd"></rect>
           </svg>
-          <span style="font-family:var(--font-heading); font-weight:600; font-size:20px; letter-spacing:-0.02em; color:#ffffff;">Poly<span style="color:#b5d9fd;">Mix</span></span>
+          <span style="font-family: var(--font-heading); font-weight: 500; font-size: 22px; letter-spacing: -0.02em; color: #ffffff">Poly<span style="color: #b5d9fd; font-family: var(--font-body); font-weight: 500">Mix</span></span>
         </div>
 
-        <div style="height:1px; background:rgba(255,255,255,0.12); margin:0 20px 14px;"></div>
+        <div style="height: 1px; margin: 22px 20px 14px; margin-top: 12px; margin-bottom: 12px; background-color: #FFFFFF52"></div>
 
         <!-- nav -->
         <nav style="display:flex; flex-direction:column; gap:2px; padding:0 12px; font-family:var(--font-heading); font-weight:600; font-size:14px;">
@@ -1162,14 +1162,14 @@
       <div style="flex:1; display:flex; flex-direction:column; min-width:0;">
 
         <!-- top bar -->
-        <header style="display:flex; align-items:center; gap:16px; padding:18px 26px; border-bottom:1px solid var(--color-divider);">
+        <header style="display: flex; align-items: center; gap: 16px; padding: 18px 26px; border-bottom: 1px solid var(--color-divider); padding-bottom: 8px; padding-top: 14px">
           <div style="min-width:0;">
-            <h3 style="margin:0; font-size:24px;">Production jobs</h3>
+            <h3 style="margin: 0; font-size: 24px; margin-top: 4px">Production jobs</h3>
             <span class="text-muted" style="font-size:12px;">126 active · 6 due today</span>
           </div>
           <!-- search + results dropdown -->
-          <div style="position:relative; margin-left:auto; width:260px;">
-            <div class="input" style="display:flex; align-items:center; gap:8px; min-height:36px;" onClick="{{ openSearch }}">
+          <div style="position: relative; margin-left: auto; width: 260px">
+            <div class="input" style="display: flex; align-items: center; gap: 8px; min-height: 36px" onClick="{{ openSearch }}">
               <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--color-accent)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><path d="m21 21-4.3-4.3"></path></svg>
               <input type="text" defaultValue="mer" placeholder="Search jobs, clients…" onFocus="{{ openSearch }}" style="border:0; outline:none; background:transparent; font-size:13px; font-family:var(--font-body); width:100%; color:var(--color-text);">
               <kbd style="font-family:var(--font-heading); font-size:11px; color:var(--color-text-muted,#6b7280); background:var(--color-surface); padding:1px 6px;">⌘K</kbd>
@@ -1303,7 +1303,7 @@
 
         <!-- filter tabs + selection bar -->
         <div style="position:relative; border-bottom:1px solid var(--color-divider);">
-          <div style="display:flex; align-items:center; gap:22px; padding:12px 26px; font-family:var(--font-heading); font-weight:600; font-size:13px;">
+          <div style="display: flex; align-items: center; gap: 22px; padding: 12px 26px; font-family: var(--font-heading); font-weight: 600; font-size: 13px; padding-top: 10px; padding-bottom: 10px">
             <span style="color:var(--color-accent); box-shadow:inset 0 -2px 0 var(--color-accent); padding-bottom:12px; margin-bottom:-12px;">All jobs <span class="text-muted">126</span></span>
             <span class="text-muted">Prepress <span>18</span></span>
             <span class="text-muted">In press <span>24</span></span>
@@ -1325,32 +1325,32 @@
 
               <div style="display:flex; align-items:center; gap:7px; margin-left:14px;">
                 <button class="btn btn-icon" style="background:rgba(255,255,255,0.1); color:#fff; gap:7px; width:auto; padding:0 13px;">
-                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"></path><path d="m12 5 7 7-7 7"></path></svg>
                   Advance stage
                 </button>
                 <button class="btn btn-icon" style="background:rgba(255,255,255,0.1); color:#fff; gap:7px; width:auto; padding:0 13px;">
-                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 11h-6"/></svg>
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M22 11h-6"></path></svg>
                   Assign
                 </button>
                 <button class="btn btn-icon" style="background:rgba(255,255,255,0.1); color:#fff; gap:7px; width:auto; padding:0 13px;">
-                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
                   Export
                 </button>
                 <button class="btn btn-icon" style="background:transparent; color:#fff; gap:7px; width:auto; padding:0 13px; box-shadow:inset 0 0 0 1px rgba(255,255,255,0.28);">
-                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/></svg>
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"></path><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"></path></svg>
                   Delete
                 </button>
               </div>
 
               <button class="btn btn-icon" aria-label="Clear selection" onClick="{{ clearSel }}" style="margin-left:auto; background:transparent; color:#fff;">
-                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"></path><path d="m6 6 12 12"></path></svg>
               </button>
             </div>
           </sc-if>
         </div>
 
         <!-- table -->
-        <div data-jobs-list onChange="{{ recount }}" style="flex:1; overflow:auto; padding:8px 26px 26px; background: {{ listBg }};">
+        <div data-jobs-list="" onChange="{{ recount }}" style="flex:1; overflow:auto; padding:8px 26px 26px; background: {{ listBg }};">
           <table class="table">
             <thead>
               <tr>
@@ -1729,7 +1729,7 @@
 
 </div>
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:&quot;100%&quot;,&quot;height&quot;:&quot;100%&quot;},&quot;theme&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;default&quot;:&quot;default&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;options&quot;:[&quot;default&quot;,&quot;fresh&quot;,&quot;spring&quot;,&quot;warm&quot;],&quot;section&quot;:&quot;Theme&quot;},&quot;lineContrast&quot;:{&quot;editor&quot;:&quot;range&quot;,&quot;default&quot;:13,&quot;tsType&quot;:&quot;number&quot;,&quot;min&quot;:4,&quot;max&quot;:30,&quot;step&quot;:1,&quot;unit&quot;:&quot;%&quot;,&quot;section&quot;:&quot;Theme&quot;},&quot;listBg&quot;:{&quot;editor&quot;:&quot;color&quot;,&quot;default&quot;:&quot;#ffffff&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;options&quot;:[&quot;#ffffff&quot;,&quot;#f8fafc&quot;,&quot;#f2f2f3&quot;,&quot;#eef3f8&quot;],&quot;section&quot;:&quot;Lists&quot;,&quot;unit&quot;:&quot;&quot;}}">
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:&quot;100%&quot;,&quot;height&quot;:&quot;100%&quot;},&quot;theme&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;default&quot;:&quot;default&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;options&quot;:[&quot;default&quot;,&quot;fresh&quot;,&quot;spring&quot;,&quot;warm&quot;],&quot;section&quot;:&quot;Theme&quot;},&quot;lineContrast&quot;:{&quot;editor&quot;:&quot;range&quot;,&quot;default&quot;:16,&quot;tsType&quot;:&quot;number&quot;,&quot;min&quot;:4,&quot;max&quot;:30,&quot;step&quot;:1,&quot;unit&quot;:&quot;%&quot;,&quot;section&quot;:&quot;Theme&quot;},&quot;listBg&quot;:{&quot;editor&quot;:&quot;color&quot;,&quot;default&quot;:&quot;#ffffff&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;options&quot;:[&quot;#ffffff&quot;,&quot;#f8fafc&quot;,&quot;#f2f2f3&quot;,&quot;#eef3f8&quot;],&quot;section&quot;:&quot;Lists&quot;,&quot;unit&quot;:&quot;&quot;}}">
 class Component extends DCLogic {
   state = { filterOpen: false, selCount: 0, searchOpen: false };
 

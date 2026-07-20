@@ -52,11 +52,15 @@ const theme = createTheme({
     Table: Table.extend({
       defaultProps: { highlightOnHoverColor: '#d6ebff' },
       styles: {
+        table: { width: '100%' },
         th: {
           textTransform: 'uppercase',
           fontSize: '11px',
           letterSpacing: '0.08em',
           fontWeight: 600,
+          color: 'var(--mantine-color-gray-6)',
+          paddingTop: '14px',
+          background: 'var(--mantine-color-white)',
         },
       },
     }),
