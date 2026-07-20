@@ -232,7 +232,11 @@ fn random_digits(rng: &mut impl Rng, len: usize) -> String {
         .collect()
 }
 
-fn random_order_notes(rng: &mut impl Rng, line_items: &[LineItem], templates: &[&str]) -> Option<String> {
+fn random_order_notes(
+    rng: &mut impl Rng,
+    line_items: &[LineItem],
+    templates: &[&str],
+) -> Option<String> {
     // A realistic order book has a minority of orders with no note.
     if rng.gen_bool(0.2) {
         return None;
@@ -474,7 +478,11 @@ async fn seed_orders(
     let mut remaining = count;
     let mut seeded = 0usize;
     let products = if ukrainian { uk::PRODUCTS } else { PRODUCTS };
-    let note_templates = if ukrainian { uk::ORDER_NOTES } else { ORDER_NOTES };
+    let note_templates = if ukrainian {
+        uk::ORDER_NOTES
+    } else {
+        ORDER_NOTES
+    };
 
     // Same eligibility as `OrderRepo::create`: only lead/active may receive
     // orders. Inactive/blocked stay in the customer mix for list demos but
