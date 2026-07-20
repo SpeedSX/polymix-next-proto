@@ -5,17 +5,12 @@ import { useDebouncedValue } from '@mantine/hooks'
 import { useQuery } from '@tanstack/react-query'
 import { useNavigate } from '@tanstack/react-router'
 import { createColumnHelper, flexRender, getCoreRowModel, useReactTable } from '@tanstack/react-table'
-import type { SortingState, Updater } from '@tanstack/react-table'
+import type { RowData, SortingState, Updater } from '@tanstack/react-table'
 import { useTranslation } from 'react-i18next'
 
 import { LIST_HEADER_HEIGHT, ListLayout } from '../../components/ListLayout'
 import { ListPagination } from '../../components/ListPagination'
-import {
-  StatusMark,
-  StatusTag,
-  renderStatusSelectOption,
-  statusMetaFor,
-} from '../../components/StatusBadge'
+import { StatusMark, renderStatusSelectOption, statusMetaFor } from '../../components/StatusBadge'
 import { useApi } from '../../lib/api'
 import { formatDateTime } from '../../lib/dates'
 import { customersKeys, fetchCustomers } from './api'
@@ -33,6 +28,15 @@ function sortParam(sorting: SortingState): string {
   const [{ id, desc }] = sorting
   return desc ? `-${id}` : id
 }
+
+declare module '@tanstack/react-table' {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  interface ColumnMeta<TData extends RowData, TValue> {
+    width?: number
+  }
+}
+
+const STATUS_COLUMN_WIDTH = 56
 
 const columnHelper = createColumnHelper<Customer>()
 
@@ -69,17 +73,24 @@ export function CustomerList() {
 
   const columns = useMemo(
     () => [
-      columnHelper.accessor('name', { header: t('fields.name') }),
       columnHelper.accessor('status', {
         id: 'status',
-        header: t('fields.status'),
+        header: '',
         enableSorting: false,
+        meta: { width: STATUS_COLUMN_WIDTH },
         cell: (info) => {
           const statusId = info.getValue()
           const meta = statusDict.byId.get(statusId)
-          return <StatusTag color={meta?.color} label={statusDict.labelFor(statusId)} />
+          return (
+            <StatusMark
+              statusKey={meta?.key}
+              color={meta?.color}
+              label={statusDict.labelFor(statusId)}
+            />
+          )
         },
       }),
+      columnHelper.accessor('name', { header: t('fields.name') }),
       columnHelper.accessor((row) => row.tags.join(', '), { id: 'tags', header: t('fields.tags'), enableSorting: false }),
       columnHelper.accessor(
         (row) => (row.contacts.find((c) => c.is_primary) ?? row.contacts[0])?.name ?? '',
@@ -190,11 +201,15 @@ export function CustomerList() {
             <Table.Tr key={headerGroup.id}>
               {headerGroup.headers.map((header) => {
                 const sortDirection = header.column.getIsSorted()
+                const width = header.column.columnDef.meta?.width
                 return (
                   <Table.Th
                     key={header.id}
                     onClick={header.column.getToggleSortingHandler()}
-                    style={{ cursor: header.column.getCanSort() ? 'pointer' : undefined }}
+                    style={{
+                      cursor: header.column.getCanSort() ? 'pointer' : undefined,
+                      width,
+                    }}
                   >
                     {flexRender(header.column.columnDef.header, header.getContext())}
                     {sortDirection === 'asc' && ' ▲'}
@@ -213,7 +228,9 @@ export function CustomerList() {
               style={{ cursor: 'pointer' }}
             >
               {row.getVisibleCells().map((cell) => (
-                <Table.Td key={cell.id}>{flexRender(cell.column.columnDef.cell, cell.getContext())}</Table.Td>
+                <Table.Td key={cell.id} style={{ width: cell.column.columnDef.meta?.width }}>
+                  {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                </Table.Td>
               ))}
             </Table.Tr>
           ))}
