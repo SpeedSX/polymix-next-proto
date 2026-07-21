@@ -148,7 +148,7 @@ export function OrderForm({
           >
             {t('form.addLine')}
           </Button>
-          <Text fw={600}>{t('fields.total')}: {formatMoney({ amount_minor: total, currency }, i18n.language)}</Text>
+          <Text fw={500}>{t('fields.total')}: {formatMoney({ amount_minor: total, currency }, i18n.language)}</Text>
         </Group>
 
         <Textarea label={t('fields.notes')} {...form.getInputProps('notes')} />

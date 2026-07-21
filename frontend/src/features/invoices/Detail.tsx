@@ -158,7 +158,7 @@ export function InvoiceDetail() {
         <Text>
           {t('fields.taxTotal')}: {formatMoney(invoice.tax_total, i18n.language)} ({invoice.tax_rate_bp / 100}%)
         </Text>
-        <Text fw={600}>
+        <Text fw={500}>
           {t('fields.grossTotal')}: {formatMoney(invoice.gross_total, i18n.language)}
         </Text>
         {invoice.exchange_rate && me && (

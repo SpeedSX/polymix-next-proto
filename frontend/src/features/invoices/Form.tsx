@@ -106,7 +106,7 @@ export function InvoiceForm({ initialValues, currency, onSubmit, onSuccess, onCa
           >
             {t('form.addLine')}
           </Button>
-          <Text fw={600}>{t('fields.netTotal')}: {formatMoney({ amount_minor: netTotal, currency }, i18n.language)}</Text>
+          <Text fw={500}>{t('fields.netTotal')}: {formatMoney({ amount_minor: netTotal, currency }, i18n.language)}</Text>
         </Group>
 
         <Group justify="flex-end">

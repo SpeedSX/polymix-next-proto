@@ -174,7 +174,7 @@ export function OrderDetail() {
           ))}
         </Table.Tbody>
       </Table>
-      <Text fw={600}>
+      <Text fw={500}>
         {t('fields.total')}: {formatMoney(order.total, i18n.language)}
       </Text>
 
