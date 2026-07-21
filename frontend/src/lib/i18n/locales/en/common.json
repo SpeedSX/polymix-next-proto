@@ -3,6 +3,7 @@
   "nav.customers": "Customers",
   "nav.orders": "Orders",
   "nav.invoices": "Invoices",
+  "nav.settings": "Settings",
   "nav.toggleSidebar": "Toggle sidebar",
   "auth.devSignInTitle": "Dev sign-in",
   "auth.userId": "User ID",

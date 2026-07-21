@@ -3,6 +3,7 @@
   "nav.customers": "Клієнти",
   "nav.orders": "Замовлення",
   "nav.invoices": "Рахунки",
+  "nav.settings": "Налаштування",
   "nav.toggleSidebar": "Згорнути панель",
   "auth.devSignInTitle": "Тестовий вхід",
   "auth.userId": "Ідентифікатор користувача",

@@ -21,6 +21,7 @@ import {
   IconLayoutSidebarLeftExpand,
   IconLogout,
   IconSearch,
+  IconSettings,
   IconUsers,
   IconWorld,
   type Icon,
@@ -38,7 +39,7 @@ const RAIL_BG = 'var(--mantine-color-steel-9)'
 const NAV_INACTIVE = '#c4d2e0'
 const NAV_ACTIVE_BG = 'rgba(148,188,227,0.18)'
 const NAV_ACCENT = '#94bce3'
-const NAV_DIVIDER = 'rgba(255,255,255,0.12)'
+const NAV_DIVIDER = 'rgba(255, 255, 255, 0.21)'
 const NAV_WIDTH_EXPANDED = 220
 const NAV_WIDTH_COLLAPSED = 68
 
@@ -224,6 +225,7 @@ export function AppShell() {
     { to: '/customers', label: t('nav.customers'), icon: IconUsers },
     { to: '/orders', label: t('nav.orders'), icon: IconClipboardList },
     { to: '/invoices', label: t('nav.invoices'), icon: IconFileInvoice },
+    { to: '/settings', label: t('nav.settings'), icon: IconSettings },
   ]
 
   const openSearch = () => {
