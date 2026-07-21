@@ -8,6 +8,7 @@ import { createColumnHelper, flexRender, getCoreRowModel, useReactTable } from '
 import type { SortingState, Updater } from '@tanstack/react-table'
 import { useTranslation } from 'react-i18next'
 
+import styles from './List.module.css'
 import { LIST_HEADER_HEIGHT, ListLayout } from '../../components/ListLayout'
 import { ListPagination } from '../../components/ListPagination'
 import {
@@ -88,7 +89,18 @@ export function OrderList() {
         header: t('fields.customer'),
         enableSorting: false,
         cell: (info) => (
-          <Text size="sm" fw={500} c="steel.8">
+          <Text
+            size="sm"
+            fw={500}
+            c="steel.8"
+            component="span"
+            className={styles.customerLink}
+            style={{ cursor: 'pointer' }}
+            onClick={(event) => {
+              event.stopPropagation()
+              navigate({ to: '/customers/$id', params: { id: info.row.original.customer_id } })
+            }}
+          >
             {info.getValue()}
           </Text>
         ),

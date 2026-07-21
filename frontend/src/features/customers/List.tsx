@@ -8,6 +8,7 @@ import { createColumnHelper, flexRender, getCoreRowModel, useReactTable } from '
 import type { RowData, SortingState, Updater } from '@tanstack/react-table'
 import { useTranslation } from 'react-i18next'
 
+import styles from './List.module.css'
 import { LIST_HEADER_HEIGHT, ListLayout } from '../../components/ListLayout'
 import { ListPagination } from '../../components/ListPagination'
 import { StatusMark, renderStatusSelectOption, statusMetaFor } from '../../components/StatusBadge'
@@ -90,7 +91,14 @@ export function CustomerList() {
           )
         },
       }),
-      columnHelper.accessor('name', { header: t('fields.name') }),
+      columnHelper.accessor('name', {
+        header: t('fields.name'),
+        cell: (info) => (
+          <Text size="sm" fw={500} c="steel.8" component="span" className={styles.name}>
+            {info.getValue()}
+          </Text>
+        ),
+      }),
       columnHelper.accessor((row) => row.tags.join(', '), { id: 'tags', header: t('fields.tags'), enableSorting: false }),
       columnHelper.accessor(
         (row) => (row.contacts.find((c) => c.is_primary) ?? row.contacts[0])?.name ?? '',
