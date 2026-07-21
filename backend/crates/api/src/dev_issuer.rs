@@ -13,7 +13,7 @@ const KID: &str = "dev-key-1";
 /// key, so dev tokens already cached in the browser keep validating instead of
 /// being silently invalidated on each restart. Dev-only — never used for real
 /// tenants.
-const DEV_KEY_SEED: u64 = 0x504f_4c59_4d49_58_00;
+const DEV_KEY_SEED: u64 = 0x504f_4c59_4d49_5800;
 
 pub struct DevIssuer {
     encoding_key: jsonwebtoken::EncodingKey,
