@@ -39,7 +39,9 @@ Fixed setup amortized over quantity is what produces the falling unit price the 
 | **Cost** | | **€107.99** |
 | **Price** (margin ×1.6, rounded) | | **€172.90** → €1.73/pc |
 
-Run the same function at qty 50, 100, …, 2000 (and any custom qty) — that's the ladder. At qty 1000 the engine would find offset cheaper for the interior and switch, producing the breakpoint.
+Run the same function at qty 50, 100, …, 2000 (and any custom qty) — that's the ladder. Fixed setup amortized over more copies is what makes the unit price fall across the ladder; a technology breakpoint appears wherever a component's cheapest press flips between digital and offset as volume grows.
+
+> **Illustrative only.** The numbers above use rough per-unit figures to show the *shape* of the calculation. The normative worked example — the same product with exact integer µ-unit arithmetic, the real margin bands, and per-component technology choice — is `quote-engine-spec.md §9` (the golden fixture). There, on the demo price model, the cover runs digital and the interior runs offset at *both* qty 100 and 1000, so the falling unit price is pure setup amortization rather than an interior digital→offset switch. Where these two docs disagree on any number, the spec wins.
 
 ## Data model (per tenant, SurrealDB)
 

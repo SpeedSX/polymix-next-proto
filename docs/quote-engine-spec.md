@@ -444,9 +444,15 @@ The complete demo dataset, one selection, and exact expected numbers. Ship as `f
 { "id": "material:offset_80", "name": "Offset 80 g", "kind": "paper",
   "pricing": { "basis": "per_sheet", "sheet_size_mm": [320,450], "price_micro": 40000 },
   "printable": { "grammage_gsm": 80 }, "attrs": {} }
+{ "id": "material:offset_90", "name": "Offset 90 g", "kind": "paper",
+  "pricing": { "basis": "per_sheet", "sheet_size_mm": [320,450], "price_micro": 44000 },
+  "printable": { "grammage_gsm": 90 }, "attrs": {} }
 { "id": "material:gloss_300", "name": "Gloss 300 g", "kind": "paper",
   "pricing": { "basis": "per_sheet", "sheet_size_mm": [320,450], "price_micro": 120000 },
   "printable": { "grammage_gsm": 300 }, "attrs": {} }
+{ "id": "material:matt_350", "name": "Matt 350 g", "kind": "paper",
+  "pricing": { "basis": "per_sheet", "sheet_size_mm": [320,450], "price_micro": 140000 },
+  "printable": { "grammage_gsm": 350 }, "attrs": {} }
 { "id": "material:board_500", "name": "Board 500 g", "kind": "board",
   "pricing": { "basis": "per_sheet", "sheet_size_mm": [320,450], "price_micro": 200000 },
   "printable": { "grammage_gsm": 500 }, "attrs": {} }

@@ -118,7 +118,7 @@ tenant {
   org_id: string,          // provider org id, unique
   db_name: string,         // "tenant_<12 hex>"
   name: string,            // display name, from the org at provision time
-  default_language: "en" | "de",     // default "en"
+  default_language: "uk" | "en",     // default "uk"
   default_currency: string,          // ISO 4217, default "EUR"
   created_at, updated_at
 }
@@ -617,6 +617,8 @@ The first three moves after the gate, in order:
 |---|---|---|
 | 1 | A1 quote engine (can start pre-gate) + B1 RBAC + B2 backups/audit | Engine is the differentiator and has zero coupling to the gate outcome; B1/B2 block any real tenant |
 | 2 | A5 documents/email + B3 API robustness | Makes the existing CRUD core actually usable to run a shop |
-| 3 | A2 admin price-model UI → A3 portal → A4 pipeline | The instant-quote story, shipped in customer-visible slices |
+| 3 | A2 catalog slice → staff quoting → A2 template editor → A3 portal → A4 pipeline | The instant-quote story, shipped staff-first then customer-facing (see below) |
 
 Track C starts when step 2 is done (nothing to onboard tenants *onto* before that); A6–A8 follow demand from the first real tenants rather than a fixed order.
+
+**Staff-first reordering of step 3 (`docs/staff-quoting.md` is normative for this).** A4's internal-estimating clause is superseded by `docs/staff-quoting.md`, which ships staff quoting *before* the template editor (A2) and the portal (A3): (1) engine core, (2) the A2 catalog slice — CRUD for `format`/`material`/`machine`/`operation`/`pricing_policy` + `pricelist_version` (`docs/pricing-admin-plan.md` phase A2a, no template editor/linter yet), (3) the `quote` entity + estimate/quote API + tier-2/3 UI (needs B1 RBAC for the permission gates), (4) templates + template editor + lint → tier 1, (5) the public portal. Quote→order conversion (staff-quoting.md) subsumes the estimating half of A4; anonymous portal quote *requests* stay with A3/A4.
