@@ -43,9 +43,9 @@ const theme = createTheme({
   primaryShade: 6,
   colors: { steel },
   defaultRadius: 0,
-  fontFamily: 'Fira Sans, system-ui, sans-serif',
+  fontFamily: 'Roboto, system-ui, sans-serif',
   headings: {
-    fontFamily: '"Fira Sans Condensed", system-ui, sans-serif',
+    fontFamily: '"Roboto Condensed", system-ui, sans-serif',
     fontWeight: '500',
   },
   components: {
