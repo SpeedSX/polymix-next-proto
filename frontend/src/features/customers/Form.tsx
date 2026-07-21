@@ -353,7 +353,7 @@ export function CustomerForm({
 
   return (
     <form onSubmit={handleSubmit}>
-      <Stack gap="lg">
+      <Stack gap={0}>
         <PageHeader
           sticky
           breadcrumb={breadcrumb}
@@ -370,18 +370,23 @@ export function CustomerForm({
             </>
           }
         />
-        {alerts}
+        {alerts && <Box pt="md">{alerts}</Box>}
         {sidePanel ? (
           <Box
             style={{
+              marginLeft: 'calc(-1 * var(--app-shell-padding, 0rem))',
+              marginRight: 'calc(-1 * var(--app-shell-padding, 0rem))',
+              marginBottom: 'calc(-1 * var(--app-shell-padding, 0rem))',
               display: 'grid',
               gridTemplateColumns: isNarrow ? '1fr' : 'minmax(0, 1fr) 320px',
               alignItems: 'stretch',
             }}
           >
+            {/* No horizontal padding here: Accordion.Control/Content already
+             * carry their own 16px inset, matching the page title's — adding
+             * more here would double it and misalign the two. */}
             <Box
-              pr={isNarrow ? undefined : 'md'}
-              pb={isNarrow ? 'md' : undefined}
+              pb="md"
               style={{
                 borderRight: isNarrow ? undefined : '1px solid var(--mantine-color-gray-3)',
                 borderBottom: isNarrow ? '1px solid var(--mantine-color-gray-3)' : undefined,
@@ -394,7 +399,9 @@ export function CustomerForm({
             </Box>
           </Box>
         ) : (
-          <Box maw={720}>{fields}</Box>
+          <Box maw={720} pt="md">
+            {fields}
+          </Box>
         )}
       </Stack>
     </form>

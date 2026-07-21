@@ -37,7 +37,7 @@ export interface ListLayoutProps {
   children: ReactNode
 }
 
-const HAIRLINE = '1px solid var(--mantine-color-gray-4)'
+const HAIRLINE = '1px solid var(--mantine-color-gray-5)'
 // AppShell.Main wraps the page in `md` padding, framing it in body gray. Cancel
 // it so the header band and white grid run edge to edge; content inside each
 // region is re-inset with `px="md"` instead.

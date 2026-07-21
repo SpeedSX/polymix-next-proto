@@ -91,9 +91,19 @@ const theme = createTheme({
     }),
     Accordion: Accordion.extend({
       styles: {
+        item: {
+          backgroundColor: 'var(--mantine-color-gray-0)',
+        },
         control: {
+          backgroundColor: 'transparent',
+        },
+        label: {
           fontFamily: 'var(--mantine-font-family-headings)',
           fontWeight: 500,
+          fontSize: 'var(--mantine-h4-font-size)',
+        },
+        content: {
+          backgroundColor: 'transparent',
         },
       },
     }),
