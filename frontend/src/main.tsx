@@ -45,7 +45,7 @@ const theme = createTheme({
   defaultRadius: 0,
   fontFamily: 'Roboto, system-ui, sans-serif',
   headings: {
-    fontFamily: '"Roboto Condensed", system-ui, sans-serif',
+    fontFamily: '"Roboto", system-ui, sans-serif',
     fontWeight: '500',
   },
   components: {
