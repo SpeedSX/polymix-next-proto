@@ -22,7 +22,13 @@ export function PageHeader({ breadcrumb, title, status, actions, sticky }: PageH
         zIndex: sticky ? 5 : undefined,
         background: 'var(--mantine-color-body)',
         borderBottom: '1px solid var(--mantine-color-gray-3)',
-        paddingTop: sticky ? 8 : undefined,
+        // AppShell.Main's own top padding sits above us, so the sticky
+        // header isn't at the scroll container's edge yet: it visibly
+        // slides up by that padding before it can stick. Borrow the
+        // padding via a negative margin and add it back as padding so the
+        // header already rests flush with the top and sticking is a no-op.
+        marginTop: sticky ? 'calc(-1 * var(--app-shell-padding, 0rem))' : undefined,
+        paddingTop: sticky ? 'calc(var(--app-shell-padding, 0rem) + 8px)' : undefined,
         paddingBottom: 12,
       }}
     >

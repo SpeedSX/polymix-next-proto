@@ -162,20 +162,23 @@ export function CustomerForm({
                 </Button>
               </Group>
               {form.values.contacts.length > 0 && (
-                <Table>
+                <Table verticalSpacing="xs">
                   <Table.Thead>
                     <Table.Tr>
                       <Table.Th>{t('fields.contactName')}</Table.Th>
                       <Table.Th>{t('fields.contactRole')}</Table.Th>
                       <Table.Th>{t('fields.email')}</Table.Th>
                       <Table.Th>{t('fields.phone')}</Table.Th>
-                      <Table.Th>{t('fields.primary')}</Table.Th>
+                      <Table.Th ta="center">{t('fields.primary')}</Table.Th>
                       <Table.Th />
                     </Table.Tr>
                   </Table.Thead>
                   <Table.Tbody>
                     {form.values.contacts.map((contact, index) => (
-                      <Table.Tr key={index}>
+                      <Table.Tr
+                        key={index}
+                        bg={contact.isPrimary ? 'var(--mantine-color-steel-0)' : undefined}
+                      >
                         <Table.Td>
                           <TextInput {...form.getInputProps(`contacts.${index}.name`)} />
                         </Table.Td>
@@ -189,18 +192,20 @@ export function CustomerForm({
                           <TextInput {...form.getInputProps(`contacts.${index}.phone`)} />
                         </Table.Td>
                         <Table.Td>
-                          <Radio
-                            checked={contact.isPrimary}
-                            onChange={() => {
-                              form.values.contacts.forEach((_, otherIndex) => {
-                                form.setFieldValue(`contacts.${otherIndex}.isPrimary`, otherIndex === index)
-                              })
-                            }}
-                          />
+                          <Group justify="center">
+                            <Radio
+                              checked={contact.isPrimary}
+                              onChange={() => {
+                                form.values.contacts.forEach((_, otherIndex) => {
+                                  form.setFieldValue(`contacts.${otherIndex}.isPrimary`, otherIndex === index)
+                                })
+                              }}
+                            />
+                          </Group>
                         </Table.Td>
                         <Table.Td>
                           <ActionIcon
-                            color="red"
+                            color="steel"
                             variant="subtle"
                             aria-label={t('form.removeContact')}
                             onClick={() => form.removeListItem('contacts', index)}
