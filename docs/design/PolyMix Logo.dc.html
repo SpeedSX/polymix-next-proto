@@ -31,6 +31,420 @@
 
 <div style="display:flex; flex-wrap:wrap; gap:44px; align-items:flex-start; padding:60px;">
 
+  <!-- ============ 12a — Catalog list (entity tabs) ============ -->
+  <section id="12a" style="display:flex; flex-direction:column; gap:16px; width:1440px; flex:none;">
+    <div style="display:flex; align-items:center; gap:8px;">
+      <span class="opt-badge">12a</span>
+      <span class="tagline" style="font-size:10px;">settings — catalog · list</span>
+    </div>
+
+    <div class="blueprint" style="background:var(--color-bg); display:flex; height:840px; overflow:hidden;">
+      <i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i>
+
+      <!-- rail -->
+      <aside style="width:60px; flex:none; background:var(--color-accent-900); display:flex; flex-direction:column; align-items:center; gap:6px; padding:18px 0;">
+        <svg width="30" height="30" viewBox="0 0 120 120" aria-label="PolyMix" style="margin-bottom:12px;">
+          <rect x="8" y="8" width="48" height="48" rx="15" fill="#94bce3"></rect><rect x="64" y="8" width="48" height="48" rx="15" fill="#cfe4fa"></rect><rect x="8" y="64" width="48" height="48" rx="15" fill="#7e9cb8"></rect><rect x="64" y="64" width="48" height="48" rx="15" fill="#b5d9fd"></rect>
+        </svg>
+        <a href="#" style="width:38px; height:38px; display:flex; align-items:center; justify-content:center; color:#c4d2e0;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9"></rect><rect x="14" y="3" width="7" height="5"></rect><rect x="14" y="12" width="7" height="9"></rect><rect x="3" y="16" width="7" height="5"></rect></svg></a>
+        <a href="#" style="width:38px; height:38px; display:flex; align-items:center; justify-content:center; color:#c4d2e0;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="1"></rect><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"></path></svg></a>
+        <a href="#" style="width:38px; height:38px; display:flex; align-items:center; justify-content:center; color:#c4d2e0;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle></svg></a>
+        <a href="#" style="width:38px; height:38px; display:flex; align-items:center; justify-content:center; color:#c4d2e0;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 7H4"></path><path d="M20 12H4"></path><path d="M20 17H4"></path></svg></a>
+        <a href="#" aria-current="page" style="margin-top:auto; width:38px; height:38px; display:flex; align-items:center; justify-content:center; color:#ffffff; background:rgba(148,188,227,0.18); box-shadow:inset 2px 0 0 #94bce3;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg></a>
+      </aside>
+
+      <!-- settings sub-nav -->
+      <aside style="width:190px; flex:none; border-right:1px solid var(--color-divider); padding:22px 14px; display:flex; flex-direction:column; gap:2px; font-family:var(--font-heading); font-weight:600; font-size:14px;">
+        <div class="text-muted" style="font-size:11px; letter-spacing:0.08em; text-transform:uppercase; padding:0 12px 10px;">Settings</div>
+        <a href="#" style="padding:9px 12px; color:var(--color-text); text-decoration:none;">Company</a>
+        <a href="#" style="padding:9px 12px; color:var(--color-text); text-decoration:none;">Presses &amp; capacity</a>
+        <a href="#" aria-current="page" style="padding:9px 12px; color:var(--color-accent-900); text-decoration:none; background:var(--color-accent-100); box-shadow:inset 2px 0 0 var(--color-accent);">Catalog</a>
+        <a href="#" style="padding:9px 12px; color:var(--color-text); text-decoration:none;">Users &amp; roles</a>
+        <a href="#" style="padding:9px 12px; color:var(--color-text); text-decoration:none;">Integrations</a>
+        <a href="#" style="padding:9px 12px; color:var(--color-text); text-decoration:none;">Audit log</a>
+      </aside>
+
+      <!-- main -->
+      <div style="flex:1; display:flex; flex-direction:column; min-width:0;">
+        <header style="display:flex; align-items:center; gap:16px; padding:18px 26px 0;">
+          <div style="min-width:0;">
+            <div class="text-muted" style="font-size:11px; letter-spacing:0.08em; text-transform:uppercase;">Settings <span style="opacity:0.5;">/</span> Catalog</div>
+            <h3 style="margin:2px 0 0; font-size:24px;">Catalog</h3>
+          </div>
+          <div class="input" style="display:flex; align-items:center; gap:8px; width:220px; margin-left:auto; min-height:36px;">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--color-accent)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><path d="m21 21-4.3-4.3"></path></svg>
+            <span class="text-muted" style="font-size:13px;">Search catalog…</span>
+          </div>
+          <button class="btn btn-primary blueprint" style="padding-inline:16px;"><i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i>
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14"></path><path d="M5 12h14"></path></svg>
+            {{ newLabel }}
+          </button>
+        </header>
+
+        <!-- entity tab strip -->
+        <div style="display:flex; align-items:center; gap:22px; padding:14px 26px 0; border-bottom:1px solid var(--color-divider); font-family:var(--font-heading); font-weight:600; font-size:14px;">
+          <button onClick="{{ setEntity }}" data-e="formats" style="all:unset; cursor:pointer; padding-bottom:12px; color:{{ tabFmtColor }}; box-shadow:{{ tabFmtLine }};">Formats</button>
+          <button onClick="{{ setEntity }}" data-e="materials" style="all:unset; cursor:pointer; padding-bottom:12px; color:{{ tabMatColor }}; box-shadow:{{ tabMatLine }};">Materials</button>
+          <button onClick="{{ setEntity }}" data-e="machines" style="all:unset; cursor:pointer; padding-bottom:12px; color:{{ tabMacColor }}; box-shadow:{{ tabMacLine }};">Machines</button>
+          <button onClick="{{ setEntity }}" data-e="operations" style="all:unset; cursor:pointer; padding-bottom:12px; color:{{ tabOpColor }}; box-shadow:{{ tabOpLine }};">Operations</button>
+          <button onClick="{{ setEntity }}" data-e="pricing" style="all:unset; cursor:pointer; padding-bottom:12px; color:{{ tabPriColor }}; box-shadow:{{ tabPriLine }};">Pricing policies</button>
+        </div>
+
+        <div style="flex:1; overflow:auto; padding:8px 26px 26px; background:{{ listBg }};">
+          <div class="text-muted" style="font-size:12px; padding:12px 2px;">{{ entityCount }} entries · sorted by name</div>
+
+          <!-- Formats -->
+          <sc-if value="{{ isFormats }}" hint-placeholder-val="{{ false }}">
+            <table class="table">
+              <thead><tr><th>Name</th><th style="width:130px;">Width (mm)</th><th style="width:130px;">Height (mm)</th><th style="width:150px;">Orientation</th><th style="width:80px; text-align:right;"></th></tr></thead>
+              <tbody>
+                <tr><td>A4 portrait</td><td class="text-muted">210</td><td class="text-muted">297</td><td><span class="tag tag-outline">Portrait</span></td><td style="text-align:right;"><span class="text-muted">Edit</span></td></tr>
+                <tr><td>A5 portrait</td><td class="text-muted">148</td><td class="text-muted">210</td><td><span class="tag tag-outline">Portrait</span></td><td style="text-align:right;"><span class="text-muted">Edit</span></td></tr>
+                <tr><td>Crown octavo</td><td class="text-muted">126</td><td class="text-muted">191</td><td><span class="tag tag-outline">Portrait</span></td><td style="text-align:right;"><span class="text-muted">Edit</span></td></tr>
+                <tr><td>Royal quarto</td><td class="text-muted">237</td><td class="text-muted">312</td><td><span class="tag tag-outline">Portrait</span></td><td style="text-align:right;"><span class="text-muted">Edit</span></td></tr>
+                <tr><td>DL landscape</td><td class="text-muted">210</td><td class="text-muted">99</td><td><span class="tag tag-neutral">Landscape</span></td><td style="text-align:right;"><span class="text-muted">Edit</span></td></tr>
+              </tbody>
+            </table>
+          </sc-if>
+
+          <!-- Materials -->
+          <sc-if value="{{ isMaterials }}" hint-placeholder-val="{{ true }}">
+            <table class="table">
+              <thead><tr><th>Name</th><th style="width:150px;">Kind</th><th style="width:130px;">Basis</th><th style="width:130px;">Unit price</th><th style="width:110px;">Printable</th><th style="width:80px; text-align:right;"></th></tr></thead>
+              <tbody>
+                <tr><td>Munken Cream 90gsm</td><td class="text-muted">Text stock</td><td><span class="tag tag-outline">per_sheet</span></td><td class="text-muted">£0.041</td><td><span class="tag tag-accent">Yes</span></td><td style="text-align:right;"><span class="text-muted">Edit</span></td></tr>
+                <tr><td>GF Smith Colorplan</td><td class="text-muted">Cover board</td><td><span class="tag tag-outline">per_sheet</span></td><td class="text-muted">£0.320</td><td><span class="tag tag-accent">Yes</span></td><td style="text-align:right;"><span class="text-muted">Edit</span></td></tr>
+                <tr><td>Buckram cloth</td><td class="text-muted">Binding</td><td><span class="tag tag-outline">per_m2</span></td><td class="text-muted">£14.90</td><td><span class="tag tag-neutral">No</span></td><td style="text-align:right;"><span class="text-muted">Edit</span></td></tr>
+                <tr><td>Head/tail band</td><td class="text-muted">Trim</td><td><span class="tag tag-outline">per_cm</span></td><td class="text-muted">£0.006</td><td><span class="tag tag-neutral">No</span></td><td style="text-align:right;"><span class="text-muted">Edit</span></td></tr>
+                <tr><td>Ribbon marker</td><td class="text-muted">Trim</td><td><span class="tag tag-outline">per_item</span></td><td class="text-muted">£0.028</td><td><span class="tag tag-neutral">No</span></td><td style="text-align:right;"><span class="text-muted">Edit</span></td></tr>
+                <tr><td>Soft-touch laminate</td><td class="text-muted">Finish film</td><td><span class="tag tag-outline">per_m2</span></td><td class="text-muted">£1.85</td><td><span class="tag tag-neutral">No</span></td><td style="text-align:right;"><span class="text-muted">Edit</span></td></tr>
+              </tbody>
+            </table>
+          </sc-if>
+
+          <!-- Machines -->
+          <sc-if value="{{ isMachines }}" hint-placeholder-val="{{ false }}">
+            <table class="table">
+              <thead><tr><th>Name</th><th style="width:130px;">Technology</th><th style="width:150px;">Sheet size</th><th style="width:100px;">Duplex</th><th style="width:120px;">Max gsm</th><th style="width:80px; text-align:right;"></th></tr></thead>
+              <tbody>
+                <tr><td>Heidelberg SM 74</td><td><span class="tag tag-outline">offset</span></td><td class="text-muted">530 × 740</td><td><span class="tag tag-accent">Yes</span></td><td class="text-muted">350</td><td style="text-align:right;"><span class="text-muted">Edit</span></td></tr>
+                <tr><td>Komori Lithrone 40</td><td><span class="tag tag-outline">offset</span></td><td class="text-muted">720 × 1030</td><td><span class="tag tag-accent">Yes</span></td><td class="text-muted">400</td><td style="text-align:right;"><span class="text-muted">Edit</span></td></tr>
+                <tr><td>HP Indigo 12000</td><td><span class="tag tag-accent">digital</span></td><td class="text-muted">530 × 750</td><td><span class="tag tag-accent">Yes</span></td><td class="text-muted">400</td><td style="text-align:right;"><span class="text-muted">Edit</span></td></tr>
+                <tr><td>Xerox Iridesse</td><td><span class="tag tag-accent">digital</span></td><td class="text-muted">330 × 660</td><td><span class="tag tag-accent">Yes</span></td><td class="text-muted">400</td><td style="text-align:right;"><span class="text-muted">Edit</span></td></tr>
+                <tr><td>Ricoh Pro C9200</td><td><span class="tag tag-accent">digital</span></td><td class="text-muted">330 × 700</td><td><span class="tag tag-neutral">No</span></td><td class="text-muted">470</td><td style="text-align:right;"><span class="text-muted">Edit</span></td></tr>
+              </tbody>
+            </table>
+          </sc-if>
+
+          <!-- Operations -->
+          <sc-if value="{{ isOperations }}" hint-placeholder-val="{{ false }}">
+            <table class="table">
+              <thead><tr><th>Name</th><th style="width:170px;">Unit basis</th><th style="width:120px;">Setup</th><th style="width:130px;">Unit price</th><th style="width:80px; text-align:right;"></th></tr></thead>
+              <tbody>
+                <tr><td>Perfect binding</td><td class="text-muted">per_book</td><td class="text-muted">£38.00</td><td class="text-muted">£0.21</td><td style="text-align:right;"><span class="text-muted">Edit</span></td></tr>
+                <tr><td>Section sewing</td><td class="text-muted">per_signature</td><td class="text-muted">£45.00</td><td class="text-muted">£0.09</td><td style="text-align:right;"><span class="text-muted">Edit</span></td></tr>
+                <tr><td>Foil stamping</td><td class="text-muted">per_impression</td><td class="text-muted">£120.00</td><td class="text-muted">£0.14</td><td style="text-align:right;"><span class="text-muted">Edit</span></td></tr>
+                <tr><td>Guillotine trim</td><td class="text-muted">per_1000_sheets</td><td class="text-muted">£12.00</td><td class="text-muted">£1.10</td><td style="text-align:right;"><span class="text-muted">Edit</span></td></tr>
+                <tr><td>Shrink wrapping</td><td class="text-muted">per_bundle</td><td class="text-muted">£8.00</td><td class="text-muted">£0.35</td><td style="text-align:right;"><span class="text-muted">Edit</span></td></tr>
+              </tbody>
+            </table>
+          </sc-if>
+
+          <!-- Pricing policies -->
+          <sc-if value="{{ isPricing }}" hint-placeholder-val="{{ false }}">
+            <table class="table">
+              <thead><tr><th>Name</th><th style="width:110px;">Currency</th><th style="width:100px;">Bands</th><th style="width:150px;">Rounding</th><th style="width:130px;">Min price</th><th style="width:80px; text-align:right;"></th></tr></thead>
+              <tbody>
+                <tr><td>Trade — books</td><td class="text-muted">GBP</td><td class="text-muted">4</td><td class="text-muted">£0.05 · nearest</td><td class="text-muted">£45.00</td><td style="text-align:right;"><span class="text-muted">Edit</span></td></tr>
+                <tr><td>Direct — retail</td><td class="text-muted">GBP</td><td class="text-muted">3</td><td class="text-muted">£0.10 · up</td><td class="text-muted">£25.00</td><td style="text-align:right;"><span class="text-muted">Edit</span></td></tr>
+                <tr><td>Export — EUR</td><td class="text-muted">EUR</td><td class="text-muted">5</td><td class="text-muted">€0.05 · nearest</td><td class="text-muted">€60.00</td><td style="text-align:right;"><span class="text-muted">Edit</span></td></tr>
+                <tr><td>Agency net</td><td class="text-muted">GBP</td><td class="text-muted">4</td><td class="text-muted">£0.01 · nearest</td><td class="text-muted">£0.00</td><td style="text-align:right;"><span class="text-muted">Edit</span></td></tr>
+              </tbody>
+            </table>
+          </sc-if>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ 12b — Material form (conditional pricing basis) ============ -->
+  <section id="12b" style="display:flex; flex-direction:column; gap:16px; width:760px; flex:none;">
+    <div style="display:flex; align-items:center; gap:8px;">
+      <span class="opt-badge">12b</span>
+      <span class="tagline" style="font-size:10px;">catalog — material form · conditional</span>
+    </div>
+    <div class="blueprint" style="background:var(--color-bg); display:flex; flex-direction:column; overflow:hidden;">
+      <i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i>
+      <header style="display:flex; align-items:center; gap:14px; padding:16px 22px; border-bottom:1px solid var(--color-divider);">
+        <div style="min-width:0;">
+          <div class="text-muted" style="font-size:11px; letter-spacing:0.08em; text-transform:uppercase;">Catalog <span style="opacity:0.5;">/</span> Materials <span style="opacity:0.5;">/</span> New</div>
+          <h3 style="margin:2px 0 0; font-size:24px;">Material</h3>
+        </div>
+        <button class="btn btn-primary blueprint" style="margin-left:auto; padding-inline:18px;"><i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i>Save</button>
+      </header>
+      <div style="padding:22px; display:flex; flex-direction:column; gap:24px;">
+        <div style="display:grid; grid-template-columns:1.6fr 1fr; gap:16px;">
+          <div class="field"><label>Name</label><input class="input" value="Munken Cream 90gsm"></div>
+          <div class="field"><label>Kind <span class="text-muted" style="text-transform:none; letter-spacing:0;">(free taxonomy)</span></label><input class="input" value="Text stock" list="mat-kinds"><datalist id="mat-kinds"><option>Text stock</option><option>Cover board</option><option>Binding</option></datalist></div>
+        </div>
+
+        <!-- pricing basis switcher -->
+        <fieldset style="border:0; margin:0; padding:0; display:flex; flex-direction:column; gap:14px;">
+          <legend style="font-family:var(--font-heading); font-weight:600; font-size:13px; letter-spacing:0.06em; text-transform:uppercase; color:var(--color-accent-700); padding:0;">Pricing basis</legend>
+          <div style="display:inline-flex; align-self:flex-start; border:1px solid var(--color-divider); background:var(--color-surface); padding:3px; gap:3px; font-family:var(--font-heading); font-weight:600; font-size:13px;">
+            <button onClick="{{ setBasis }}" data-b="per_sheet" style="all:unset; cursor:pointer; padding:7px 14px; background:{{ segSheetBg }}; color:{{ segSheetFg }};">per_sheet</button>
+            <button onClick="{{ setBasis }}" data-b="per_m2" style="all:unset; cursor:pointer; padding:7px 14px; background:{{ segM2Bg }}; color:{{ segM2Fg }};">per_m2</button>
+            <button onClick="{{ setBasis }}" data-b="per_cm" style="all:unset; cursor:pointer; padding:7px 14px; background:{{ segCmBg }}; color:{{ segCmFg }};">per_cm</button>
+            <button onClick="{{ setBasis }}" data-b="per_item" style="all:unset; cursor:pointer; padding:7px 14px; background:{{ segItemBg }}; color:{{ segItemFg }};">per_item</button>
+          </div>
+
+          <div class="blueprint" style="background:var(--color-accent-100); padding:16px; display:flex; flex-direction:column; gap:14px;">
+            <i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i>
+            <sc-if value="{{ isPerSheet }}" hint-placeholder-val="{{ true }}">
+              <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:16px;">
+                <div class="field"><label>Sheet width (mm)</label><input class="input" value="640" style="background:#fff;"></div>
+                <div class="field"><label>Sheet height (mm)</label><input class="input" value="900" style="background:#fff;"></div>
+                <div class="field"><label>Price / sheet (£)</label><input class="input" value="0.041" style="background:#fff;"></div>
+              </div>
+            </sc-if>
+            <sc-if value="{{ isPerM2 }}" hint-placeholder-val="{{ false }}">
+              <div class="field" style="max-width:240px;"><label>Price / m² (£)</label><input class="input" value="14.90" style="background:#fff;"></div>
+            </sc-if>
+            <sc-if value="{{ isPerCm }}" hint-placeholder-val="{{ false }}">
+              <div class="field" style="max-width:240px;"><label>Price / linear cm (£)</label><input class="input" value="0.006" style="background:#fff;"></div>
+            </sc-if>
+            <sc-if value="{{ isPerItem }}" hint-placeholder-val="{{ false }}">
+              <div class="field" style="max-width:240px;"><label>Price / item (£)</label><input class="input" value="0.028" style="background:#fff;"></div>
+            </sc-if>
+          </div>
+        </fieldset>
+
+        <!-- printable toggle -->
+        <fieldset style="border:0; margin:0; padding:0; display:flex; flex-direction:column; gap:14px;">
+          <label style="display:flex; align-items:center; gap:12px; cursor:pointer;" onClick="{{ togglePrintable }}">
+            <span style="position:relative; width:40px; height:22px; background:{{ printBg }}; flex:none; transition:background .15s;"><span style="position:absolute; top:2px; left:2px; width:18px; height:18px; background:#fff; transform:{{ printKnob }}; transition:transform .15s;"></span></span>
+            <span style="font-family:var(--font-heading); font-weight:600; font-size:14px;">Printable material</span>
+          </label>
+          <sc-if value="{{ matPrintable }}" hint-placeholder-val="{{ true }}">
+            <div class="field" style="max-width:240px;"><label>Grammage (gsm)</label><input class="input" value="90"></div>
+          </sc-if>
+        </fieldset>
+
+        <!-- opaque attrs editor -->
+        <fieldset style="border:0; margin:0; padding:0; display:flex; flex-direction:column; gap:12px;">
+          <div style="display:flex; align-items:center; gap:10px;">
+            <legend style="font-family:var(--font-heading); font-weight:600; font-size:13px; letter-spacing:0.06em; text-transform:uppercase; color:var(--color-accent-700); padding:0; float:none;">Attributes</legend>
+            <span class="text-muted" style="font-size:12px;">opaque key / value</span>
+            <button class="btn btn-secondary" style="margin-left:auto;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14"></path><path d="M5 12h14"></path></svg>Add</button>
+          </div>
+          <div style="display:flex; flex-direction:column; gap:8px;">
+            <div style="display:grid; grid-template-columns:1fr 1fr 40px; gap:12px; align-items:center;">
+              <input class="input" value="finish" style="min-height:34px;"><input class="input" value="uncoated" style="min-height:34px;">
+              <button class="btn btn-ghost btn-icon" aria-label="Remove"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"></path><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"></path></svg></button>
+            </div>
+            <div style="display:grid; grid-template-columns:1fr 1fr 40px; gap:12px; align-items:center;">
+              <input class="input" value="grain" style="min-height:34px;"><input class="input" value="long" style="min-height:34px;">
+              <button class="btn btn-ghost btn-icon" aria-label="Remove"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"></path><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"></path></svg></button>
+            </div>
+          </div>
+        </fieldset>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ 12c — Machine form (conditional technology) ============ -->
+  <section id="12c" style="display:flex; flex-direction:column; gap:16px; width:760px; flex:none;">
+    <div style="display:flex; align-items:center; gap:8px;">
+      <span class="opt-badge">12c</span>
+      <span class="tagline" style="font-size:10px;">catalog — machine form · conditional</span>
+    </div>
+    <div class="blueprint" style="background:var(--color-bg); display:flex; flex-direction:column; overflow:hidden;">
+      <i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i>
+      <header style="display:flex; align-items:center; gap:14px; padding:16px 22px; border-bottom:1px solid var(--color-divider);">
+        <div style="min-width:0;">
+          <div class="text-muted" style="font-size:11px; letter-spacing:0.08em; text-transform:uppercase;">Catalog <span style="opacity:0.5;">/</span> Machines <span style="opacity:0.5;">/</span> New</div>
+          <h3 style="margin:2px 0 0; font-size:24px;">Machine</h3>
+        </div>
+        <button class="btn btn-primary blueprint" style="margin-left:auto; padding-inline:18px;"><i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i>Save</button>
+      </header>
+      <div style="padding:22px; display:flex; flex-direction:column; gap:24px;">
+        <div class="field"><label>Name</label><input class="input" value="HP Indigo 12000"></div>
+
+        <fieldset style="border:0; margin:0; padding:0; display:flex; flex-direction:column; gap:14px;">
+          <legend style="font-family:var(--font-heading); font-weight:600; font-size:13px; letter-spacing:0.06em; text-transform:uppercase; color:var(--color-accent-700); padding:0;">Technology</legend>
+          <div style="display:inline-flex; align-self:flex-start; border:1px solid var(--color-divider); background:var(--color-surface); padding:3px; gap:3px; font-family:var(--font-heading); font-weight:600; font-size:13px;">
+            <button onClick="{{ setTech }}" data-t="digital" style="all:unset; cursor:pointer; padding:7px 16px; background:{{ segDigitalBg }}; color:{{ segDigitalFg }};">digital</button>
+            <button onClick="{{ setTech }}" data-t="offset" style="all:unset; cursor:pointer; padding:7px 16px; background:{{ segOffsetBg }}; color:{{ segOffsetFg }};">offset</button>
+          </div>
+        </fieldset>
+
+        <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:16px;">
+          <div class="field"><label>Sheet width (mm)</label><input class="input" value="530"></div>
+          <div class="field"><label>Sheet height (mm)</label><input class="input" value="750"></div>
+          <div class="field"><label>Max grammage (gsm)</label><input class="input" value="400"></div>
+        </div>
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px;">
+          <div class="field"><label>Setup / makeready (min)</label><input class="input" value="18"></div>
+          <div class="field"><label>Waste sheets</label><input class="input" value="60"></div>
+        </div>
+        <label style="display:flex; align-items:center; gap:12px; cursor:pointer;" onClick="{{ toggleDuplex }}">
+          <span style="position:relative; width:40px; height:22px; background:{{ duplexBg }}; flex:none; transition:background .15s;"><span style="position:absolute; top:2px; left:2px; width:18px; height:18px; background:#fff; transform:{{ duplexKnob }}; transition:transform .15s;"></span></span>
+          <span style="font-family:var(--font-heading); font-weight:600; font-size:14px;">Duplex capable</span>
+        </label>
+
+        <!-- technology-conditional cost fields -->
+        <div class="blueprint" style="background:var(--color-accent-100); padding:16px; display:flex; flex-direction:column; gap:14px;">
+          <i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i>
+          <div style="font-family:var(--font-heading); font-weight:600; font-size:12px; letter-spacing:0.06em; text-transform:uppercase; color:var(--color-accent-700);">Cost model</div>
+          <sc-if value="{{ isDigital }}" hint-placeholder-val="{{ true }}">
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px;">
+              <div class="field"><label>Click — mono (£)</label><input class="input" value="0.008" style="background:#fff;"></div>
+              <div class="field"><label>Click — colour (£)</label><input class="input" value="0.052" style="background:#fff;"></div>
+            </div>
+          </sc-if>
+          <sc-if value="{{ isOffset }}" hint-placeholder-val="{{ false }}">
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px;">
+              <div class="field"><label>Plate price (£)</label><input class="input" value="9.50" style="background:#fff;"></div>
+              <div class="field"><label>Run price / 1000 (£)</label><input class="input" value="6.20" style="background:#fff;"></div>
+            </div>
+          </sc-if>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ 12d — Operation form ============ -->
+  <section id="12d" style="display:flex; flex-direction:column; gap:16px; width:760px; flex:none;">
+    <div style="display:flex; align-items:center; gap:8px;">
+      <span class="opt-badge">12d</span>
+      <span class="tagline" style="font-size:10px;">catalog — operation form</span>
+    </div>
+    <div class="blueprint" style="background:var(--color-bg); display:flex; flex-direction:column; overflow:hidden;">
+      <i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i>
+      <header style="display:flex; align-items:center; gap:14px; padding:16px 22px; border-bottom:1px solid var(--color-divider);">
+        <div style="min-width:0;">
+          <div class="text-muted" style="font-size:11px; letter-spacing:0.08em; text-transform:uppercase;">Catalog <span style="opacity:0.5;">/</span> Operations <span style="opacity:0.5;">/</span> New</div>
+          <h3 style="margin:2px 0 0; font-size:24px;">Operation</h3>
+        </div>
+        <button class="btn btn-primary blueprint" style="margin-left:auto; padding-inline:18px;"><i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i>Save</button>
+      </header>
+      <div style="padding:22px; display:flex; flex-direction:column; gap:24px;">
+        <div style="display:grid; grid-template-columns:1.6fr 1fr; gap:16px;">
+          <div class="field"><label>Name</label><input class="input" value="Perfect binding"></div>
+          <div class="field"><label>Unit basis</label><select class="input"><option>per_book</option><option>per_signature</option><option>per_impression</option><option>per_1000_sheets</option><option>per_bundle</option></select></div>
+        </div>
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px;">
+          <div class="field"><label>Setup cost (£)</label><input class="input" value="38.00"></div>
+          <div class="field"><label>Unit price (£)</label><input class="input" value="0.21"></div>
+        </div>
+
+        <fieldset style="border:0; margin:0; padding:0; display:flex; flex-direction:column; gap:14px;">
+          <legend style="font-family:var(--font-heading); font-weight:600; font-size:13px; letter-spacing:0.06em; text-transform:uppercase; color:var(--color-accent-700); padding:0;">Reserved parameters <span class="text-muted" style="text-transform:none; letter-spacing:0; font-weight:400;">optional</span></legend>
+          <div style="display:grid; grid-template-columns:1.4fr 1fr 1fr; gap:16px;">
+            <div class="field"><label>Material</label><select class="input"><option>— none —</option><option>Buckram cloth</option><option>Soft-touch laminate</option><option>Head/tail band</option></select></div>
+            <div class="field"><label>Edge (mm)</label><input class="input" value="3"></div>
+            <div class="field"><label>Units multiplier</label><input class="input" value="1.0"></div>
+          </div>
+        </fieldset>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ 12e — Pricing-policy form (margin bands) ============ -->
+  <section id="12e" style="display:flex; flex-direction:column; gap:16px; width:820px; flex:none;">
+    <div style="display:flex; align-items:center; gap:8px;">
+      <span class="opt-badge">12e</span>
+      <span class="tagline" style="font-size:10px;">catalog — pricing policy · margin bands</span>
+    </div>
+    <div class="blueprint" style="background:var(--color-bg); display:flex; flex-direction:column; overflow:hidden;">
+      <i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i>
+      <header style="display:flex; align-items:center; gap:14px; padding:16px 22px; border-bottom:1px solid var(--color-divider);">
+        <div style="min-width:0;">
+          <div class="text-muted" style="font-size:11px; letter-spacing:0.08em; text-transform:uppercase;">Catalog <span style="opacity:0.5;">/</span> Pricing policies <span style="opacity:0.5;">/</span> New</div>
+          <h3 style="margin:2px 0 0; font-size:24px;">Pricing policy</h3>
+        </div>
+        <button class="btn btn-primary blueprint" style="margin-left:auto; padding-inline:18px;"><i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i>Save</button>
+      </header>
+      <div style="padding:22px; display:flex; flex-direction:column; gap:24px;">
+        <div style="display:grid; grid-template-columns:1.6fr 1fr; gap:16px;">
+          <div class="field"><label>Name</label><input class="input" value="Trade — books"></div>
+          <div class="field"><label>Currency</label><select class="input"><option>GBP £</option><option>EUR €</option><option>USD $</option></select></div>
+        </div>
+
+        <!-- margin bands editor -->
+        <fieldset style="border:0; margin:0; padding:0; display:flex; flex-direction:column; gap:12px;">
+          <div style="display:flex; align-items:center; gap:10px;">
+            <legend style="font-family:var(--font-heading); font-weight:600; font-size:13px; letter-spacing:0.06em; text-transform:uppercase; color:var(--color-accent-700); padding:0; float:none;">Margin bands</legend>
+            <span class="text-muted" style="font-size:12px;">quantity break → multiplier</span>
+            <button class="btn btn-secondary" style="margin-left:auto;" onClick="{{ addBand }}"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14"></path><path d="M5 12h14"></path></svg>Add band</button>
+          </div>
+          <div style="display:grid; grid-template-columns:60px 1fr 1fr 96px; gap:12px; padding:0 12px; font-family:var(--font-body); font-size:11px; letter-spacing:0.08em; text-transform:uppercase; color:var(--color-text-muted);">
+            <span>Order</span><span>Min qty</span><span>Multiplier</span><span></span>
+          </div>
+          <div style="display:flex; flex-direction:column; gap:8px;">
+            <sc-for list="{{ bands }}" as="band" hint-placeholder-count="4">
+              <div class="blueprint" style="display:grid; grid-template-columns:60px 1fr 1fr 96px; gap:12px; align-items:center; padding:8px 12px;">
+                <i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i>
+                <div style="display:flex; gap:2px;">
+                  <button class="btn btn-ghost btn-icon" aria-label="Move up" onClick="{{ band.up }}" disabled="{{ band.upDisabled }}" style="width:26px; height:26px; opacity:0.9;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="m18 15-6-6-6 6"></path></svg></button>
+                  <button class="btn btn-ghost btn-icon" aria-label="Move down" onClick="{{ band.down }}" disabled="{{ band.downDisabled }}" style="width:26px; height:26px; opacity:0.9;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"></path></svg></button>
+                </div>
+                <sc-if value="{{ band.pinned }}" hint-placeholder-val="{{ false }}">
+                  <div class="input" style="min-height:34px; display:flex; align-items:center; gap:8px; background:var(--color-surface);"><span>{{ band.qty }}</span><span class="tag tag-neutral" style="font-size:10px;">pinned</span></div>
+                </sc-if>
+                <sc-if value="{{ band.canDown }}" hint-placeholder-val="{{ true }}">
+                  <input class="input" value="{{ band.qty }}" style="min-height:34px;">
+                </sc-if>
+                <input class="input" value="{{ band.multStr }}" style="min-height:34px; font-variant-numeric:tabular-nums;">
+                <div style="display:flex; justify-content:flex-end;">
+                  <sc-if value="{{ band.canDown }}" hint-placeholder-val="{{ true }}">
+                    <button class="btn btn-ghost btn-icon" aria-label="Remove band" onClick="{{ band.remove }}"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"></path><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"></path></svg></button>
+                  </sc-if>
+                </div>
+              </div>
+            </sc-for>
+          </div>
+        </fieldset>
+
+        <!-- rounding + min price -->
+        <fieldset style="border:0; margin:0; padding:0; display:flex; flex-direction:column; gap:14px;">
+          <legend style="font-family:var(--font-heading); font-weight:600; font-size:13px; letter-spacing:0.06em; text-transform:uppercase; color:var(--color-accent-700); padding:0;">Rounding &amp; floor</legend>
+          <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:16px;">
+            <div class="field"><label>Rounding step (£)</label><input class="input" value="0.05"></div>
+            <div class="field"><label>Rounding mode</label><select class="input"><option>Nearest</option><option>Up</option><option>Down</option></select></div>
+            <div class="field"><label>Minimum price (£)</label><input class="input" value="45.00"></div>
+          </div>
+        </fieldset>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ 12f — Format form (trivial) ============ -->
+  <section id="12f" style="display:flex; flex-direction:column; gap:16px; width:520px; flex:none;">
+    <div style="display:flex; align-items:center; gap:8px;">
+      <span class="opt-badge">12f</span>
+      <span class="tagline" style="font-size:10px;">catalog — format form</span>
+    </div>
+    <div class="blueprint" style="background:var(--color-bg); display:flex; flex-direction:column; overflow:hidden;">
+      <i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i>
+      <header style="display:flex; align-items:center; gap:14px; padding:16px 22px; border-bottom:1px solid var(--color-divider);">
+        <div style="min-width:0;">
+          <div class="text-muted" style="font-size:11px; letter-spacing:0.08em; text-transform:uppercase;">Catalog <span style="opacity:0.5;">/</span> Formats <span style="opacity:0.5;">/</span> New</div>
+          <h3 style="margin:2px 0 0; font-size:24px;">Format</h3>
+        </div>
+        <button class="btn btn-primary blueprint" style="margin-left:auto; padding-inline:18px;"><i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i>Save</button>
+      </header>
+      <div style="padding:22px; display:flex; flex-direction:column; gap:20px;">
+        <div class="field"><label>Name</label><input class="input" value="A5 portrait"></div>
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px;">
+          <div class="field"><label>Width (mm)</label><input class="input" value="148"></div>
+          <div class="field"><label>Height (mm)</label><input class="input" value="210"></div>
+        </div>
+        <label class="radio" style="width:auto; font-size:13px;"><input type="checkbox" checked="" style="accent-color:var(--color-accent); width:16px; height:16px;"> Constrain to portrait (height ≥ width)</label>
+      </div>
+    </div>
+  </section>
+
   <!-- ============ 11a — Customers grid (+ placement study) ============ -->
   <section id="11a" style="display:flex; flex-direction:column; gap:16px; width:1440px; flex:none;">
     <div style="display:flex; align-items:center; gap:8px;">
@@ -716,7 +1130,7 @@
         <div class="text-muted" style="font-size:11px; letter-spacing:0.08em; text-transform:uppercase; padding:0 12px 10px;">Settings</div>
         <a href="#" style="padding:9px 12px; color:var(--color-text); text-decoration:none;">Company</a>
         <a href="#" style="padding:9px 12px; color:var(--color-text); text-decoration:none;">Presses &amp; capacity</a>
-        <a href="#" style="padding:9px 12px; color:var(--color-text); text-decoration:none;">Pricing &amp; tax</a>
+        <a href="#" style="padding:9px 12px; color:var(--color-text); text-decoration:none;">Catalog</a>
         <a href="#" aria-current="page" style="padding:9px 12px; color:var(--color-accent-900); text-decoration:none; background:var(--color-accent-100); box-shadow:inset 2px 0 0 var(--color-accent);">Users &amp; roles</a>
         <a href="#" style="padding:9px 12px; color:var(--color-text); text-decoration:none;">Integrations</a>
         <a href="#" style="padding:9px 12px; color:var(--color-text); text-decoration:none;">Audit log</a>
@@ -1996,7 +2410,30 @@
 </x-dc>
 <script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:&quot;100%&quot;,&quot;height&quot;:&quot;100%&quot;},&quot;theme&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;default&quot;:&quot;default&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;options&quot;:[&quot;default&quot;,&quot;fresh&quot;,&quot;spring&quot;,&quot;warm&quot;],&quot;section&quot;:&quot;Theme&quot;},&quot;lineContrast&quot;:{&quot;editor&quot;:&quot;range&quot;,&quot;default&quot;:16,&quot;tsType&quot;:&quot;number&quot;,&quot;min&quot;:4,&quot;max&quot;:30,&quot;step&quot;:1,&quot;unit&quot;:&quot;%&quot;,&quot;section&quot;:&quot;Theme&quot;},&quot;listBg&quot;:{&quot;editor&quot;:&quot;color&quot;,&quot;default&quot;:&quot;#ffffff&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;options&quot;:[&quot;#ffffff&quot;,&quot;#f8fafc&quot;,&quot;#f2f2f3&quot;,&quot;#eef3f8&quot;],&quot;section&quot;:&quot;Lists&quot;,&quot;unit&quot;:&quot;&quot;}}">
 class Component extends DCLogic {
-  state = { filterOpen: false, selCount: 0, searchOpen: false, quickOpen: false, quickOpen7: false };
+  state = {
+    filterOpen: false, selCount: 0, searchOpen: false, quickOpen: false, quickOpen7: false,
+    catEntity: "materials",
+    matBasis: "per_sheet", matPrintable: true,
+    machTech: "digital", machDuplex: true,
+    bands: [
+      { qty: 1, mult: 1.00 },
+      { qty: 250, mult: 0.92 },
+      { qty: 1000, mult: 0.84 },
+      { qty: 5000, mult: 0.78 },
+    ],
+  };
+
+  addBand = () => this.setState(s => {
+    const last = s.bands[s.bands.length - 1];
+    const qty = last ? last.qty * 2 : 100;
+    return { bands: [...s.bands, { qty, mult: Math.max(0.5, +(last.mult - 0.04).toFixed(2)) }] };
+  });
+  removeBand = (i) => this.setState(s => ({ bands: s.bands.filter((_, k) => k !== i) }));
+  moveBand = (i, dir) => this.setState(s => {
+    const j = i + dir;
+    if (j < 1 || j >= s.bands.length || i < 1) return {}; // band 0 pinned
+    const b = [...s.bands]; [b[i], b[j]] = [b[j], b[i]]; return { bands: b };
+  });
 
   recount = () => {
     const scope = document.querySelector('[data-jobs-list]');
@@ -2080,6 +2517,75 @@ class Component extends DCLogic {
       closeQuick7: () => this.setState({ quickOpen7: false }),
       util58: this.utilBar(58), util92: this.utilBar(92), util74: this.utilBar(74),
       util46: this.utilBar(46), util88: this.utilBar(88),
+
+      // Catalog entity tabs
+      catEntity: this.state.catEntity,
+      setEntity: (ev) => this.setState({ catEntity: ev.currentTarget.dataset.e }),
+      isFormats: this.state.catEntity === "formats",
+      isMaterials: this.state.catEntity === "materials",
+      isMachines: this.state.catEntity === "machines",
+      isOperations: this.state.catEntity === "operations",
+      isPricing: this.state.catEntity === "pricing",
+      newLabel: ({ formats: "New format", materials: "New material", machines: "New machine", operations: "New operation", pricing: "New policy" })[this.state.catEntity],
+      tabFmtColor: this.state.catEntity === "formats" ? "var(--color-accent)" : "var(--color-text)",
+      tabFmtLine: this.state.catEntity === "formats" ? "inset 0 -2px 0 var(--color-accent)" : "none",
+      tabMatColor: this.state.catEntity === "materials" ? "var(--color-accent)" : "var(--color-text)",
+      tabMatLine: this.state.catEntity === "materials" ? "inset 0 -2px 0 var(--color-accent)" : "none",
+      tabMacColor: this.state.catEntity === "machines" ? "var(--color-accent)" : "var(--color-text)",
+      tabMacLine: this.state.catEntity === "machines" ? "inset 0 -2px 0 var(--color-accent)" : "none",
+      tabOpColor: this.state.catEntity === "operations" ? "var(--color-accent)" : "var(--color-text)",
+      tabOpLine: this.state.catEntity === "operations" ? "inset 0 -2px 0 var(--color-accent)" : "none",
+      tabPriColor: this.state.catEntity === "pricing" ? "var(--color-accent)" : "var(--color-text)",
+      tabPriLine: this.state.catEntity === "pricing" ? "inset 0 -2px 0 var(--color-accent)" : "none",
+      entityCount: ({ formats: "14", materials: "38", machines: "6", operations: "22", pricing: "9" })[this.state.catEntity],
+
+      // Material form
+      matBasis: this.state.matBasis,
+      setBasis: (ev) => this.setState({ matBasis: ev.currentTarget.dataset.b }),
+      isPerSheet: this.state.matBasis === "per_sheet",
+      isPerM2: this.state.matBasis === "per_m2",
+      isPerCm: this.state.matBasis === "per_cm",
+      isPerItem: this.state.matBasis === "per_item",
+      matPrintable: this.state.matPrintable,
+      togglePrintable: () => this.setState(s => ({ matPrintable: !s.matPrintable })),
+      segSheetBg: this.state.matBasis === "per_sheet" ? "var(--color-accent)" : "transparent",
+      segSheetFg: this.state.matBasis === "per_sheet" ? "#fff" : "var(--color-text-muted,#6b7280)",
+      segM2Bg: this.state.matBasis === "per_m2" ? "var(--color-accent)" : "transparent",
+      segM2Fg: this.state.matBasis === "per_m2" ? "#fff" : "var(--color-text-muted,#6b7280)",
+      segCmBg: this.state.matBasis === "per_cm" ? "var(--color-accent)" : "transparent",
+      segCmFg: this.state.matBasis === "per_cm" ? "#fff" : "var(--color-text-muted,#6b7280)",
+      segItemBg: this.state.matBasis === "per_item" ? "var(--color-accent)" : "transparent",
+      segItemFg: this.state.matBasis === "per_item" ? "#fff" : "var(--color-text-muted,#6b7280)",
+
+      // Machine form
+      machTech: this.state.machTech,
+      setTech: (ev) => this.setState({ machTech: ev.currentTarget.dataset.t }),
+      isDigital: this.state.machTech === "digital",
+      isOffset: this.state.machTech === "offset",
+      machDuplex: this.state.machDuplex,
+      toggleDuplex: () => this.setState(s => ({ machDuplex: !s.machDuplex })),
+      segDigitalBg: this.state.machTech === "digital" ? "var(--color-accent)" : "transparent",
+      segDigitalFg: this.state.machTech === "digital" ? "#fff" : "var(--color-text-muted,#6b7280)",
+      segOffsetBg: this.state.machTech === "offset" ? "var(--color-accent)" : "transparent",
+      segOffsetFg: this.state.machTech === "offset" ? "#fff" : "var(--color-text-muted,#6b7280)",
+      duplexBg: this.state.machDuplex ? "var(--color-accent)" : "var(--color-surface)",
+      duplexKnob: this.state.machDuplex ? "translateX(18px)" : "translateX(0)",
+      printBg: this.state.matPrintable ? "var(--color-accent)" : "var(--color-surface)",
+      printKnob: this.state.matPrintable ? "translateX(18px)" : "translateX(0)",
+
+      // Pricing bands
+      bands: this.state.bands.map((b, i) => ({
+        ...b,
+        multStr: b.mult.toFixed(2) + "×",
+        pinned: i === 0,
+        canDown: i > 0,
+        upDisabled: i <= 1,
+        downDisabled: i === 0 || i === this.state.bands.length - 1,
+        up: () => this.moveBand(i, -1),
+        down: () => this.moveBand(i, +1),
+        remove: () => this.removeBand(i),
+      })),
+      addBand: this.addBand,
     };
   }
 }
