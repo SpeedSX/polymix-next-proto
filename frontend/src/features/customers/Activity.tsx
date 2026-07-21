@@ -50,7 +50,7 @@ function Stat({ label, value }: { label: string; value: string }) {
       <Text size="xs" c="dimmed">
         {label}
       </Text>
-      <Text fw={600} size="lg">
+      <Text fw={500} size="lg">
         {value}
       </Text>
     </Paper>
@@ -63,7 +63,7 @@ function StatRow({ label, value }: { label: string; value: string }) {
       <Text size="sm" c="dimmed">
         {label}
       </Text>
-      <Text size="sm" fw={600} style={{ fontVariantNumeric: 'tabular-nums' }}>
+      <Text size="sm" fw={500} style={{ fontVariantNumeric: 'tabular-nums' }}>
         {value}
       </Text>
     </Group>
@@ -169,7 +169,7 @@ export function CustomerActivityPanel({ customerId, compact = false }: { custome
 
       {recent && recent.items.length > 0 && (
         <Stack gap="xs">
-          <Text size="sm" fw={600}>
+          <Text size="sm" fw={500}>
             {t('activity.recentOrders')}
           </Text>
           <Table highlightOnHover style={{ tableLayout: 'fixed' }}>

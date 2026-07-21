@@ -124,7 +124,7 @@ export function OrderList() {
         cell: (info) => {
           const notes = info.getValue()
           return (
-            <Text size="sm" fw={400} c="steel.8" truncate="end" w="100%" title={notes ?? undefined}>
+            <Text size="sm" fw={300} truncate="end" w="100%" title={notes ?? undefined}>
               {notes}
             </Text>
           )
@@ -148,7 +148,7 @@ export function OrderList() {
         cell: (info) => {
           const dt = formatDateTime(info.getValue(), i18n.language)
           return (
-            <Text size="sm" c="steel.8" fw={400} title={dt ?? undefined}>
+            <Text size="sm" fw={300} title={dt ?? undefined}>
               {dt}
             </Text>
           )

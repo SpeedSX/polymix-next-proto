@@ -65,7 +65,7 @@ function railRowStyle(collapsed: boolean): CSSProperties {
     color: NAV_INACTIVE,
     textDecoration: 'none',
     fontFamily: 'var(--mantine-font-family-headings)',
-    fontWeight: 600,
+    fontWeight: 500,
     fontSize: 14,
   }
 }
@@ -162,7 +162,7 @@ function LanguageSwitcher({ collapsed }: { collapsed: boolean }) {
           <Menu.Item
             key={lng}
             onClick={() => change(lng)}
-            fw={i18n.language === lng ? 600 : 400}
+            fw={i18n.language === lng ? 500 : 400}
           >
             {t(`lang.${lng}`)}
           </Menu.Item>
@@ -246,7 +246,7 @@ export function AppShell() {
       <MantineAppShell.Header>
         <Group h="100%" px="md" gap="sm">
           <Burger opened={mobileOpened} onClick={toggleMobile} hiddenFrom="sm" size="sm" />
-          <Text ff="heading" fw={600} fz={18} style={{ letterSpacing: '-0.02em' }}>
+          <Text ff="heading" fw={500} fz={18} style={{ letterSpacing: '-0.02em' }}>
             Poly<span style={{ color: 'var(--mantine-color-steel-6)' }}>Mix</span>
           </Text>
         </Group>
@@ -270,7 +270,7 @@ export function AppShell() {
         >
           <PolyMixMark size={30} />
           {!desktopCollapsed && (
-            <Text ff="heading" fw={600} fz={20} c="#fff" style={{ letterSpacing: '-0.02em' }}>
+            <Text ff="heading" fw={500} fz={20} c="#fff" style={{ letterSpacing: '-0.02em' }}>
               Poly<span style={{ color: '#b5d9fd' }}>Mix</span>
             </Text>
           )}

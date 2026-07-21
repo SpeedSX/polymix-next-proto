@@ -121,7 +121,19 @@ export function CustomerList() {
       }),
       columnHelper.accessor(
         (row) => (row.contacts.find((c) => c.is_primary) ?? row.contacts[0])?.name ?? '',
-        { id: 'primary_contact', header: t('fields.contactName'), enableSorting: false },
+        { 
+          id: 'primary_contact', 
+          header: t('fields.contactName'),
+          enableSorting: false,
+          cell: (info) => {
+            const dt = formatDateTime(info.getValue(), i18n.language)
+            return (
+              <Text size="sm" fw={300} title={dt ?? undefined}>
+                {dt}
+              </Text>
+            )
+          }
+        },
       ),
       columnHelper.accessor('created_at', {
         header: t('fields.createdAt'),
@@ -129,7 +141,7 @@ export function CustomerList() {
         cell: (info) => {
           const dt = formatDateTime(info.getValue(), i18n.language)
           return (
-            <Text size="sm" c="steel.8" fw={400} title={dt ?? undefined}>
+            <Text size="sm" fw={300} title={dt ?? undefined}>
               {dt}
             </Text>
           )

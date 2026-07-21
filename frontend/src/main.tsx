@@ -46,7 +46,7 @@ const theme = createTheme({
   fontFamily: 'Fira Sans, system-ui, sans-serif',
   headings: {
     fontFamily: '"Fira Sans Condensed", system-ui, sans-serif',
-    fontWeight: '600',
+    fontWeight: '500',
   },
   components: {
     Table: Table.extend({
@@ -57,7 +57,7 @@ const theme = createTheme({
           textTransform: 'uppercase',
           fontSize: '11px',
           letterSpacing: '0.08em',
-          fontWeight: 600,
+          fontWeight: 500,
           color: 'var(--mantine-color-gray-6)',
           paddingTop: '14px',
           background: 'var(--mantine-color-white)',
@@ -68,8 +68,7 @@ const theme = createTheme({
       styles: {
         root: {
           fontFamily: 'var(--mantine-font-family-headings)',
-          fontWeight: 600,
-          letterSpacing: '0.01em',
+          fontWeight: 500
         },
       },
     }),
@@ -81,7 +80,7 @@ const theme = createTheme({
         },
         legend: {
           fontFamily: 'var(--mantine-font-family-headings)',
-          fontWeight: 600,
+          fontWeight: 500,
           fontSize: '13px',
           letterSpacing: '0.06em',
           textTransform: 'uppercase',
@@ -94,7 +93,7 @@ const theme = createTheme({
       styles: {
         control: {
           fontFamily: 'var(--mantine-font-family-headings)',
-          fontWeight: 600,
+          fontWeight: 500,
         },
       },
     }),

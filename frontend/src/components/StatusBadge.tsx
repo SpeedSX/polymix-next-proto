@@ -101,7 +101,7 @@ export function StatusMark({
       offset={6}
       openDelay={150}
       transitionProps={{ transition: 'pop', duration: 150 }}
-      styles={{ tooltip: { fontWeight: 600, letterSpacing: '0.01em', padding: '5px 10px' } }}
+      styles={{ tooltip: { fontWeight: 500, padding: '5px 10px' } }}
     >
       {mark}
     </Tooltip>
@@ -194,7 +194,7 @@ export function StatusTag({ color = 'gray', label, tone }: StatusTagProps) {
       radius={0}
       size="md"
       tt="none"
-      fw={500}
+      fw={400}
       styles={{
         root: {
           border: `1px solid ${style.borderColor}`,

@@ -169,7 +169,7 @@ export function ListLayout({
                             height: 18,
                             padding: '0 5px',
                             fontSize: 11,
-                            fontWeight: 600,
+                            fontWeight: 500,
                             color: 'var(--mantine-color-white)',
                             background: 'var(--mantine-primary-color-filled)',
                           }}
@@ -184,7 +184,7 @@ export function ListLayout({
                 </Popover.Target>
                 <Popover.Dropdown p={0}>
                   <Group justify="space-between" px="md" py="sm" style={{ borderBottom: HAIRLINE }}>
-                    <Text ff="heading" fw={600} fz={14}>
+                    <Text ff="heading" fw={500} fz={14}>
                       {t('list.filterTitle')}
                     </Text>
                     <ActionIcon
@@ -247,7 +247,7 @@ export function ListLayout({
                       key={index}
                       onClick={() => onTabChange?.(index)}
                       ff="heading"
-                      fw={600}
+                      fw={500}
                       fz={13}
                       c={active ? 'var(--mantine-primary-color-filled)' : 'dimmed'}
                       style={{
