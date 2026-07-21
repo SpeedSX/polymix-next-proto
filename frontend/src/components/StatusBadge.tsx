@@ -147,14 +147,46 @@ export function StatusBadge({ statusKey, color = 'gray', label, count }: StatusB
   )
 }
 
+/** Monochrome status treatments from design 2a: `accent` (steel fill),
+ * `outline` (steel hairline, no fill), `neutral` (grey fill). */
+export type StatusTone = 'accent' | 'outline' | 'neutral'
+
+const TONE_STYLES: Record<StatusTone, { backgroundColor: string; borderColor: string; color: string }> = {
+  accent: {
+    backgroundColor: 'var(--mantine-color-steel-1)',
+    borderColor: 'var(--mantine-color-steel-3)',
+    color: 'var(--mantine-color-steel-8)',
+  },
+  outline: {
+    backgroundColor: 'transparent',
+    borderColor: 'var(--mantine-color-steel-6)',
+    color: 'var(--mantine-color-steel-7)',
+  },
+  neutral: {
+    backgroundColor: 'var(--mantine-color-gray-1)',
+    borderColor: 'var(--mantine-color-gray-3)',
+    color: 'var(--mantine-color-gray-8)',
+  },
+}
+
 export interface StatusTagProps {
   color?: string
   label: string
+  /** Design-2a monochrome tone. Overrides `color` when set. */
+  tone?: StatusTone
 }
 
 /** Industry-style status tag: a square, hairline-bordered tinted label — no
- * icon. Reads its tint from the status color's Mantine palette. */
-export function StatusTag({ color = 'gray', label }: StatusTagProps) {
+ * icon. With `tone`, uses the 2a monochrome palette; otherwise tints from the
+ * status color's Mantine palette. */
+export function StatusTag({ color = 'gray', label, tone }: StatusTagProps) {
+  const style = tone
+    ? TONE_STYLES[tone]
+    : {
+        backgroundColor: `var(--mantine-color-${color}-1)`,
+        borderColor: `var(--mantine-color-${color}-3)`,
+        color: `var(--mantine-color-${color}-8)`,
+      }
   return (
     <Badge
       variant="light"
@@ -162,12 +194,12 @@ export function StatusTag({ color = 'gray', label }: StatusTagProps) {
       radius={0}
       size="md"
       tt="none"
-      fw={600}
+      fw={500}
       styles={{
         root: {
-          border: `1px solid var(--mantine-color-${color}-3)`,
-          backgroundColor: `var(--mantine-color-${color}-1)`,
-          color: `var(--mantine-color-${color}-8)`,
+          border: `1px solid ${style.borderColor}`,
+          backgroundColor: style.backgroundColor,
+          color: style.color,
           letterSpacing: '0.02em',
         },
       }}

@@ -10,6 +10,7 @@ import { ApiError, apiErrorMessage, useApi } from '../../lib/api'
 import { formatMoney } from '../../lib/money'
 import { createInvoiceFromOrder, deleteOrder, fetchOrder, ordersKeys, setOrderStatus, updateOrder } from './api'
 import { OrderForm } from './Form'
+import { orderStatusTone } from './statusTone'
 import { fromOrder, ORDER_STATUS } from './types'
 import type { NewOrder, Order, OrderStatusId } from './types'
 import { useOrderStatusDictionary } from './useOrderStatusDictionary'
@@ -114,7 +115,7 @@ export function OrderDetail() {
       <OrderForm
         breadcrumb={[t('list.title'), t('form.edit')]}
         title={order.number}
-        status={<StatusTag color={meta?.color} label={statusDict.labelFor(order.status)} />}
+        status={<StatusTag tone={orderStatusTone(meta?.key)} label={statusDict.labelFor(order.status)} />}
         initialValues={fromOrder(order, i18n.language)}
         onSubmit={(data) => updateMutation.mutateAsync(data)}
         onSuccess={() => setEditing(false)}
@@ -131,7 +132,7 @@ export function OrderDetail() {
       <PageHeader
         breadcrumb={[t('list.title')]}
         title={order.number}
-        status={<StatusTag color={meta?.color} label={statusDict.labelFor(order.status)} />}
+        status={<StatusTag tone={orderStatusTone(meta?.key)} label={statusDict.labelFor(order.status)} />}
         actions={
           <>
             {order.status === ORDER_STATUS.Draft && (

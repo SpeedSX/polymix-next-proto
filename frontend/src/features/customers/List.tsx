@@ -157,6 +157,10 @@ export function CustomerList() {
           <Select
             label={t('list.filterStatus')}
             placeholder={t('list.filterStatus')}
+            // Render inline, not in a portal: a portalled option list lives
+            // outside the filter Popover's DOM, so selecting an option reads as
+            // a click-outside and closes the whole panel.
+            comboboxProps={{ withinPortal: false }}
             data={statusDict.options}
             value={statusFilter}
             onChange={(value) => {

@@ -22,6 +22,7 @@ import { formatMoney } from '../../lib/money'
 import { columnAlign } from '../../lib/table'
 import { fetchOrders, ordersKeys } from './api'
 import { CustomerSelect } from './CustomerSelect'
+import { orderStatusTone } from './statusTone'
 import type { Order, OrderStatusId } from './types'
 import { useOrderStatusDictionary } from './useOrderStatusDictionary'
 
@@ -79,7 +80,7 @@ export function OrderList() {
         cell: (info) => {
           const statusId = info.getValue()
           const meta = statusDict.byId.get(statusId)
-          return <StatusTag color={meta?.color} label={statusDict.labelFor(statusId)} />
+          return <StatusTag tone={orderStatusTone(meta?.key)} label={statusDict.labelFor(statusId)} />
         },
       }),
       columnHelper.accessor((row) => row.customer_name ?? row.customer_id, {
@@ -168,6 +169,7 @@ export function OrderList() {
             label={t('list.filterCustomer')}
             required={false}
             placeholder={t('list.filterCustomer')}
+            comboboxProps={{ withinPortal: false }}
             value={customerId}
             onChange={(next) => {
               setCustomerId(next)
@@ -178,6 +180,10 @@ export function OrderList() {
             label={t('list.filterStatus')}
             placeholder={t('list.filterStatus')}
             clearable
+            // Render inline, not in a portal: a portalled option list lives
+            // outside the filter Popover's DOM, so selecting an option reads as
+            // a click-outside and closes the whole panel.
+            comboboxProps={{ withinPortal: false }}
             data={statusDict.options}
             value={status}
             onChange={(value) => {

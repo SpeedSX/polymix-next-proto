@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import type { ReactNode } from 'react'
 import { Select } from '@mantine/core'
+import type { ComboboxProps } from '@mantine/core'
 import { useDebouncedValue } from '@mantine/hooks'
 import { useQuery } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
@@ -21,6 +22,7 @@ export interface CustomerSelectProps {
   label?: ReactNode
   placeholder?: string
   required?: boolean
+  comboboxProps?: ComboboxProps
   'data-path'?: string
 }
 
