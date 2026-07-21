@@ -87,6 +87,11 @@ export function OrderList() {
         id: 'customer_name',
         header: t('fields.customer'),
         enableSorting: false,
+        cell: (info) => (
+          <Text size="sm" fw={500} c="steel.8">
+            {info.getValue()}
+          </Text>
+        ),
       }),
       columnHelper.accessor('notes', {
         id: 'notes',
