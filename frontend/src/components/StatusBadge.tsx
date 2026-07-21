@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react'
+import { createElement, type ReactNode } from 'react'
 import { Badge, Group, ThemeIcon, Tooltip } from '@mantine/core'
 import type { ComboboxItem, ComboboxLikeRenderOptionInput, MantineColor, MantineSize } from '@mantine/core'
 import {
@@ -66,10 +66,10 @@ export function StatusMark({
   variant = 'light',
 }: StatusMarkProps) {
   const filled = variant === 'filled'
-  const MarkIcon = filled ? markIcon(statusKey) : outlineIcon(statusKey)
+  const markGlyph = filled ? markIcon(statusKey) : outlineIcon(statusKey)
   const iconSize = typeof size === 'number' ? Math.round(size * 0.55) : 10
 
-  const TooltipIcon = outlineIcon(statusKey)
+  const tooltipGlyph = outlineIcon(statusKey)
   const mark = (
     <ThemeIcon
       size={size}
@@ -78,7 +78,7 @@ export function StatusMark({
       variant={filled ? 'filled' : 'light'}
       aria-label={label}
     >
-      <MarkIcon size={iconSize} stroke={filled ? 2.5 : 1.75} />
+      {createElement(markGlyph, { size: iconSize, stroke: filled ? 2.5 : 1.75 })}
     </ThemeIcon>
   )
 
@@ -90,7 +90,7 @@ export function StatusMark({
     <Tooltip
       label={
         <Group gap={6} wrap="nowrap">
-          <TooltipIcon size={13} stroke={2} />
+          {createElement(tooltipGlyph, { size: 13, stroke: 2 })}
           <span>{label}</span>
         </Group>
       }
@@ -116,7 +116,7 @@ export interface StatusBadgeProps {
 }
 
 export function StatusBadge({ statusKey, color = 'gray', label, count }: StatusBadgeProps) {
-  const LeftIcon = outlineIcon(statusKey)
+  const leftGlyph = outlineIcon(statusKey)
   const mantineColor = color as MantineColor
 
   return (
@@ -128,7 +128,7 @@ export function StatusBadge({ statusKey, color = 'gray', label, count }: StatusB
       tt="none"
       fw={500}
       px="sm"
-      leftSection={<LeftIcon size={14} stroke={1.75} />}
+      leftSection={createElement(leftGlyph, { size: 14, stroke: 1.75 })}
       styles={{
         root: {
           border: `1px solid var(--mantine-color-${color}-3)`,
