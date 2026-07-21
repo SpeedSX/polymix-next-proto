@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { Button, Select, Table, Text, TextInput } from '@mantine/core'
+import { Badge, Button, Group, Select, Table, Text, TextInput } from '@mantine/core'
 import { IconPlus } from '@tabler/icons-react'
 import { useDebouncedValue } from '@mantine/hooks'
 import { useQuery } from '@tanstack/react-query'
@@ -94,19 +94,46 @@ export function CustomerList() {
       columnHelper.accessor('name', {
         header: t('fields.name'),
         cell: (info) => (
-          <Text size="sm" fw={500} c="steel.8" component="span" className={styles.name}>
+          <Text size="sm" fw={400} component="span" className={styles.name}>
             {info.getValue()}
           </Text>
         ),
       }),
-      columnHelper.accessor((row) => row.tags.join(', '), { id: 'tags', header: t('fields.tags'), enableSorting: false }),
+      columnHelper.accessor('tags', {
+        id: 'tags',
+        header: t('fields.tags'),
+        enableSorting: false,
+        cell: (info) => {
+          const tags = info.getValue()
+          if (tags.length === 0) {
+            return null
+          }
+          return (
+            <Group gap={4} wrap="wrap">
+              {tags.map((tag) => (
+                <Badge key={tag} variant="light" color="steel" radius="sm" size="md" fw={500} tt="none">
+                  {tag}
+                </Badge>
+              ))}
+            </Group>
+          )
+        },
+      }),
       columnHelper.accessor(
         (row) => (row.contacts.find((c) => c.is_primary) ?? row.contacts[0])?.name ?? '',
         { id: 'primary_contact', header: t('fields.contactName'), enableSorting: false },
       ),
       columnHelper.accessor('created_at', {
         header: t('fields.createdAt'),
-        cell: (info) => formatDateTime(info.getValue(), i18n.language),
+        meta: { width: 160 },
+        cell: (info) => {
+          const dt = formatDateTime(info.getValue(), i18n.language)
+          return (
+            <Text size="sm" c="steel.8" fw={400} title={dt ?? undefined}>
+              {dt}
+            </Text>
+          )
+        }
       }),
     ],
     [t, i18n.language, statusDict],

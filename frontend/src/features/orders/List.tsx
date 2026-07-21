@@ -20,7 +20,7 @@ import {
 import { useApi } from '../../lib/api'
 import { formatDateTime } from '../../lib/dates'
 import { formatMoney } from '../../lib/money'
-import { columnAlign } from '../../lib/table'
+import { columnAlign, columnWidth } from '../../lib/table'
 import { fetchOrders, ordersKeys } from './api'
 import { CustomerSelect } from './CustomerSelect'
 import { orderStatusTone } from './statusTone'
@@ -73,11 +73,23 @@ export function OrderList() {
 
   const columns = useMemo(
     () => [
-      columnHelper.accessor('number', { header: t('fields.number') }),
+      columnHelper.accessor('number', { 
+        header: t('fields.number'), 
+        meta: { width: 80 },
+        cell: (info) => {
+          const number = info.getValue()
+          return (
+            <Text size="sm" c="steel.7" fw={500} title={number ?? undefined}>
+              {number}
+            </Text>
+          )
+        }
+      }),
       columnHelper.accessor('status', {
         id: 'status',
         header: t('fields.status'),
-        enableSorting: false,
+        enableSorting: true,
+        meta: { width: 140 },
         cell: (info) => {
           const statusId = info.getValue()
           const meta = statusDict.byId.get(statusId)
@@ -88,11 +100,11 @@ export function OrderList() {
         id: 'customer_name',
         header: t('fields.customer'),
         enableSorting: false,
+        meta: { width: 200 },
         cell: (info) => (
           <Text
             size="sm"
-            fw={500}
-            c="steel.8"
+            fw={400}
             component="span"
             className={styles.customerLink}
             style={{ cursor: 'pointer' }}
@@ -112,21 +124,35 @@ export function OrderList() {
         cell: (info) => {
           const notes = info.getValue()
           return (
-            <Text size="sm" c="dimmed" truncate="end" maw={220} title={notes ?? undefined}>
+            <Text size="sm" fw={400} c="steel.8" truncate="end" w="100%" title={notes ?? undefined}>
               {notes}
             </Text>
           )
         },
       }),
+      columnHelper.accessor((row) => row.line_items.reduce((sum, item) => sum + item.quantity, 0), {
+        id: 'quantity',
+        header: t('fields.quantity'),
+        enableSorting: false,
+        meta: { align: 'right', width: 90 },
+      }),
       columnHelper.accessor((row) => formatMoney(row.total, i18n.language), {
         id: 'total',
         header: t('fields.total'),
         enableSorting: false,
-        meta: { align: 'right' },
+        meta: { align: 'right', width: 110 },
       }),
       columnHelper.accessor('created_at', {
         header: t('fields.createdAt'),
-        cell: (info) => formatDateTime(info.getValue(), i18n.language),
+        meta: { width: 160 },
+        cell: (info) => {
+          const dt = formatDateTime(info.getValue(), i18n.language)
+          return (
+            <Text size="sm" c="steel.8" fw={400} title={dt ?? undefined}>
+              {dt}
+            </Text>
+          )
+        }
       }),
     ],
     [t, i18n.language, statusDict],
@@ -229,7 +255,13 @@ export function OrderList() {
           {t('list.loadError')}
         </Text>
       )}
-      <Table highlightOnHover horizontalSpacing="md" stickyHeader stickyHeaderOffset={LIST_HEADER_HEIGHT}>
+      <Table
+        highlightOnHover
+        horizontalSpacing="md"
+        stickyHeader
+        stickyHeaderOffset={LIST_HEADER_HEIGHT}
+        style={{ tableLayout: 'fixed', width: '100%' }}
+      >
         <Table.Thead>
           {table.getHeaderGroups().map((headerGroup) => (
             <Table.Tr key={headerGroup.id}>
@@ -240,7 +272,11 @@ export function OrderList() {
                     key={header.id}
                     onClick={header.column.getToggleSortingHandler()}
                     ta={columnAlign(header.column)}
-                    style={{ cursor: header.column.getCanSort() ? 'pointer' : undefined }}
+                    style={{
+                      cursor: header.column.getCanSort() ? 'pointer' : undefined,
+                      width: columnWidth(header.column),
+                      whiteSpace: 'nowrap',
+                    }}
                   >
                     {flexRender(header.column.columnDef.header, header.getContext())}
                     {sortDirection === 'asc' && ' ▲'}
@@ -259,7 +295,11 @@ export function OrderList() {
               style={{ cursor: 'pointer' }}
             >
               {row.getVisibleCells().map((cell) => (
-                <Table.Td key={cell.id} ta={columnAlign(cell.column)}>
+                <Table.Td
+                  key={cell.id}
+                  ta={columnAlign(cell.column)}
+                  style={{ width: columnWidth(cell.column) }}
+                >
                   {flexRender(cell.column.columnDef.cell, cell.getContext())}
                 </Table.Td>
               ))}
