@@ -270,7 +270,11 @@ export function AppShell() {
         >
           <PolyMixMark size={30} />
           {!desktopCollapsed && (
-            <Text ff="heading" fw={500} fz={20} c="#fff" style={{ letterSpacing: '-0.02em' }}>
+            <Text
+              fz={20}
+              c="#fff"
+              style={{ fontFamily: '"Fira Sans Condensed", sans-serif', fontWeight: 700, letterSpacing: '-0.02em' }}
+            >
               Poly<span style={{ color: '#b5d9fd' }}>Mix</span>
             </Text>
           )}

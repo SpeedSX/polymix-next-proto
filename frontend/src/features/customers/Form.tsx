@@ -380,7 +380,7 @@ export function CustomerForm({
             }}
           >
             <Box
-              pr={isNarrow ? undefined : 'xl'}
+              pr={isNarrow ? undefined : 'md'}
               pb={isNarrow ? 'md' : undefined}
               style={{
                 borderRight: isNarrow ? undefined : '1px solid var(--mantine-color-gray-3)',
