@@ -25,7 +25,7 @@
   "fields.description": "Опис",
   "fields.quantity": "Кількість",
   "fields.unitPrice": "Ціна за одиницю",
-  "fields.total": "Разом",
+  "fields.total": "Сума",
   "fields.notes": "Примітки",
   "fields.createdAt": "Створено",
   "actions.transitionTo": "Позначити як «{status}»",

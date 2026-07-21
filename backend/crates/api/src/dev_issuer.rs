@@ -1,10 +1,19 @@
 use base64::Engine;
 use base64::engine::general_purpose::URL_SAFE_NO_PAD;
+use rand::SeedableRng;
+use rand::rngs::StdRng;
 use rsa::pkcs1::EncodeRsaPrivateKey;
 use rsa::traits::PublicKeyParts;
 use rsa::{RsaPrivateKey, RsaPublicKey};
 
 const KID: &str = "dev-key-1";
+
+/// Fixed seed for the dev signing key. Deriving the keypair deterministically
+/// (rather than from entropy) means every server restart re-creates the same
+/// key, so dev tokens already cached in the browser keep validating instead of
+/// being silently invalidated on each restart. Dev-only — never used for real
+/// tenants.
+const DEV_KEY_SEED: u64 = 0x504f_4c59_4d49_58_00;
 
 pub struct DevIssuer {
     encoding_key: jsonwebtoken::EncodingKey,
@@ -14,7 +23,7 @@ pub struct DevIssuer {
 
 impl DevIssuer {
     pub fn generate() -> anyhow::Result<Self> {
-        let mut rng = rand::thread_rng();
+        let mut rng = StdRng::seed_from_u64(DEV_KEY_SEED);
         let private_key = RsaPrivateKey::new(&mut rng, 2048)?;
         let public_key = RsaPublicKey::from(&private_key);
 
@@ -70,5 +79,21 @@ impl DevIssuer {
 
         let token = jsonwebtoken::encode(&header, &claims, &self.encoding_key)?;
         Ok(token)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// A fresh issuer instance (as after a server restart) publishes the same
+    /// public key material, so a token minted before the restart still
+    /// validates against the new JWKS.
+    #[test]
+    fn key_material_is_stable_across_instances() {
+        let first = DevIssuer::generate().unwrap();
+        let second = DevIssuer::generate().unwrap();
+
+        assert_eq!(first.jwks_json, second.jwks_json);
     }
 }
