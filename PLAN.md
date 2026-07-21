@@ -468,7 +468,7 @@ A `justfile` at the repo root is the single entry point (CI calls the same recip
 just dev          # compose up surrealdb + cargo run api (dev mode) + vite dev
 just check        # fmt --check, clippy -D warnings, cargo test, eslint, tsc --noEmit, vitest
 just test-int     # backend integration tests (testcontainers)
-just seed         # seeder against local dev tenant (50k customers, 200k orders)
+just seed         # seeder against local dev tenant
 just build        # docker build all images
 ```
 
