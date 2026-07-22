@@ -1,8 +1,10 @@
 import { useState } from 'react'
+import type { ReactNode } from 'react'
 import { ActionIcon, Alert, Button, Group, NumberInput, Select, Stack, Table, Text, Textarea, TextInput } from '@mantine/core'
 import { useForm, zodResolver } from '@mantine/form'
 import { useTranslation } from 'react-i18next'
 
+import { PageHeader } from '../../components/PageHeader'
 import { ApiError, apiErrorMessage, validationMessage } from '../../lib/api'
 import { formatMoney, toMinorUnits } from '../../lib/money'
 import { CustomerSelect } from './CustomerSelect'
@@ -14,9 +16,20 @@ export interface OrderFormProps {
   onSubmit: (data: ReturnType<typeof toNewOrder>) => Promise<Order>
   onSuccess: (order: Order) => void
   onCancel: () => void
+  breadcrumb: string[]
+  title: ReactNode
+  status?: ReactNode
 }
 
-export function OrderForm({ initialValues, onSubmit, onSuccess, onCancel }: OrderFormProps) {
+export function OrderForm({
+  initialValues,
+  onSubmit,
+  onSuccess,
+  onCancel,
+  breadcrumb,
+  title,
+  status,
+}: OrderFormProps) {
   const { t, i18n } = useTranslation('orders')
   const [submitting, setSubmitting] = useState(false)
   const [formError, setFormError] = useState<string | null>(null)
@@ -66,6 +79,22 @@ export function OrderForm({ initialValues, onSubmit, onSuccess, onCancel }: Orde
   return (
     <form onSubmit={handleSubmit}>
       <Stack maw={720}>
+        <PageHeader
+          sticky
+          breadcrumb={breadcrumb}
+          title={title}
+          status={status}
+          actions={
+            <>
+              <Button variant="subtle" onClick={onCancel} disabled={submitting}>
+                {t('form.cancel')}
+              </Button>
+              <Button type="submit" loading={submitting}>
+                {t('form.save')}
+              </Button>
+            </>
+          }
+        />
         {formError && <Alert color="red">{formError}</Alert>}
         <Group grow align="flex-start">
           <CustomerSelect {...form.getInputProps('customerId')} />
@@ -119,18 +148,10 @@ export function OrderForm({ initialValues, onSubmit, onSuccess, onCancel }: Orde
           >
             {t('form.addLine')}
           </Button>
-          <Text fw={600}>{t('fields.total')}: {formatMoney({ amount_minor: total, currency }, i18n.language)}</Text>
+          <Text fw={500}>{t('fields.total')}: {formatMoney({ amount_minor: total, currency }, i18n.language)}</Text>
         </Group>
 
         <Textarea label={t('fields.notes')} {...form.getInputProps('notes')} />
-        <Group justify="flex-end">
-          <Button variant="subtle" onClick={onCancel} disabled={submitting}>
-            {t('form.cancel')}
-          </Button>
-          <Button type="submit" loading={submitting}>
-            {t('form.save')}
-          </Button>
-        </Group>
       </Stack>
     </form>
   )

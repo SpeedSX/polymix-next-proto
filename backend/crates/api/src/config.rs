@@ -45,7 +45,7 @@ impl AppConfig {
 
         Ok(Self {
             port,
-            surrealdb_url: env_or("SURREALDB_URL", "ws://localhost:8000"),
+            surrealdb_url: env_or("SURREALDB_URL", "ws://localhost:8001"),
             surrealdb_user: env_or("SURREALDB_USER", "root"),
             surrealdb_pass: env_or("SURREALDB_PASS", "root"),
             surrealdb_ns: env_or("SURREALDB_NS", "polymix"),

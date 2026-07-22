@@ -1,3 +1,19 @@
 body {
   margin: 0;
 }
+
+:focus-visible {
+  outline: 2px solid var(--mantine-primary-color-filled);
+  outline-offset: 2px;
+}
+
+.rail-row {
+  transition:
+    background 120ms ease,
+    color 120ms ease;
+}
+
+.rail-row:hover {
+  background: rgba(148, 188, 227, 0.1);
+  color: #ffffff;
+}

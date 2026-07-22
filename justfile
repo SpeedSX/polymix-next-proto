@@ -52,14 +52,14 @@ test-int:
     if [ -n "$ids" ]; then {{container_runtime}} rm -f $ids; fi; \
     exit $code
 
-# Full-scale seeder against the local dev tenant.
+# Seeder against the local dev tenant.
 seed:
-    cd backend && cargo run -p seeder
+    cd backend && SURREALDB_URL=ws://localhost:8001 cargo run -p seeder
 
-# Small-scale seeder against the Ukrainian demo tenant,
-# default language `ua`, default currency UAH) — PLAN.md M4.
-seed-ua:
-    cd backend && SEED_LOCALE=ua cargo run -p seeder
+# Seeder against the Ukrainian demo tenant
+# (default language `uk`, default currency UAH).
+seed-uk:
+    cd backend && SURREALDB_URL=ws://localhost:8001 SEED_LOCALE=uk cargo run -p seeder
 
 # Build the api docker image. Frontend is static — deployed to Vercel, not
 # a docker image (see docs/adr/0010-frontend-hosting-vercel-instead-of-fly.md).

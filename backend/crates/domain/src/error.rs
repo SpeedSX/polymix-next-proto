@@ -54,6 +54,7 @@ impl FieldError {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ConflictReason {
     CustomerHasOrders,
+    CustomerModified,
     CustomerNotActiveForOrder,
     OrderHasInvoice,
     OrderNotConfirmedForInvoice,
@@ -78,6 +79,7 @@ impl ConflictReason {
     pub fn code(&self) -> &'static str {
         match self {
             Self::CustomerHasOrders => "customer_has_orders",
+            Self::CustomerModified => "customer_modified",
             Self::CustomerNotActiveForOrder => "customer_not_active_for_order",
             Self::OrderHasInvoice => "order_has_invoice",
             Self::OrderNotConfirmedForInvoice => "order_not_confirmed_for_invoice",
@@ -132,6 +134,10 @@ impl fmt::Display for ConflictReason {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::CustomerHasOrders => write!(f, "customer has orders and cannot be deleted"),
+            Self::CustomerModified => write!(
+                f,
+                "customer was modified by someone else since it was loaded"
+            ),
             Self::CustomerNotActiveForOrder => write!(f, "customer is not active"),
             Self::OrderHasInvoice => write!(f, "order has an invoice and cannot be deleted"),
             Self::OrderNotConfirmedForInvoice => {

@@ -93,7 +93,7 @@ compatibility_rule: template ref, expression, message{i18n}
   "parameters": [
     { "code": "format", "label": { "en": "Format", "pl": "Format" }, "options": [
       { "code": "a6", "effects": [{ "kind": "set_format", "format": "format:a6" }] },
-      { "code": "a5", "default": true,
+      { "code": "a5", "is_default": true,
         "effects": [{ "kind": "set_format", "format": "format:a5" }] },
       { "code": "a4", "effects": [{ "kind": "set_format", "format": "format:a4" }] },
       { "code": "dl", "effects": [{ "kind": "set_format", "format": "format:dl" }] }
@@ -107,7 +107,7 @@ compatibility_rule: template ref, expression, message{i18n}
           { "kind": "set_colors", "target": "cover",    "value": "4/0" },
           { "kind": "set_colors", "target": "interior", "value": "4/0" }
         ]},
-      { "code": "4_4", "default": true,
+      { "code": "4_4", "is_default": true,
         "label": { "en": "double-sided 4/4 (cover and interior)" },
         "effects": [
           { "kind": "set_colors", "target": "cover",    "value": "4/4" },
@@ -155,7 +155,7 @@ compatibility_rule: template ref, expression, message{i18n}
 
     // an option that introduces a whole new component
     { "code": "backing", "label": { "en": "Cardboard backing" }, "options": [
-      { "code": "yes", "default": true,
+      { "code": "yes", "is_default": true,
         "effects": [{ "kind": "add_component", "role": "backing",
                       "pages": 2, "colors": "0/0", "material": "material:board_500" }] },
       { "code": "no", "effects": [] }

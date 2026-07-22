@@ -1,3 +1,7 @@
+use std::sync::Arc;
+
+use crate::error::ApiError;
+use crate::state::AppState;
 use axum::Extension;
 use axum::Json;
 use axum::extract::{Path, Query, State};
@@ -7,13 +11,9 @@ use domain::invoice::{
     Invoice, InvoiceListQuery, InvoiceRepo, InvoiceStatus, NewInvoice, UpdateInvoice,
 };
 use domain::order::LineItem;
-use domain::{AuthContext, Paged, Tenant};
+use domain::{AuthContext, ChangeAction, ChangeEvent, LiveChange, Paged, Tenant};
 use serde::Deserialize;
 use serde_json::{Value, json};
-use surreal_store::SurrealInvoiceRepo;
-
-use crate::error::ApiError;
-use crate::state::AppState;
 
 fn default_page() -> u32 {
     1
@@ -63,16 +63,8 @@ pub struct NewInvoiceBody {
     currency: Option<String>,
 }
 
-async fn repo_for(state: &AppState, auth: &AuthContext) -> Result<SurrealInvoiceRepo, ApiError> {
-    let session = state
-        .store
-        .for_tenant(&auth.tenant_db)
-        .await
-        .map_err(|err| {
-            tracing::error!(error = %err, "failed to open tenant session");
-            ApiError::internal("internal server error")
-        })?;
-    Ok(SurrealInvoiceRepo::new(session))
+async fn repo_for(state: &AppState, auth: &AuthContext) -> Result<Arc<dyn InvoiceRepo>, ApiError> {
+    Ok(state.backend.invoice_repo(&auth.tenant_db).await?)
 }
 
 pub async fn list(
@@ -104,6 +96,7 @@ pub async fn create(
     data.validate_domain()?;
     let repo = repo_for(&state, &auth).await?;
     let invoice = repo.create(data, &tenant).await?;
+    publish(&state, &auth, ChangeAction::Create, &invoice);
     Ok((StatusCode::CREATED, Json(invoice)))
 }
 
@@ -123,6 +116,7 @@ pub async fn create_from_order(
     data.validate_domain()?;
     let repo = repo_for(&state, &auth).await?;
     let invoice = repo.create(data, &tenant).await?;
+    publish(&state, &auth, ChangeAction::Create, &invoice);
     Ok((StatusCode::CREATED, Json(invoice)))
 }
 
@@ -153,6 +147,7 @@ pub async fn update(
     data.validate_domain()?;
     let repo = repo_for(&state, &auth).await?;
     let invoice = repo.update(&id, data).await?;
+    publish(&state, &auth, ChangeAction::Update, &invoice);
     Ok(Json(invoice))
 }
 
@@ -163,6 +158,14 @@ pub async fn delete(
 ) -> Result<Json<Value>, ApiError> {
     let repo = repo_for(&state, &auth).await?;
     repo.delete(&id).await?;
+    state.publisher.publish(
+        &auth.tenant_db,
+        LiveChange::Invoice(Box::new(ChangeEvent {
+            action: ChangeAction::Delete,
+            id,
+            data: None,
+        })),
+    );
     Ok(Json(json!({})))
 }
 
@@ -174,5 +177,17 @@ pub async fn set_status(
 ) -> Result<Json<Invoice>, ApiError> {
     let repo = repo_for(&state, &auth).await?;
     let invoice = repo.set_status(&id, body.status).await?;
+    publish(&state, &auth, ChangeAction::Update, &invoice);
     Ok(Json(invoice))
+}
+
+fn publish(state: &AppState, auth: &AuthContext, action: ChangeAction, invoice: &Invoice) {
+    state.publisher.publish(
+        &auth.tenant_db,
+        LiveChange::Invoice(Box::new(ChangeEvent {
+            action,
+            id: invoice.id.clone(),
+            data: Some(invoice.clone()),
+        })),
+    );
 }

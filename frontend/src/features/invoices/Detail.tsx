@@ -136,16 +136,16 @@ export function InvoiceDetail() {
         <Table.Thead>
           <Table.Tr>
             <Table.Th>{t('fields.description')}</Table.Th>
-            <Table.Th>{t('fields.quantity')}</Table.Th>
-            <Table.Th>{t('fields.unitPrice')}</Table.Th>
+            <Table.Th ta="right">{t('fields.quantity')}</Table.Th>
+            <Table.Th ta="right">{t('fields.unitPrice')}</Table.Th>
           </Table.Tr>
         </Table.Thead>
         <Table.Tbody>
           {invoice.line_items.map((item, index) => (
             <Table.Tr key={index}>
               <Table.Td>{item.description}</Table.Td>
-              <Table.Td>{item.quantity}</Table.Td>
-              <Table.Td>{formatMoney(item.unit_price, i18n.language)}</Table.Td>
+              <Table.Td ta="right">{item.quantity}</Table.Td>
+              <Table.Td ta="right">{formatMoney(item.unit_price, i18n.language)}</Table.Td>
             </Table.Tr>
           ))}
         </Table.Tbody>
@@ -158,7 +158,7 @@ export function InvoiceDetail() {
         <Text>
           {t('fields.taxTotal')}: {formatMoney(invoice.tax_total, i18n.language)} ({invoice.tax_rate_bp / 100}%)
         </Text>
-        <Text fw={600}>
+        <Text fw={500}>
           {t('fields.grossTotal')}: {formatMoney(invoice.gross_total, i18n.language)}
         </Text>
         {invoice.exchange_rate && me && (

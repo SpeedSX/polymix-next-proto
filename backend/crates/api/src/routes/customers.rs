@@ -1,16 +1,16 @@
-use axum::Extension;
-use axum::Json;
-use axum::extract::{Path, Query, State};
-use axum::http::StatusCode;
-use domain::customer::{Customer, CustomerStatus, ListQuery, NewCustomer, Paged};
-use domain::error::DomainError;
-use domain::{AuthContext, CustomerRepo, Tenant};
-use serde::Deserialize;
-use serde_json::{Value, json};
-use surreal_store::SurrealCustomerRepo;
+use std::sync::Arc;
 
 use crate::error::ApiError;
 use crate::state::AppState;
+use axum::Extension;
+use axum::Json;
+use axum::extract::{Path, Query, State};
+use axum::http::{HeaderMap, StatusCode, header};
+use domain::customer::{Customer, CustomerStatus, ListQuery, NewCustomer, Paged};
+use domain::error::DomainError;
+use domain::{AuthContext, ChangeAction, ChangeEvent, CustomerRepo, LiveChange, Tenant};
+use serde::Deserialize;
+use serde_json::{Value, json};
 
 fn default_page() -> u32 {
     1
@@ -53,16 +53,8 @@ pub struct StatusBody {
     status: CustomerStatus,
 }
 
-async fn repo_for(state: &AppState, auth: &AuthContext) -> Result<SurrealCustomerRepo, ApiError> {
-    let session = state
-        .store
-        .for_tenant(&auth.tenant_db)
-        .await
-        .map_err(|err| {
-            tracing::error!(error = %err, "failed to open tenant session");
-            ApiError::internal("internal server error")
-        })?;
-    Ok(SurrealCustomerRepo::new(session))
+async fn repo_for(state: &AppState, auth: &AuthContext) -> Result<Arc<dyn CustomerRepo>, ApiError> {
+    Ok(state.backend.customer_repo(&auth.tenant_db).await?)
 }
 
 /// Normalizes tags, resolves the tenant's default currency, and runs domain
@@ -96,6 +88,7 @@ pub async fn create(
     body.validate_creation_status()?;
     let repo = repo_for(&state, &auth).await?;
     let customer = repo.create(body, &tenant).await?;
+    publish(&state, &auth, ChangeAction::Create, &customer);
     Ok((StatusCode::CREATED, Json(customer)))
 }
 
@@ -115,11 +108,32 @@ pub async fn update(
     Extension(auth): Extension<AuthContext>,
     Extension(tenant): Extension<Tenant>,
     Path(id): Path<String>,
+    headers: HeaderMap,
     Json(mut body): Json<NewCustomer>,
 ) -> Result<Json<Customer>, ApiError> {
     prepare(&mut body, &tenant)?;
+    // `If-Match` carries the customer `version` the client last saw — an
+    // optimistic-concurrency token. Absent means an unconditional write; a
+    // present-but-unparseable value is a client bug, not a silent full write.
+    let expected_version = match headers.get(header::IF_MATCH) {
+        Some(value) => Some(
+            value
+                .to_str()
+                .ok()
+                .and_then(|raw| raw.trim_matches('"').parse::<i64>().ok())
+                .ok_or_else(|| {
+                    ApiError::new(
+                        StatusCode::BAD_REQUEST,
+                        "invalid_if_match",
+                        "If-Match must be an integer customer version",
+                    )
+                })?,
+        ),
+        None => None,
+    };
     let repo = repo_for(&state, &auth).await?;
-    let customer = repo.update(&id, body, &tenant).await?;
+    let customer = repo.update(&id, body, expected_version, &tenant).await?;
+    publish(&state, &auth, ChangeAction::Update, &customer);
     Ok(Json(customer))
 }
 
@@ -130,6 +144,14 @@ pub async fn delete(
 ) -> Result<Json<Value>, ApiError> {
     let repo = repo_for(&state, &auth).await?;
     repo.delete(&id).await?;
+    state.publisher.publish(
+        &auth.tenant_db,
+        LiveChange::Customer(Box::new(ChangeEvent {
+            action: ChangeAction::Delete,
+            id,
+            data: None,
+        })),
+    );
     Ok(Json(json!({})))
 }
 
@@ -142,5 +164,17 @@ pub async fn set_status(
 ) -> Result<Json<Customer>, ApiError> {
     let repo = repo_for(&state, &auth).await?;
     let customer = repo.set_status(&id, body.status, &tenant).await?;
+    publish(&state, &auth, ChangeAction::Update, &customer);
     Ok(Json(customer))
+}
+
+fn publish(state: &AppState, auth: &AuthContext, action: ChangeAction, customer: &Customer) {
+    state.publisher.publish(
+        &auth.tenant_db,
+        LiveChange::Customer(Box::new(ChangeEvent {
+            action,
+            id: customer.id.clone(),
+            data: Some(customer.clone()),
+        })),
+    );
 }

@@ -1,5 +1,6 @@
 {
   "list.title": "Orders",
+  "list.tabAll": "All orders",
   "list.new": "New order",
   "list.loadError": "Failed to load orders.",
   "list.empty": "No orders yet.",
@@ -26,6 +27,7 @@
   "fields.unitPrice": "Unit price",
   "fields.total": "Total",
   "fields.notes": "Notes",
+  "fields.createdAt": "Created",
   "actions.transitionTo": "Mark as {status}",
   "actions.generateInvoice": "Generate invoice",
   "status.draft": "Draft",

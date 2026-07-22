@@ -98,6 +98,30 @@ impl TestApp {
         (status, body)
     }
 
+    async fn update_customer_with_version(
+        &self,
+        org_id: &str,
+        id: &str,
+        body: &Value,
+        expected_version: i64,
+    ) -> (StatusCode, Value) {
+        let response = self
+            .client
+            .put(format!("{}/api/customers/{id}", self.base_url))
+            .bearer_auth(self.token_for(org_id))
+            .header(reqwest::header::IF_MATCH, expected_version.to_string())
+            .json(body)
+            .send()
+            .await
+            .expect("update customer request failed");
+        let status = response.status();
+        let body = response
+            .json()
+            .await
+            .expect("update customer response was not JSON");
+        (status, body)
+    }
+
     async fn set_customer_status(
         &self,
         org_id: &str,
@@ -230,6 +254,66 @@ async fn full_crud_round_trip_preserves_every_field() {
     assert_eq!(status, StatusCode::OK);
     assert_eq!(updated["name"], "Друкарня «Аркуш» AG");
     assert_eq!(updated["status"], 1, "PUT must not change status");
+}
+
+#[tokio::test]
+#[ignore]
+async fn optimistic_concurrency_rejects_a_stale_update() {
+    let app = TestApp::spawn().await;
+    let org = format!("test_{}", ulid::Ulid::new());
+
+    let (_, created) = app
+        .create_customer_body(&org, &full_customer_body("Concurrency Co"))
+        .await;
+    let id = created["id"].as_str().unwrap().to_string();
+    assert_eq!(created["version"], 1, "a new customer starts at version 1");
+
+    // Two clients both loaded the record at version 1.
+    let stale_version = created["version"].as_i64().unwrap();
+
+    // First writer holds the matching version; it wins and the record advances.
+    let mut first = full_customer_body("Concurrency Co");
+    first["name"] = json!("First Writer Wins");
+    let (status, updated) = app
+        .update_customer_with_version(&org, &id, &first, stale_version)
+        .await;
+    assert_eq!(status, StatusCode::OK);
+    assert_eq!(updated["name"], "First Writer Wins");
+    assert_eq!(
+        updated["version"], 2,
+        "a successful update bumps the version"
+    );
+
+    // Second writer still holds the now-stale version 1 → rejected, no clobber.
+    let mut second = full_customer_body("Concurrency Co");
+    second["name"] = json!("Second Writer Loses");
+    let (status, body) = app
+        .update_customer_with_version(&org, &id, &second, stale_version)
+        .await;
+    assert_eq!(status, StatusCode::CONFLICT);
+    assert_eq!(body["error"]["code"], "customer_modified");
+
+    // The rejected write left no trace.
+    let fetched = app.get_customer(&org, &id).await;
+    assert_eq!(fetched["name"], "First Writer Wins");
+    assert_eq!(fetched["version"], 2);
+
+    // Reloading and retrying against the fresh version succeeds.
+    let (status, updated) = app
+        .update_customer_with_version(&org, &id, &second, 2)
+        .await;
+    assert_eq!(status, StatusCode::OK);
+    assert_eq!(updated["name"], "Second Writer Loses");
+    assert_eq!(updated["version"], 3);
+
+    // Absent If-Match is backward-compatible: an unconditional write that
+    // still bumps the version.
+    let mut third = full_customer_body("Concurrency Co");
+    third["name"] = json!("No Precondition");
+    let (status, updated) = app.update_customer_body(&org, &id, &third).await;
+    assert_eq!(status, StatusCode::OK);
+    assert_eq!(updated["name"], "No Precondition");
+    assert_eq!(updated["version"], 4);
 }
 
 #[tokio::test]

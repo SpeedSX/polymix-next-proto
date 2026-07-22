@@ -4,6 +4,7 @@
 //! small curated pool instead of a `fake::locales` module — good enough for
 //! demo data, not meant to be exhaustive.
 
+use domain::customer::CustomerKind;
 use rand::Rng;
 use rand::seq::SliceRandom;
 
@@ -47,8 +48,6 @@ const LAST_NAMES: &[&str] = &[
     "Гончаренко",
     "Романюк",
 ];
-
-const COMPANY_LEGAL_FORMS: &[&str] = &["ТОВ", "ПП", "ФОП"];
 
 const COMPANY_NAMES: &[&str] = &[
     "Друкарня Либідь",
@@ -108,10 +107,29 @@ pub const PRODUCTS: &[&str] = &[
     "Каталоги",
 ];
 
+pub const ORDER_NOTES: &[&str] = &[
+    "Повторний друк: {product}",
+    "Нове замовлення: {product}",
+    "{product}, стандартний термін",
+    "Терміново: {product}",
+    "Щоквартальне поповнення: {product}",
+    "{product} з погодженням макета",
+    "{product} для нової кампанії",
+];
+
 pub fn company_name(rng: &mut impl Rng) -> String {
-    let form = COMPANY_LEGAL_FORMS.choose(rng).unwrap();
-    let name = COMPANY_NAMES.choose(rng).unwrap();
-    format!("{form} «{name}»")
+    (*COMPANY_NAMES.choose(rng).unwrap()).to_string()
+}
+
+/// Full legal name derived from the customer's kind, per docs/customers-crm.md:
+/// `ТОВ «Name»` for legal entities, `ФОП «Name»` for sole proprietors, and
+/// none for private individuals (who have no registered legal name).
+pub fn legal_name(kind: CustomerKind, name: &str) -> Option<String> {
+    match kind {
+        CustomerKind::LegalEntity => Some(format!("ТОВ «{name}»")),
+        CustomerKind::Fop => Some(format!("ФОП «{name}»")),
+        CustomerKind::Individual => None,
+    }
 }
 
 pub fn contact_name(rng: &mut impl Rng) -> String {

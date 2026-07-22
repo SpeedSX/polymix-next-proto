@@ -1,12 +1,17 @@
 import { useMemo, useState } from 'react'
-import { Badge, Button, Group, Pagination, Select, Stack, Table, Text, TextInput, Title } from '@mantine/core'
+import { Badge, Button, Group, Select, Table, Text, TextInput } from '@mantine/core'
+import { IconPlus } from '@tabler/icons-react'
 import { useDebouncedValue } from '@mantine/hooks'
 import { useQuery } from '@tanstack/react-query'
 import { useNavigate } from '@tanstack/react-router'
 import { createColumnHelper, flexRender, getCoreRowModel, useReactTable } from '@tanstack/react-table'
-import type { SortingState, Updater } from '@tanstack/react-table'
+import type { RowData, SortingState, Updater } from '@tanstack/react-table'
 import { useTranslation } from 'react-i18next'
 
+import styles from './List.module.css'
+import { LIST_HEADER_HEIGHT, ListLayout } from '../../components/ListLayout'
+import { ListPagination } from '../../components/ListPagination'
+import { StatusMark, renderStatusSelectOption, statusMetaFor } from '../../components/StatusBadge'
 import { useApi } from '../../lib/api'
 import { formatDateTime } from '../../lib/dates'
 import { customersKeys, fetchCustomers } from './api'
@@ -24,6 +29,15 @@ function sortParam(sorting: SortingState): string {
   const [{ id, desc }] = sorting
   return desc ? `-${id}` : id
 }
+
+declare module '@tanstack/react-table' {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  interface ColumnMeta<TData extends RowData, TValue> {
+    width?: number
+  }
+}
+
+const STATUS_COLUMN_WIDTH = 56
 
 const columnHelper = createColumnHelper<Customer>()
 
@@ -60,32 +74,91 @@ export function CustomerList() {
 
   const columns = useMemo(
     () => [
-      columnHelper.accessor('name', { header: t('fields.name') }),
-      columnHelper.accessor((row) => row.edrpou ?? row.tax_id ?? '', {
-        id: 'edrpou',
-        header: t('fields.edrpouOrTaxId'),
-        enableSorting: false,
-      }),
       columnHelper.accessor('status', {
-        header: t('fields.status'),
+        id: 'status',
+        header: '',
         enableSorting: false,
+        meta: { width: STATUS_COLUMN_WIDTH },
         cell: (info) => {
-          const meta = statusDict.byId.get(info.getValue())
-          return <Badge color={meta?.color}>{statusDict.labelFor(info.getValue())}</Badge>
+          const statusId = info.getValue()
+          const meta = statusDict.byId.get(statusId)
+          return (
+            <StatusMark
+              statusKey={meta?.key}
+              color={meta?.color}
+              label={statusDict.labelFor(statusId)}
+            />
+          )
         },
       }),
-      columnHelper.accessor((row) => row.tags.join(', '), { id: 'tags', header: t('fields.tags'), enableSorting: false }),
+      columnHelper.accessor('name', {
+        header: t('fields.name'),
+        cell: (info) => (
+          <Text size="sm" fw={400} component="span" className={styles.name}>
+            {info.getValue()}
+          </Text>
+        ),
+      }),
+      columnHelper.accessor('tags', {
+        id: 'tags',
+        header: t('fields.tags'),
+        enableSorting: false,
+        cell: (info) => {
+          const tags = info.getValue()
+          if (tags.length === 0) {
+            return null
+          }
+          return (
+            <Group gap={4} wrap="wrap">
+              {tags.map((tag) => (
+                <Badge key={tag} variant="light" color="steel" radius="sm" size="md" fw={500} tt="none">
+                  {tag}
+                </Badge>
+              ))}
+            </Group>
+          )
+        },
+      }),
       columnHelper.accessor(
         (row) => (row.contacts.find((c) => c.is_primary) ?? row.contacts[0])?.name ?? '',
-        { id: 'primary_contact', header: t('fields.contactName'), enableSorting: false },
+        { 
+          id: 'primary_contact', 
+          header: t('fields.contactName'),
+          enableSorting: false,
+          cell: (info) => {
+            const dt = formatDateTime(info.getValue(), i18n.language)
+            return (
+              <Text size="sm" fw={300} title={dt ?? undefined}>
+                {dt}
+              </Text>
+            )
+          }
+        },
       ),
       columnHelper.accessor('created_at', {
         header: t('fields.createdAt'),
-        cell: (info) => formatDateTime(info.getValue(), i18n.language),
+        meta: { width: 160 },
+        cell: (info) => {
+          const dt = formatDateTime(info.getValue(), i18n.language)
+          return (
+            <Text size="sm" fw={300} title={dt ?? undefined}>
+              {dt}
+            </Text>
+          )
+        }
       }),
     ],
     [t, i18n.language, statusDict],
   )
+
+  const selectedStatus = statusMetaFor(statusDict.byId, statusFilter)
+  const filterCount = (statusFilter ? 1 : 0) + (tagFilter.trim() !== '' ? 1 : 0)
+
+  const clearFilters = () => {
+    setStatusFilter(null)
+    setTagFilter('')
+    setPage(1)
+  }
 
   const handleSortingChange = (updaterOrValue: Updater<SortingState>) => {
     const next = typeof updaterOrValue === 'function' ? updaterOrValue(sorting) : updaterOrValue
@@ -107,54 +180,87 @@ export function CustomerList() {
     getCoreRowModel: getCoreRowModel(),
   })
 
-  const totalPages = data ? Math.max(1, Math.ceil(data.total / PAGE_SIZE)) : 1
-
   return (
-    <Stack>
-      <Group justify="space-between">
-        <Title order={2}>{t('list.title')}</Title>
-        <Button onClick={() => navigate({ to: '/customers/new' })}>{t('list.new')}</Button>
-      </Group>
-      <Group grow>
-        <TextInput
-          placeholder={t('list.searchPlaceholder')}
-          value={search}
-          onChange={(event) => {
-            setSearch(event.currentTarget.value)
-            setPage(1)
-          }}
-        />
-        <Select
-          placeholder={t('list.filterStatus')}
-          data={statusDict.options}
-          value={statusFilter}
-          onChange={(value) => {
-            setStatusFilter(value)
-            setPage(1)
-          }}
-          clearable
-        />
-        <TextInput
-          placeholder={t('list.filterTag')}
-          value={tagFilter}
-          onChange={(event) => {
-            setTagFilter(event.currentTarget.value)
-            setPage(1)
-          }}
-        />
-      </Group>
-      {isError && <Text c="red">{t('list.loadError')}</Text>}
-      <Table highlightOnHover>
+    <ListLayout
+      title={t('list.title')}
+      tabs={[{ label: t('list.tabAll'), count: data?.total ?? 0 }]}
+      searchValue={search}
+      onSearchChange={(value) => {
+        setSearch(value)
+        setPage(1)
+      }}
+      searchPlaceholder={t('list.searchPlaceholder')}
+      filterCount={filterCount}
+      onClearFilters={clearFilters}
+      onExport={() => {}}
+      primaryAction={
+        <Button leftSection={<IconPlus size={15} stroke={1.5} />} onClick={() => navigate({ to: '/customers/new' })}>
+          {t('list.new')}
+        </Button>
+      }
+      pagination={<ListPagination page={page} pageSize={PAGE_SIZE} total={data?.total ?? 0} onChange={setPage} />}
+      filters={
+        <>
+          <Select
+            label={t('list.filterStatus')}
+            placeholder={t('list.filterStatus')}
+            // Render inline, not in a portal: a portalled option list lives
+            // outside the filter Popover's DOM, so selecting an option reads as
+            // a click-outside and closes the whole panel.
+            comboboxProps={{ withinPortal: false }}
+            data={statusDict.options}
+            value={statusFilter}
+            onChange={(value) => {
+              setStatusFilter(value)
+              setPage(1)
+            }}
+            clearable
+            renderOption={renderStatusSelectOption(statusDict.byId)}
+            leftSection={
+              statusFilter != null ? (
+                <StatusMark
+                  statusKey={selectedStatus.key}
+                  color={selectedStatus.color}
+                  label={statusDict.labelFor(Number(statusFilter) as CustomerStatusId)}
+                  size={18}
+                  withTooltip={false}
+                  variant="filled"
+                />
+              ) : undefined
+            }
+          />
+          <TextInput
+            label={t('list.filterTag')}
+            placeholder={t('list.filterTag')}
+            value={tagFilter}
+            onChange={(event) => {
+              setTagFilter(event.currentTarget.value)
+              setPage(1)
+            }}
+          />
+        </>
+      }
+    >
+      {isError && (
+        <Text c="red" p="md">
+          {t('list.loadError')}
+        </Text>
+      )}
+      <Table highlightOnHover horizontalSpacing="md" stickyHeader stickyHeaderOffset={LIST_HEADER_HEIGHT}>
         <Table.Thead>
           {table.getHeaderGroups().map((headerGroup) => (
             <Table.Tr key={headerGroup.id}>
               {headerGroup.headers.map((header) => {
                 const sortDirection = header.column.getIsSorted()
+                const width = header.column.columnDef.meta?.width
                 return (
                   <Table.Th
                     key={header.id}
                     onClick={header.column.getToggleSortingHandler()}
-                    style={{ cursor: header.column.getCanSort() ? 'pointer' : undefined }}
+                    style={{
+                      cursor: header.column.getCanSort() ? 'pointer' : undefined,
+                      width,
+                    }}
                   >
                     {flexRender(header.column.columnDef.header, header.getContext())}
                     {sortDirection === 'asc' && ' ▲'}
@@ -173,14 +279,19 @@ export function CustomerList() {
               style={{ cursor: 'pointer' }}
             >
               {row.getVisibleCells().map((cell) => (
-                <Table.Td key={cell.id}>{flexRender(cell.column.columnDef.cell, cell.getContext())}</Table.Td>
+                <Table.Td key={cell.id} style={{ width: cell.column.columnDef.meta?.width }}>
+                  {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                </Table.Td>
               ))}
             </Table.Tr>
           ))}
         </Table.Tbody>
       </Table>
-      {!isLoading && data?.items.length === 0 && <Text c="dimmed">{t('list.empty')}</Text>}
-      <Pagination value={page} onChange={setPage} total={totalPages} />
-    </Stack>
+      {!isLoading && data?.items.length === 0 && (
+        <Text c="dimmed" p="md">
+          {t('list.empty')}
+        </Text>
+      )}
+    </ListLayout>
   )
 }

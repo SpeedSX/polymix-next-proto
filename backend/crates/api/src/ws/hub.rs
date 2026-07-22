@@ -7,11 +7,12 @@ use std::sync::Arc;
 use std::time::Duration;
 
 use domain::error::DomainError;
+use domain::{ChangeAction, ChangeEvent, LiveChange};
 use futures::future::BoxFuture;
 use futures::stream::BoxStream;
 use futures::{FutureExt, StreamExt};
 use serde::Serialize;
-use surreal_store::{ChangeAction, ChangeEvent, LiveChange, Store, live_changes};
+use surreal_store::{Store, live_changes};
 use tokio::sync::{Mutex, broadcast};
 use tokio::task::JoinHandle;
 
@@ -48,9 +49,9 @@ fn envelope<T: Serialize>(entity: &'static str, event: ChangeEvent<T>) -> Server
 
 fn to_server_event(change: LiveChange) -> ServerEvent {
     match change {
-        LiveChange::Customer(event) => envelope("customer", event),
-        LiveChange::Order(event) => envelope("order", event),
-        LiveChange::Invoice(event) => envelope("invoice", event),
+        LiveChange::Customer(event) => envelope("customer", *event),
+        LiveChange::Order(event) => envelope("order", *event),
+        LiveChange::Invoice(event) => envelope("invoice", *event),
     }
 }
 
@@ -212,6 +213,7 @@ mod tests {
             notes: None,
             created_at: "2026-01-01T00:00:00Z".to_string(),
             updated_at: "2026-01-01T00:00:00Z".to_string(),
+            version: 1,
         }
     }
 
@@ -280,11 +282,11 @@ mod tests {
         wait_for_senders(&senders, 1).await;
 
         senders.lock().await[0]
-            .unbounded_send(Ok(LiveChange::Customer(ChangeEvent {
+            .unbounded_send(Ok(LiveChange::Customer(Box::new(ChangeEvent {
                 action: ChangeAction::Create,
                 id: "01ARZ3NDEKTSV4RRFFQ69G5FAV".to_string(),
                 data: Some(customer("Acme")),
-            })))
+            }))))
             .unwrap();
 
         let event = tokio::time::timeout(Duration::from_secs(5), rx.recv())

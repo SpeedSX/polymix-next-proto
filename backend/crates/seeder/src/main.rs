@@ -1,8 +1,12 @@
 //! Fake-data generator for the demo tenant (PLAN.md M2: "seeder crate
-//! producing customers and orders on the demo tenant, batched
-//! inserts"). Run with `just seed` or `cargo run -p seeder`.
+//! producing >= 10k customers / >= 100k orders per demo tenant, batched
+//! inserts of 1000"). Run with `just seed` or `cargo run -p seeder`.
+//!
+//! `SEED_LOCALE=uk` (see `just seed-uk`) provisions the M4 Ukrainian demo
+//! tenant instead (default currency UAH, default language `uk`, names drawn
+//! from the `uk` module) — everything else about the run is unchanged.
 
-mod ua;
+mod uk;
 
 use std::collections::HashSet;
 use std::env;
@@ -29,7 +33,7 @@ use ulid::Ulid;
 const BATCH_SIZE: usize = 1000;
 const CUSTOMER_TABLE: &str = "customer";
 const ORDER_TABLE: &str = "order";
-const UA_LOCALE: &str = "ua";
+const UK_LOCALE: &str = "uk";
 
 // ~60% legal entity, ~35% ФОП, ~5% private individual (docs/customers-crm.md
 // Step 6) — used for both demo tenants so the perf tenant's FTS index sees
@@ -65,6 +69,18 @@ const PRODUCTS: &[&str] = &[
     "Stickers",
     "Postcards",
     "Catalogs",
+];
+
+// Short, human-looking order summaries for demo data. `{product}` is filled
+// from the order's first line item.
+const ORDER_NOTES: &[&str] = &[
+    "Reprint of {product}",
+    "New {product} order",
+    "{product}, standard turnaround",
+    "Rush job: {product}",
+    "Quarterly {product} restock",
+    "{product} with proof approval",
+    "{product} for an upcoming campaign",
 ];
 
 // Rough distribution of a print shop's order book: most orders have already
@@ -123,6 +139,7 @@ struct CustomerSeedRow {
     notes: Option<String>,
     created_at: String,
     updated_at: String,
+    version: i64,
 }
 
 #[derive(Debug, SurrealValue)]
@@ -215,6 +232,20 @@ fn random_digits(rng: &mut impl Rng, len: usize) -> String {
         .collect()
 }
 
+fn random_order_notes(
+    rng: &mut impl Rng,
+    line_items: &[LineItem],
+    templates: &[&str],
+) -> Option<String> {
+    // A realistic order book has a minority of orders with no note.
+    if rng.gen_bool(0.2) {
+        return None;
+    }
+    let product = line_items.first()?.description.as_str();
+    let template = *templates.choose(rng)?;
+    Some(template.replace("{product}", product))
+}
+
 fn random_line_items(rng: &mut impl Rng, currency: &str, products: &[&str]) -> Vec<LineItem> {
     let count = rng.gen_range(1..=4);
     (0..count)
@@ -234,11 +265,11 @@ async fn main() -> anyhow::Result<()> {
     tracing_subscriber::fmt::init();
 
     let locale = env_or("SEED_LOCALE", "en");
-    let ukrainian = locale == UA_LOCALE;
+    let ukrainian = locale == UK_LOCALE;
 
     let customer_count = env_count("SEED_CUSTOMERS", if ukrainian { 100 } else { 10_000 });
     let order_count = env_count("SEED_ORDERS", if ukrainian { 1_000 } else { 100_000 });
-    let default_org_id = if ukrainian { "demo-ua" } else { "demo" };
+    let default_org_id = if ukrainian { "demo-uk" } else { "demo" };
     let default_org_name = if ukrainian {
         "Демо Друкарня"
     } else {
@@ -258,7 +289,7 @@ async fn main() -> anyhow::Result<()> {
     let provisioner = TenantProvisioner::new(store.clone());
     let tenant = if ukrainian {
         provisioner
-            .provision_with_locale(&org_id, &org_name, "ua", "UAH")
+            .provision_with_locale(&org_id, &org_name, "uk", "UAH")
             .await?
     } else {
         provisioner.ensure_tenant(&org_id, &org_name).await?
@@ -298,10 +329,10 @@ fn seed_contacts(rng: &mut impl Rng, ukrainian: bool, seq: usize) -> Vec<Contact
         .map(|i| {
             let (name, role, email, phone) = if ukrainian {
                 (
-                    ua::contact_name(rng),
-                    ua::CONTACT_ROLES.choose(rng).unwrap().to_string(),
-                    ua::email(rng, seq * 10 + i),
-                    ua::phone(rng),
+                    uk::contact_name(rng),
+                    uk::CONTACT_ROLES.choose(rng).unwrap().to_string(),
+                    uk::email(rng, seq * 10 + i),
+                    uk::phone(rng),
                 )
             } else {
                 (
@@ -323,7 +354,7 @@ fn seed_contacts(rng: &mut impl Rng, ukrainian: bool, seq: usize) -> Vec<Contact
 }
 
 fn seed_tags(rng: &mut impl Rng, ukrainian: bool) -> Vec<String> {
-    let pool = if ukrainian { ua::TAGS } else { EN_TAGS };
+    let pool = if ukrainian { uk::TAGS } else { EN_TAGS };
     let count = rng.gen_range(0..=3);
     let mut chosen: Vec<String> = pool
         .choose_multiple(rng, count)
@@ -369,19 +400,23 @@ async fn seed_customers(
             let contacts = seed_contacts(&mut rng, ukrainian, seq);
             let tags = seed_tags(&mut rng, ukrainian);
 
-            let (name, legal_address) = if ukrainian {
+            let (name, legal_name, legal_address) = if ukrainian {
+                let name = uk::company_name(&mut rng);
+                let legal_name = uk::legal_name(kind, &name);
                 (
-                    ua::company_name(&mut rng),
+                    name,
+                    legal_name,
                     AddressRow {
-                        street: Some(ua::street(&mut rng)),
-                        zip: Some(ua::zip(&mut rng)),
-                        city: Some(ua::city(&mut rng)),
+                        street: Some(uk::street(&mut rng)),
+                        zip: Some(uk::zip(&mut rng)),
+                        city: Some(uk::city(&mut rng)),
                         country: Some("UA".to_string()),
                     },
                 )
             } else {
                 (
                     CompanyName().fake_with_rng(&mut rng),
+                    None,
                     AddressRow {
                         street: Some(StreetName().fake_with_rng(&mut rng)),
                         zip: Some(ZipCode().fake_with_rng(&mut rng)),
@@ -395,7 +430,7 @@ async fn seed_customers(
                 id: RecordId::new(CUSTOMER_TABLE, id.clone()),
                 kind: kind.code() as i64,
                 name,
-                legal_name: None,
+                legal_name,
                 edrpou,
                 tax_id,
                 vat_ipn,
@@ -416,6 +451,7 @@ async fn seed_customers(
                 notes: None,
                 created_at: now.clone(),
                 updated_at: now.clone(),
+                version: 1,
             });
             customers.push(SeededCustomer { id, status });
             seq += 1;
@@ -445,7 +481,12 @@ async fn seed_orders(
     let mut rng = rand::thread_rng();
     let mut remaining = count;
     let mut seeded = 0usize;
-    let products = if ukrainian { ua::PRODUCTS } else { PRODUCTS };
+    let products = if ukrainian { uk::PRODUCTS } else { PRODUCTS };
+    let note_templates = if ukrainian {
+        uk::ORDER_NOTES
+    } else {
+        ORDER_NOTES
+    };
 
     // Same eligibility as `OrderRepo::create`: only lead/active may receive
     // orders. Inactive/blocked stay in the customer mix for list demos but
@@ -494,6 +535,7 @@ async fn seed_orders(
             }
             let line_items = random_line_items(&mut rng, currency, products);
             let total = line_items_total(&line_items, currency);
+            let notes = random_order_notes(&mut rng, &line_items, note_templates);
             let status = random_status(&mut rng);
             batch.push(OrderSeedRow {
                 id: RecordId::new(ORDER_TABLE, id),
@@ -505,7 +547,7 @@ async fn seed_orders(
                 currency: currency.to_string(),
                 line_items: line_items.into_iter().map(LineItemRow::from).collect(),
                 total: total.into(),
-                notes: None,
+                notes,
                 created_at: now.clone(),
                 updated_at: now.clone(),
             });

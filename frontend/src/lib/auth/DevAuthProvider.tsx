@@ -6,6 +6,9 @@ import { useTranslation } from 'react-i18next'
 
 import { AuthContext } from './context'
 
+/** Survives refresh so local DX doesn't force re-login every F5. */
+export const DEV_SESSION_STORAGE_KEY = 'polymix:dev-auth'
+
 interface DevSession {
   token: string
   orgId: string
@@ -14,6 +17,57 @@ interface DevSession {
 interface DevSignInValues {
   userId: string
   orgId: string
+}
+
+function decodeJwtExp(token: string): number | null {
+  const payload = token.split('.')[1]
+  if (!payload) return null
+  try {
+    const json = atob(payload.replace(/-/g, '+').replace(/_/g, '/'))
+    const claims = JSON.parse(json) as { exp?: unknown }
+    return typeof claims.exp === 'number' ? claims.exp : null
+  } catch {
+    return null
+  }
+}
+
+function isTokenExpired(token: string): boolean {
+  const exp = decodeJwtExp(token)
+  // Opaque / unparseable tokens: keep them and let the API reject if needed.
+  if (exp === null) return false
+  return exp * 1000 <= Date.now()
+}
+
+function readStoredSession(): DevSession | null {
+  try {
+    const raw = localStorage.getItem(DEV_SESSION_STORAGE_KEY)
+    if (!raw) return null
+    const parsed = JSON.parse(raw) as Partial<DevSession>
+    if (typeof parsed.token !== 'string' || typeof parsed.orgId !== 'string') {
+      localStorage.removeItem(DEV_SESSION_STORAGE_KEY)
+      return null
+    }
+    if (isTokenExpired(parsed.token)) {
+      localStorage.removeItem(DEV_SESSION_STORAGE_KEY)
+      return null
+    }
+    return { token: parsed.token, orgId: parsed.orgId }
+  } catch {
+    // localStorage can throw in locked-down environments (private browsing).
+    return null
+  }
+}
+
+function writeStoredSession(session: DevSession | null): void {
+  try {
+    if (session === null) {
+      localStorage.removeItem(DEV_SESSION_STORAGE_KEY)
+    } else {
+      localStorage.setItem(DEV_SESSION_STORAGE_KEY, JSON.stringify(session))
+    }
+  } catch {
+    // Ignore quota / privacy-mode failures — in-memory session still works.
+  }
 }
 
 async function requestDevToken(userId: string, orgId: string): Promise<string> {
@@ -76,11 +130,18 @@ function DevSignInForm({
 }
 
 export function DevAuthProvider({ children }: { children: ReactNode }) {
-  const [session, setSession] = useState<DevSession | null>(null)
+  const [session, setSession] = useState<DevSession | null>(readStoredSession)
 
   const signIn = useCallback(async (userId: string, orgId: string) => {
     const token = await requestDevToken(userId, orgId)
-    setSession({ token, orgId })
+    const next = { token, orgId }
+    writeStoredSession(next)
+    setSession(next)
+  }, [])
+
+  const signOut = useCallback(() => {
+    writeStoredSession(null)
+    setSession(null)
   }, [])
 
   if (!session) {
@@ -93,7 +154,7 @@ export function DevAuthProvider({ children }: { children: ReactNode }) {
         mode: 'dev',
         orgId: session.orgId,
         getToken: async () => session.token,
-        signOut: () => setSession(null),
+        signOut,
       }}
     >
       {children}

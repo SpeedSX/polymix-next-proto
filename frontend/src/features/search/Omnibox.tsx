@@ -115,7 +115,7 @@ export function Omnibox({ opened, onClose }: OmniboxProps) {
               }
               return (
                 <Stack key={entity} gap={4}>
-                  <Text size="xs" c="dimmed" fw={700} px="sm">
+                  <Text size="xs" c="dimmed" fw={500} px="sm">
                     {t(`groups.${entity}`)}
                   </Text>
                   {hits.map((hit) => {

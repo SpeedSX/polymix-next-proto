@@ -1,8 +1,10 @@
 pub mod auth;
+pub mod backend;
 pub mod config;
 pub mod dev_issuer;
 pub mod error;
 pub mod jwks;
+pub mod publisher;
 pub mod routes;
 pub mod state;
 pub mod ws;
@@ -15,13 +17,13 @@ use axum::{Router, middleware, routing::get, routing::post};
 use tower_http::cors::{AllowOrigin, Any, CorsLayer};
 use tower_http::trace::TraceLayer;
 
-use domain::TenantRepo;
-
+use backend::SurrealBackend;
 use config::AppConfig;
 use dev_issuer::DevIssuer;
 use jwks::JwksCache;
+use publisher::NoopPublisher;
 use state::AppState;
-use surreal_store::{DbConfig, Store, SurrealTenantRepo, TenantProvisioner, migrations};
+use surreal_store::{DbConfig, Store};
 
 pub async fn build_state(config: AppConfig) -> anyhow::Result<AppState> {
     let store = Store::connect(&DbConfig {
@@ -32,18 +34,7 @@ pub async fn build_state(config: AppConfig) -> anyhow::Result<AppState> {
     })
     .await?;
     let store = Arc::new(store);
-    // Provisioning only runs migrations once, at tenant creation — re-apply
-    // them here so a tenant db created before the latest migration was added
-    // (e.g. before M2 added order/invoice tables) still gets it, per
-    // PLAN.md's "applied per tenant database at provisioning and at
-    // startup". `apply_migrations` is idempotent (tracks its own version in
-    // `meta:migrations`), so this is a no-op for already-current tenants.
-    let tenants = SurrealTenantRepo::new(store.system()).list_all().await?;
-    for tenant in tenants {
-        let session = store.for_tenant(&tenant.db_name).await?;
-        migrations::apply_migrations(&session, &tenant.db_name).await?;
-    }
-    let provisioner = Arc::new(TenantProvisioner::new(store.clone()));
+    let backend = Arc::new(SurrealBackend::new(store.clone()).await?);
     let jwks = Arc::new(JwksCache::new(config.auth_jwks_url.clone()));
     let dev_issuer = if config.auth_dev_mode {
         Some(Arc::new(DevIssuer::generate()?))
@@ -55,8 +46,8 @@ pub async fn build_state(config: AppConfig) -> anyhow::Result<AppState> {
 
     Ok(AppState {
         config: Arc::new(config),
-        store,
-        provisioner,
+        backend,
+        publisher: Arc::new(NoopPublisher),
         jwks,
         dev_issuer,
         hub,
@@ -99,6 +90,10 @@ pub fn build_router(state: AppState) -> Router {
         .route(
             "/api/customers/{id}/status",
             post(routes::customers::set_status),
+        )
+        .route(
+            "/api/customers/{id}/activity",
+            get(routes::orders::customer_activity),
         )
         .route(
             "/api/orders",
@@ -148,8 +143,8 @@ pub fn build_router(state: AppState) -> Router {
     };
     let cors = CorsLayer::new()
         .allow_origin(allow_origin)
-        .allow_methods([Method::GET, Method::POST, Method::PUT, Method::DELETE])
-        .allow_headers([header::AUTHORIZATION, header::CONTENT_TYPE])
+        .allow_methods([Method::GET, Method::POST, Method::PUT, Method::DELETE, Method::OPTIONS])
+        .allow_headers([header::AUTHORIZATION, header::CONTENT_TYPE, header::IF_MATCH])
         .max_age(Duration::from_secs(300));
 
     router

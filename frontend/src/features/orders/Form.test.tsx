@@ -26,7 +26,6 @@ const { fetchCustomer, fetchCustomers, fetchCustomerStatusDictionary } = await i
 
 const CUSTOMER: Customer = {
   id: 'customer1',
-  number: '000001',
   kind: 0,
   name: 'Acme Print',
   legal_name: null,
@@ -50,6 +49,7 @@ const CUSTOMER: Customer = {
   notes: null,
   created_at: '2026-01-01T00:00:00Z',
   updated_at: '2026-01-01T00:00:00Z',
+  version: 1,
 }
 
 function renderForm(props: Partial<React.ComponentProps<typeof OrderForm>> = {}) {
@@ -64,6 +64,8 @@ function renderForm(props: Partial<React.ComponentProps<typeof OrderForm>> = {})
       <QueryClientProvider client={queryClient}>
         <AuthContext.Provider value={{ mode: 'dev', orgId: 'org1', getToken: async () => 'token', signOut: () => {} }}>
           <OrderForm
+            breadcrumb={['Orders', 'Edit']}
+            title="ORD-001"
             initialValues={emptyOrderFormValues('USD')}
             onSubmit={onSubmit}
             onSuccess={onSuccess}

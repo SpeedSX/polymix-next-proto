@@ -1,9 +1,8 @@
 use axum::Extension;
 use axum::Json;
 use axum::extract::{Query, State};
-use domain::{AuthContext, CustomerRepo, InvoiceRepo, OrderRepo, SearchHit, SearchResults};
+use domain::{AuthContext, SearchHit, SearchResults};
 use serde::Deserialize;
-use surreal_store::{SurrealCustomerRepo, SurrealInvoiceRepo, SurrealOrderRepo};
 
 use crate::error::ApiError;
 use crate::state::AppState;
@@ -27,10 +26,8 @@ pub async fn search(
         return Ok(Json(SearchResults::default()));
     }
 
-    // Fan out across entities concurrently rather than adding up each one's
-    // session-open + query round-trip sequentially. Each gets its own fresh
-    // `for_tenant()` session rather than `.clone()`-ing one already returned
-    // by `for_tenant()` — see docs/adr/0002 for why that hangs.
+    // Fan out across entity repositories concurrently rather than adding up
+    // each backend setup + query round-trip sequentially.
     let tenant_db = auth.tenant_db.as_str();
     let (customers, orders, invoices) = tokio::try_join!(
         search_customers(&state, tenant_db, q),
@@ -50,13 +47,8 @@ async fn search_customers(
     tenant_db: &str,
     q: &str,
 ) -> Result<Vec<SearchHit>, ApiError> {
-    let session = state.store.for_tenant(tenant_db).await.map_err(|err| {
-        tracing::error!(error = %err, "failed to open tenant session");
-        ApiError::internal("internal server error")
-    })?;
-    Ok(SurrealCustomerRepo::new(session)
-        .search(q, HITS_PER_ENTITY)
-        .await?)
+    let repo = state.backend.customer_repo(tenant_db).await?;
+    Ok(repo.search(q, HITS_PER_ENTITY).await?)
 }
 
 async fn search_orders(
@@ -64,13 +56,8 @@ async fn search_orders(
     tenant_db: &str,
     q: &str,
 ) -> Result<Vec<SearchHit>, ApiError> {
-    let session = state.store.for_tenant(tenant_db).await.map_err(|err| {
-        tracing::error!(error = %err, "failed to open tenant session");
-        ApiError::internal("internal server error")
-    })?;
-    Ok(SurrealOrderRepo::new(session)
-        .search(q, HITS_PER_ENTITY)
-        .await?)
+    let repo = state.backend.order_repo(tenant_db).await?;
+    Ok(repo.search(q, HITS_PER_ENTITY).await?)
 }
 
 async fn search_invoices(
@@ -78,11 +65,6 @@ async fn search_invoices(
     tenant_db: &str,
     q: &str,
 ) -> Result<Vec<SearchHit>, ApiError> {
-    let session = state.store.for_tenant(tenant_db).await.map_err(|err| {
-        tracing::error!(error = %err, "failed to open tenant session");
-        ApiError::internal("internal server error")
-    })?;
-    Ok(SurrealInvoiceRepo::new(session)
-        .search(q, HITS_PER_ENTITY)
-        .await?)
+    let repo = state.backend.invoice_repo(tenant_db).await?;
+    Ok(repo.search(q, HITS_PER_ENTITY).await?)
 }

@@ -3,6 +3,8 @@
   "nav.customers": "Клієнти",
   "nav.orders": "Замовлення",
   "nav.invoices": "Рахунки",
+  "nav.settings": "Налаштування",
+  "nav.toggleSidebar": "Згорнути панель",
   "auth.devSignInTitle": "Тестовий вхід",
   "auth.userId": "Ідентифікатор користувача",
   "auth.orgId": "Ідентифікатор організації",
@@ -12,7 +14,7 @@
   "auth.selectOrganization": "Оберіть організацію, щоб продовжити",
   "lang.label": "Мова",
   "lang.en": "English",
-  "lang.ua": "Українська",
+  "lang.uk": "Українська",
   "validation.required": "Це поле обов'язкове.",
   "validation.invalid_email": "Введіть дійсну електронну адресу.",
   "validation.invalid_country_code": "Має бути кодом країни ISO 3166-1 alpha-2.",
@@ -31,5 +33,13 @@
   "validation.invalid_amount": "Має бути дійсною десятковою сумою.",
   "validation.multiple_primary_contacts": "Лише один контакт може бути основним.",
   "validation.out_of_range": "Значення поза допустимим діапазоном.",
-  "validation.invalid_creation_status": "Нові клієнти можуть починати лише як лід або активний."
+  "validation.invalid_creation_status": "Нові клієнти можуть починати лише як лід або активний.",
+  "pagination.back": "Назад",
+  "pagination.forward": "Вперед",
+  "pagination.range": "{from}–{to} з {total}",
+  "list.filter": "Фільтр",
+  "list.export": "Експорт",
+  "list.filterTitle": "Фільтри",
+  "list.clearFilters": "Очистити",
+  "list.applyFilters": "Застосувати"
 }

@@ -215,6 +215,10 @@ pub struct Customer {
     pub notes: Option<String>,
     pub created_at: String,
     pub updated_at: String,
+    /// Optimistic-concurrency counter, incremented on every write. Callers
+    /// pass the value they last saw back to `update` to detect a concurrent
+    /// modification (see [`CustomerRepo::update`]).
+    pub version: i64,
 }
 
 #[derive(Debug, Clone, Deserialize, Validate)]
@@ -307,20 +311,20 @@ impl NewCustomer {
             }
         }
 
-        if let Some(vat_ipn) = &self.vat_ipn {
-            if !is_all_digits(vat_ipn, 12) {
-                details
-                    .entry("vat_ipn".to_string())
-                    .or_insert_with(|| FieldError::code("invalid_vat_ipn"));
-            }
+        if let Some(vat_ipn) = &self.vat_ipn
+            && !is_all_digits(vat_ipn, 12)
+        {
+            details
+                .entry("vat_ipn".to_string())
+                .or_insert_with(|| FieldError::code("invalid_vat_ipn"));
         }
 
-        if let Some(iban) = &self.iban {
-            if !is_valid_iban(iban) {
-                details
-                    .entry("iban".to_string())
-                    .or_insert_with(|| FieldError::code("invalid_iban"));
-            }
+        if let Some(iban) = &self.iban
+            && !is_valid_iban(iban)
+        {
+            details
+                .entry("iban".to_string())
+                .or_insert_with(|| FieldError::code("invalid_iban"));
         }
 
         if self.contacts.iter().filter(|c| c.is_primary).count() > 1 {
@@ -329,20 +333,20 @@ impl NewCustomer {
                 .or_insert_with(|| FieldError::code("multiple_primary_contacts"));
         }
 
-        if let Some(currency) = &self.default_currency {
-            if !is_upper_alpha3(currency) {
-                details
-                    .entry("default_currency".to_string())
-                    .or_insert_with(|| FieldError::code("invalid_currency_code"));
-            }
+        if let Some(currency) = &self.default_currency
+            && !is_upper_alpha3(currency)
+        {
+            details
+                .entry("default_currency".to_string())
+                .or_insert_with(|| FieldError::code("invalid_currency_code"));
         }
 
-        if let Some(credit_limit) = &self.credit_limit {
-            if !is_upper_alpha3(&credit_limit.currency) {
-                details
-                    .entry("credit_limit.currency".to_string())
-                    .or_insert_with(|| FieldError::code("invalid_currency_code"));
-            }
+        if let Some(credit_limit) = &self.credit_limit
+            && !is_upper_alpha3(&credit_limit.currency)
+        {
+            details
+                .entry("credit_limit.currency".to_string())
+                .or_insert_with(|| FieldError::code("invalid_currency_code"));
         }
 
         if details.is_empty() {
@@ -422,10 +426,16 @@ pub trait CustomerRepo: Send + Sync {
     -> Result<Paged<Customer>, DomainError>;
     async fn get(&self, id: &str, tenant: &Tenant) -> Result<Option<Customer>, DomainError>;
     async fn create(&self, data: NewCustomer, tenant: &Tenant) -> Result<Customer, DomainError>;
+    /// `expected_version` is the [`Customer::version`] the caller last saw;
+    /// when `Some`, the update is rejected with
+    /// [`ConflictReason::CustomerModified`] if the stored record has moved on
+    /// since (optimistic concurrency). When `None`, the write is
+    /// unconditional (last-write-wins).
     async fn update(
         &self,
         id: &str,
         data: NewCustomer,
+        expected_version: Option<i64>,
         tenant: &Tenant,
     ) -> Result<Customer, DomainError>;
     async fn delete(&self, id: &str) -> Result<(), DomainError>;

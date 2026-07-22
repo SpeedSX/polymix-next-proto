@@ -8,20 +8,22 @@ import enCustomers from './locales/en/customers.json'
 import enInvoices from './locales/en/invoices.json'
 import enOrders from './locales/en/orders.json'
 import enSearch from './locales/en/search.json'
-import uaCommon from './locales/ua/common.json'
-import uaCustomers from './locales/ua/customers.json'
-import uaInvoices from './locales/ua/invoices.json'
-import uaOrders from './locales/ua/orders.json'
-import uaSearch from './locales/ua/search.json'
+import enSettings from './locales/en/settings.json'
+import ukCommon from './locales/uk/common.json'
+import ukCustomers from './locales/uk/customers.json'
+import ukInvoices from './locales/uk/invoices.json'
+import ukOrders from './locales/uk/orders.json'
+import ukSearch from './locales/uk/search.json'
+import ukSettings from './locales/uk/settings.json'
 import { zodErrorMap } from './zodErrorMap'
 
-export const SUPPORTED_LANGUAGES = ['en', 'ua'] as const
+export const SUPPORTED_LANGUAGES = ['en', 'uk'] as const
 export type SupportedLanguage = (typeof SUPPORTED_LANGUAGES)[number]
 
 // Where the language switcher persists the user's choice (PLAN.md: "locale
 // persisted per user (localStorage for the prototype)"). Only ever
 // *restores* a choice the user actually made — the app's own default stays
-// 'en' regardless of what PLAN.md's architecture section says about `ua`
+// 'en' regardless of what PLAN.md's architecture section says about `uk`
 // being the eventual default; see docs/adr/0007 for why (flipping the boot
 // language breaks every existing English-asserting test).
 export const LANGUAGE_STORAGE_KEY = 'polymix:lang'
@@ -33,6 +35,11 @@ function isSupportedLanguage(value: string | null): value is SupportedLanguage {
 function restoredLanguage(): SupportedLanguage {
   try {
     const stored = localStorage.getItem(LANGUAGE_STORAGE_KEY)
+    // Pre-rename installs stored `ua`; treat it as the BCP-47 `uk` tag.
+    if (stored === 'ua') {
+      localStorage.setItem(LANGUAGE_STORAGE_KEY, 'uk')
+      return 'uk'
+    }
     return isSupportedLanguage(stored) ? stored : 'en'
   } catch {
     return 'en'
@@ -46,10 +53,24 @@ void i18n
     lng: restoredLanguage(),
     fallbackLng: 'en',
     defaultNS: 'common',
-    ns: ['common', 'customers', 'orders', 'invoices', 'search'],
+    ns: ['common', 'customers', 'orders', 'invoices', 'search', 'settings'],
     resources: {
-      en: { common: enCommon, customers: enCustomers, orders: enOrders, invoices: enInvoices, search: enSearch },
-      ua: { common: uaCommon, customers: uaCustomers, orders: uaOrders, invoices: uaInvoices, search: uaSearch },
+      en: {
+        common: enCommon,
+        customers: enCustomers,
+        orders: enOrders,
+        invoices: enInvoices,
+        search: enSearch,
+        settings: enSettings,
+      },
+      uk: {
+        common: ukCommon,
+        customers: ukCustomers,
+        orders: ukOrders,
+        invoices: ukInvoices,
+        search: ukSearch,
+        settings: ukSettings,
+      },
     },
     interpolation: {
       escapeValue: false,

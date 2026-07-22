@@ -74,7 +74,7 @@ Rules for the implementing agent:
 
 ### Language & currency switching
 
-- **Language:** i18next with ICU messages, `ua` + `en` (typical print-market pair) to prove the mechanism; locale persisted per user (localStorage for the prototype); all dates/numbers via `Intl` with the active locale. Make 'ua' default choice.
+- **Language:** i18next with ICU messages, `uk` + `en` (typical print-market pair) to prove the mechanism; locale persisted per user (localStorage for the prototype); all dates/numbers via `Intl` with the active locale. Make 'uk' default choice.
 - **Currency:** every money field is `{amount_minor: int, currency: string}`. Tenant has a default currency; invoices carry their own currency plus an exchange rate snapshot at issue time (rates table in the tenant DB, seeded statically for the prototype). Display formatting via `Intl.NumberFormat`.
 
 ## Repository layout
@@ -118,7 +118,7 @@ tenant {
   org_id: string,          // provider org id, unique
   db_name: string,         // "tenant_<12 hex>"
   name: string,            // display name, from the org at provision time
-  default_language: "en" | "de",     // default "en"
+  default_language: "uk" | "en",     // default "uk"
   default_currency: string,          // ISO 4217, default "EUR"
   created_at, updated_at
 }
@@ -130,17 +130,11 @@ tenant {
 customer {
   id: ulid,
   name: string (required, non-empty),        // company name
-  contact_name: string | null,
-  email: string | null (format-validated),
-  phone: string | null,
-  address: { street, zip, city, country } | null   // country: ISO 3166-1 alpha-2
-  notes: string | null,
-  created_at, updated_at
+  ...
 }
-// M5.1 extends customer into a Ukraine-focused CRM profile (legal ids,
-// lifecycle status, embedded contacts, commercial terms) — once M5.1 lands,
-// docs/customers-crm.md is normative for this entity and supersedes the
-// block above.
+// Customer is  Ukraine-focused CRM profile (legal ids,
+// lifecycle status, embedded contacts, commercial terms) —,
+// docs/customers-crm.md is normative for this entity.
 
 order {
   id: ulid,
@@ -197,9 +191,9 @@ Migrations are ordered files `0001_init.surql`, `0002_….surql`, applied per te
 DEFINE ANALYZER autocomplete TOKENIZERS class FILTERS lowercase, ascii, edgengram(2, 10);
 
 DEFINE INDEX customer_search ON customer
-  FIELDS name, contact_name, email, address.city
+  FIELDS name, email
   SEARCH ANALYZER autocomplete BM25 HIGHLIGHTS;
-DEFINE INDEX order_search   ON order   FIELDS number, notes, line_items[*].description
+DEFINE INDEX order_search   ON order   FIELDS number, notes
   SEARCH ANALYZER autocomplete BM25 HIGHLIGHTS;
 DEFINE INDEX invoice_search ON invoice FIELDS number
   SEARCH ANALYZER autocomplete BM25 HIGHLIGHTS;
@@ -208,8 +202,8 @@ DEFINE INDEX invoice_search ON invoice FIELDS number
 Search query shape (per entity, `$q` bound, never string-interpolated):
 
 ```sql
-SELECT *, search::score(0) AS score FROM customer
-WHERE name @0@ $q OR contact_name @0@ $q OR email @0@ $q
+SELECT *, (search::score(0) + search::score(1)) AS score FROM customer
+WHERE name @0@ $q OR email @1@ $q
 ORDER BY score DESC LIMIT $limit;
 ```
 
@@ -501,8 +495,8 @@ Each milestone ends runnable and demoable, with explicit acceptance criteria.
    **Done when:** searching a customer name prefix ("ada" finds "Adamant Print GmbH") works in lists and omnibox; omnibox navigates to the selected record on Enter; FTS integration test asserts ranking (exact-prefix beats mid-word); p95 < 100 ms for the search endpoint on the seeded volume (measure with a quick script, record in `/docs/perf.md`).
 
 5. **M4 — i18n + currency + org settings.**
-   `ua` locale files for every namespace; language switcher; all dates/numbers locale-formatted; invoice in a non-default currency with rate snapshot from the seeded `exchange_rate` table; display-only converted amount ("≈ UAH 1,234.56") on the invoice detail; Order and Invoice table prefixes are configured at organization level - default is empty so no prefix displayed, just number; admin prefix edit out-of-scope; create and seed database 100 customers, 1000 orders with ukrainian names.
-   **Done when:** switching to `ua` translates every screen (no raw keys, no leftover English in the main flows) and reformats dates/numbers; an invoice created in USD on a EUR tenant stores the rate snapshot and renders both amounts; money round-trips through forms without losing cents (unit tests on the minor-units conversion).
+   `uk` locale files for every namespace; language switcher; all dates/numbers locale-formatted; invoice in a non-default currency with rate snapshot from the seeded `exchange_rate` table; display-only converted amount ("≈ UAH 1,234.56") on the invoice detail; Order and Invoice table prefixes are configured at organization level - default is empty so no prefix displayed, just number; admin prefix edit out-of-scope; create and seed database 100 customers, 1000 orders with ukrainian names.
+   **Done when:** switching to `uk` translates every screen (no raw keys, no leftover English in the main flows) and reformats dates/numbers; an invoice created in USD on a EUR tenant stores the rate snapshot and renders both amounts; money round-trips through forms without losing cents (unit tests on the minor-units conversion).
 
 6. **M4.1 — Order screen: customer & currency selection.**
    Order create/edit form gets an explicit **customer selector** (searchable Mantine `Select`/autocomplete backed by the customer FTS from M3 — type-ahead, shows name, resolves to `customer_id`; required, validated) and a **currency selector** (ISO 4217 options; defaults to the tenant default currency, editable per order; line-item unit prices and the computed total render in the chosen currency). No new backend fields — `order.customer_id` and `order.currency` already exist in the data model; this wires the UI to set them deliberately instead of relying on defaults.
@@ -514,7 +508,7 @@ Each milestone ends runnable and demoable, with explicit acceptance criteria.
 
 8. **M5.1 — Customer CRM profile (Ukraine-focused).**
    Extend the customer entity into a CRM-grade profile: kind (юр. особа / ФОП / фіз. особа), legal identification (ЄДРПОУ, РНОКПП, ІПН ПДВ, IBAN), lifecycle status (`lead → active ↔ inactive`, `blocked`) with a status-transition route and dictionary endpoint, embedded contacts array, legal + delivery addresses, tags/industry/source, and commercial terms (payment terms, credit limit, default currency/discount); wider customer FTS index; migration of legacy `contact_name`/`email`/`phone`/`address` fields. No customer numbering — unlike orders/invoices, a customer is not a document with an external reference to number, and an initial attempt at one (`CUS-000123`-style, tenant `customer_prefix`) was dropped as scope that didn't belong (`docs/adr/0011-drop-customer-numbering.md`). Spec, data model, and step-by-step build order: `docs/customers-crm.md` (normative).
-   **Done when:** the acceptance pass and perf re-check in `docs/customers-crm.md` Step 6 pass — extended CRUD end-to-end from the UI in `ua` locale, migration of pre-M5.1 rows verified by integration test, order creation guarded by customer status (lead auto-promote, blocked → 409), omnibox finds customers by ЄДРПОУ and contact name, search p95 still < 100 ms on the seeded volume.
+   **Done when:** the acceptance pass and perf re-check in `docs/customers-crm.md` Step 6 pass — extended CRUD end-to-end from the UI in `uk` locale, migration of pre-M5.1 rows verified by integration test, order creation guarded by customer status (lead auto-promote, blocked → 409), omnibox finds customers by ЄДРПОУ and contact name, search p95 still < 100 ms on the seeded volume.
 
 9. **M6 — Cloud + perf pass.**
    Dockerfiles (multi-stage; frontend served by nginx); fly.toml for api + SurrealDB (volume-backed) + static frontend; the three items in **Operational hardening (M6)** — startup retry, CORS from config, readiness endpoint; k6 scripts for search, list pagination, and mutation fan-out with 100 concurrent WS clients; numbers recorded in `/docs/perf.md` against the NFR targets.
@@ -602,7 +596,8 @@ Runs alongside Track A; B1–B4 are prerequisites for onboarding the **first pay
 
 1. **B1 — RBAC.** Roles `admin`, `sales`, `production`, `finance` per tenant, carried as a claim (Clerk org roles or the replacement provider), enforced in the API layer per route + in the UI (hide what you can't do). Tenant isolation stays the hard boundary; RBAC is authorization *within* a tenant.
 2. **B2 — Data safety.** Automated backups with tested restore (restore drill is part of "done"), point-in-time recovery story for the chosen DB; invoice immutability + audit log (who changed what, when — required for GoBD compliance in the German market); soft-delete semantics where legal retention requires them.
-3. **B3 — API robustness.** Optimistic concurrency (`version` field, `409` on stale write — the prototype's last-write-wins is not acceptable with multiple staff), idempotency keys on POST mutations, rate limiting per tenant, request size limits, PATCH where full PUT is impractical (line-item-heavy orders).
+3. **B3 — API robustness.** Optimistic concurrency (`version` field, `409` on stale write — the prototype's last-write-wins is not acceptable with multiple staff) — **shipped for customers**: `customer.version` bumped on every write, echoed via `If-Match`, guarded atomically in the `UPDATE … WHERE version` statement, surfaced to the UI as a reload prompt (`customer_modified`); still to do: extend the same pattern to orders/invoices, idempotency keys on POST mutations, rate limiting per tenant, request size limits, PATCH where full PUT is impractical (line-item-heavy orders — the field-level-merge follow-up to customer OCC lives here too, to shrink false conflicts).
+   - **Live-edit awareness (UX follow-up on M5 hub).** Optimistic concurrency turns a concurrent edit into a *reload prompt at save time*; the friendlier next step is to warn *before* the collision. The customer live-change stream already pushes updates to connected clients — surface an incoming update on an open edit form as a "this record was just changed by someone else" banner (and/or a passive "N people viewing" indicator), so a second editor sees the conflict coming instead of discovering it on submit. Pure frontend once the entity is onboarded to live updates; no backend change beyond what M5 already ships.
 4. **B4 — Observability & environments.** OTLP traces/metrics/logs to a real backend, alerting on error rate + p95s + WS-hub health; `dev`/`staging`/`prod` environments with promotion via CI/CD; secrets in a manager, not env files. Fly.io stays until scale forces the move — images were the portability bet.
 5. **B5 — Migration discipline at fleet scale.** Per-tenant migrations must run across *N* tenant databases reliably: ordered, resumable, with a fleet-wide status view. This is the operational cost of db-per-tenant — pay it deliberately.
 6. **B6 — Load-shedding & tenant fairness.** Per-tenant quotas on WS connections and query cost so one tenant's traffic can't starve another (single shared API + DB node until sharding is warranted; the ADR from the prototype already notes sharding tenants across nodes as the growth path).
@@ -622,6 +617,8 @@ The first three moves after the gate, in order:
 |---|---|---|
 | 1 | A1 quote engine (can start pre-gate) + B1 RBAC + B2 backups/audit | Engine is the differentiator and has zero coupling to the gate outcome; B1/B2 block any real tenant |
 | 2 | A5 documents/email + B3 API robustness | Makes the existing CRUD core actually usable to run a shop |
-| 3 | A2 admin price-model UI → A3 portal → A4 pipeline | The instant-quote story, shipped in customer-visible slices |
+| 3 | A2 catalog slice → staff quoting → A2 template editor → A3 portal → A4 pipeline | The instant-quote story, shipped staff-first then customer-facing (see below) |
 
 Track C starts when step 2 is done (nothing to onboard tenants *onto* before that); A6–A8 follow demand from the first real tenants rather than a fixed order.
+
+**Staff-first reordering of step 3 (`docs/staff-quoting.md` is normative for this).** A4's internal-estimating clause is superseded by `docs/staff-quoting.md`, which ships staff quoting *before* the template editor (A2) and the portal (A3): (1) engine core, (2) the A2 catalog slice — CRUD for `format`/`material`/`machine`/`operation`/`pricing_policy` + `pricelist_version` (`docs/pricing-admin-plan.md` phase A2a, no template editor/linter yet), (3) the `quote` entity + estimate/quote API + tier-2/3 UI (needs B1 RBAC for the permission gates), (4) templates + template editor + lint → tier 1, (5) the public portal. Quote→order conversion (staff-quoting.md) subsumes the estimating half of A4; anonymous portal quote *requests* stay with A3/A4.

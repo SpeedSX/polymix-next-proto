@@ -3,6 +3,8 @@
   "nav.customers": "Customers",
   "nav.orders": "Orders",
   "nav.invoices": "Invoices",
+  "nav.settings": "Settings",
+  "nav.toggleSidebar": "Toggle sidebar",
   "auth.devSignInTitle": "Dev sign-in",
   "auth.userId": "User ID",
   "auth.orgId": "Organization ID",
@@ -12,7 +14,7 @@
   "auth.selectOrganization": "Select an organization to continue",
   "lang.label": "Language",
   "lang.en": "English",
-  "lang.ua": "Ukrainian",
+  "lang.uk": "Ukrainian",
   "validation.required": "This field is required.",
   "validation.invalid_email": "Must be a valid email address.",
   "validation.invalid_country_code": "Must be an ISO 3166-1 alpha-2 country code.",
@@ -31,5 +33,13 @@
   "validation.invalid_amount": "Must be a valid decimal amount.",
   "validation.multiple_primary_contacts": "Only one contact can be marked primary.",
   "validation.out_of_range": "Value is out of range.",
-  "validation.invalid_creation_status": "New customers can only start as a lead or active."
+  "validation.invalid_creation_status": "New customers can only start as a lead or active.",
+  "pagination.back": "Back",
+  "pagination.forward": "Forward",
+  "pagination.range": "{from}–{to} of {total}",
+  "list.filter": "Filter",
+  "list.export": "Export",
+  "list.filterTitle": "Filters",
+  "list.clearFilters": "Clear all",
+  "list.applyFilters": "Apply"
 }

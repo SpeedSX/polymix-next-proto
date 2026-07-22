@@ -1,4 +1,4 @@
-import { Alert, Loader, Stack, Title } from '@mantine/core'
+import { Alert, Loader } from '@mantine/core'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from '@tanstack/react-router'
 import { useTranslation } from 'react-i18next'
@@ -32,17 +32,16 @@ export function CustomerNew() {
   }
 
   return (
-    <Stack>
-      <Title order={2}>{t('create.title')}</Title>
-      <CustomerForm
-        initialValues={emptyCustomerFormValues(me.tenant.default_currency)}
-        onSubmit={(data) => createCustomer(api, data)}
-        onSuccess={(customer) => {
-          void queryClient.invalidateQueries({ queryKey: customersKeys.all })
-          void navigate({ to: '/customers/$id', params: { id: customer.id } })
-        }}
-        onCancel={() => navigate({ to: '/customers' })}
-      />
-    </Stack>
+    <CustomerForm
+      breadcrumb={[t('list.title')]}
+      title={t('create.title')}
+      initialValues={emptyCustomerFormValues(me.tenant.default_currency)}
+      onSubmit={(data) => createCustomer(api, data)}
+      onSuccess={(customer) => {
+        void queryClient.invalidateQueries({ queryKey: customersKeys.all })
+        void navigate({ to: '/customers/$id', params: { id: customer.id } })
+      }}
+      onCancel={() => navigate({ to: '/customers' })}
+    />
   )
 }

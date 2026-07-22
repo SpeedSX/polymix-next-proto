@@ -8,6 +8,9 @@ import { InvoiceList } from '../features/invoices/List'
 import { OrderDetail } from '../features/orders/Detail'
 import { OrderList } from '../features/orders/List'
 import { OrderNew } from '../features/orders/New'
+import { SettingsCatalog } from '../features/settings/Catalog'
+import { SettingsLayout } from '../features/settings/SettingsLayout'
+import { SettingsUsersRoles } from '../features/settings/UsersRoles'
 import { AppShell } from './AppShell'
 
 const rootRoute = createRootRoute({
@@ -68,6 +71,30 @@ const invoiceDetailRoute = createRoute({
   component: InvoiceDetail,
 })
 
+const settingsLayoutRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/settings',
+  component: SettingsLayout,
+})
+
+const settingsIndexRoute = createRoute({
+  getParentRoute: () => settingsLayoutRoute,
+  path: '/',
+  component: () => <Navigate to="/settings/catalog" />,
+})
+
+const settingsCatalogRoute = createRoute({
+  getParentRoute: () => settingsLayoutRoute,
+  path: '/catalog',
+  component: SettingsCatalog,
+})
+
+const settingsUsersRolesRoute = createRoute({
+  getParentRoute: () => settingsLayoutRoute,
+  path: '/users-roles',
+  component: SettingsUsersRoles,
+})
+
 const routeTree = rootRoute.addChildren([
   indexRoute,
   customersListRoute,
@@ -78,6 +105,7 @@ const routeTree = rootRoute.addChildren([
   orderDetailRoute,
   invoicesListRoute,
   invoiceDetailRoute,
+  settingsLayoutRoute.addChildren([settingsIndexRoute, settingsCatalogRoute, settingsUsersRolesRoute]),
 ])
 
 export const router = createRouter({ routeTree })
