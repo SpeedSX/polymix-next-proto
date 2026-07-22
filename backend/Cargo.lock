@@ -92,6 +92,7 @@ dependencies = [
  "rand 0.8.7",
  "reqwest 0.12.28",
  "rsa",
+ "rustls",
  "serde",
  "serde_json",
  "surreal-store",

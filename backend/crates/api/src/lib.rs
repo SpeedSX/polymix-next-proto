@@ -10,10 +10,11 @@ pub mod state;
 pub mod ws;
 
 use std::sync::Arc;
+use std::time::Duration;
 
-use axum::http::{Method, header};
+use axum::http::{HeaderValue, Method, header};
 use axum::{Router, middleware, routing::get, routing::post};
-use tower_http::cors::{Any, CorsLayer};
+use tower_http::cors::{AllowOrigin, Any, CorsLayer};
 use tower_http::trace::TraceLayer;
 
 use backend::SurrealBackend;
@@ -58,6 +59,7 @@ pub fn build_router(state: AppState) -> Router {
     // itself from the `?token=` query parameter (see `ws::handler`).
     let mut router = Router::new()
         .route("/api/health", get(routes::health::health))
+        .route("/api/ready", get(routes::health::ready))
         .route("/api/ws", get(ws::handler::ws));
     if state.config.auth_dev_mode {
         router = router
@@ -128,24 +130,26 @@ pub fn build_router(state: AppState) -> Router {
             auth::require_auth,
         ));
 
+    // `/api/ws` is unaffected by any of this: browsers do not enforce CORS on
+    // WebSocket upgrades, so its protection is the JWT in the query string,
+    // nothing else.
+    let allow_origin = match &state.config.cors_allowed_origins {
+        Some(origins) => AllowOrigin::list(origins.iter().map(|origin| {
+            origin
+                .parse::<HeaderValue>()
+                .expect("CORS_ALLOWED_ORIGINS already validated at startup")
+        })),
+        None => AllowOrigin::from(Any),
+    };
+    let cors = CorsLayer::new()
+        .allow_origin(allow_origin)
+        .allow_methods([Method::GET, Method::POST, Method::PUT, Method::DELETE, Method::OPTIONS])
+        .allow_headers([header::AUTHORIZATION, header::CONTENT_TYPE, header::IF_MATCH])
+        .max_age(Duration::from_secs(300));
+
     router
         .merge(protected)
         .layer(TraceLayer::new_for_http())
-        .layer(
-            CorsLayer::new()
-                .allow_origin(Any)
-                .allow_methods([
-                    Method::GET,
-                    Method::POST,
-                    Method::PUT,
-                    Method::DELETE,
-                    Method::OPTIONS,
-                ])
-                .allow_headers([
-                    header::AUTHORIZATION,
-                    header::CONTENT_TYPE,
-                    header::IF_MATCH,
-                ]),
-        )
+        .layer(cors)
         .with_state(state)
 }

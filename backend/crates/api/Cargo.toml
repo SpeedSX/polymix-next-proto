@@ -27,6 +27,7 @@ validator.workspace = true
 async-trait.workspace = true
 chrono.workspace = true
 reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls"] }
+rustls = { version = "0.23", default-features = false, features = ["aws-lc-rs"] }
 rsa = "0.9"
 rand = "0.8"
 base64 = "0.22"

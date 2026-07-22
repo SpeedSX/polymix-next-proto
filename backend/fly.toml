@@ -1,0 +1,58 @@
+# Fly.io app for the API. Deploy from the repo root:
+#   fly deploy --config backend/fly.toml backend
+#
+# One-time setup (see CLAUDE.md "Deploying to Fly.io" for the full sequence):
+#   fly apps create polymix-api
+#   fly secrets set -a polymix-api SURREALDB_USER=<root user from SurrealDB Cloud> SURREALDB_PASS=<its password>
+#
+# `app` must be globally unique on Fly — rename if this is taken.
+app = "polymix-api"
+primary_region = "iad" # change to whatever region is closest to you
+
+[build]
+  dockerfile = "../deploy/Dockerfile.api"
+
+[env]
+  PORT = "8080"
+  # SurrealDB Cloud free-tier instance (see docs/adr/0011), not a Fly app —
+  # replace with the wss:// endpoint from your instance's Cloud dashboard
+  # ("Connect" tab). Public endpoint, but still not a secret itself (the
+  # root password is — see the `fly secrets set` line above); the
+  # self-hosted Fly fallback in deploy/fly.surrealdb.toml would instead use
+  # the private ws://polymix-db.internal:8000 6PN address.
+  SURREALDB_URL = "wss://shiny-jungle-06fln4m48dqmpa07o888ig98ck.aws-euw1.surreal.cloud"
+  SURREALDB_NS = "polymix"
+  # Cost/scope tradeoff for the initial prototype deploy: dev-mode auth
+  # skips standing up real Clerk + CORS_ALLOWED_ORIGINS config. This means
+  # /dev/token is live on a public URL and CORS is permissive — acceptable
+  # for a private/demo-only prototype, NOT for anything with real data or a
+  # shared link. Flip to Clerk later: set AUTH_DEV_MODE=false, add
+  # AUTH_ISSUER / AUTH_JWKS_URL / CORS_ALLOWED_ORIGINS, redeploy, then
+  # redeploy the frontend with VITE_AUTH_MODE=clerk (Vercel env var, not a
+  # Fly one — see CLAUDE.md's "Deploying" section for the Vercel side).
+  AUTH_DEV_MODE = "true"
+
+# Stateless — scale to zero when nobody's using the demo. The app's own
+# Store::connect retry (30s deadline, see surreal-store/src/store.rs) covers
+# the case where this cold-starts before polymix-db does.
+[http_service]
+  internal_port = 8080
+  force_https = true
+  auto_stop_machines = "stop"
+  auto_start_machines = true
+  min_machines_running = 0
+  processes = ["app"]
+
+  # PLAN.md's M6 spec: point HTTP service checks at /api/ready (DB-backed),
+  # never /api/health (liveness only, no deps — wiring the DB into liveness
+  # would turn a DB outage into an API restart loop).
+  [[http_service.checks]]
+    grace_period = "35s" # covers cold start + the connect retry's 30s deadline
+    interval = "15s"
+    method = "GET"
+    timeout = "5s"
+    path = "/api/ready"
+
+[[vm]]
+  size = "shared-cpu-1x"
+  memory = "256mb"

@@ -15,6 +15,21 @@ dev:
     (cd frontend && npm run dev) & \
     wait
 
+# Same as `dev`, but against the SurrealDB Cloud free-tier instance instead
+# of the local docker-compose SurrealDB — no container runtime needed at
+# all. Reads backend/.env.cloud.local (gitignored — copy
+# backend/.env.cloud.local.example and fill in your instance's
+# SURREALDB_USER/SURREALDB_PASS first). See
+# docs/adr/0011-surrealdb-hosting-cloud-free-tier-instead-of-fly.md.
+dev-cloud:
+    test -f backend/.env.cloud.local || { echo "Missing backend/.env.cloud.local — copy backend/.env.cloud.local.example and fill in your SurrealDB Cloud credentials first."; exit 1; }
+    set -a; . ./backend/.env.cloud.local; status=$?; set +a; \
+    test "$status" -eq 0 || { echo "Failed to load backend/.env.cloud.local"; exit "$status"; }; \
+    trap 'kill $(jobs -p) 2>/dev/null' EXIT INT TERM; \
+    (cd backend && PORT=8080 cargo run -p api) & \
+    (cd frontend && npm run dev) & \
+    wait
+
 # fmt --check, clippy -D warnings, cargo test, eslint, tsc --noEmit, vitest.
 check:
     cd backend && cargo fmt --check
@@ -46,7 +61,7 @@ seed:
 seed-uk:
     cd backend && SURREALDB_URL=ws://localhost:8001 SEED_LOCALE=uk cargo run -p seeder
 
-# Build all docker images.
+# Build the api docker image. Frontend is static — deployed to Vercel, not
+# a docker image (see docs/adr/0010-frontend-hosting-vercel-instead-of-fly.md).
 build:
     {{container_runtime}} build -f deploy/Dockerfile.api -t polymix-api backend
-    {{container_runtime}} build -f deploy/Dockerfile.frontend -t polymix-frontend frontend

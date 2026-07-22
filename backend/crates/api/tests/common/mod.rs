@@ -93,8 +93,13 @@ async fn build_state_with_retry(config: AppConfig) -> api::state::AppState {
 pub struct TestApp {
     pub client: reqwest::Client,
     pub base_url: String,
+    // Unused by test binaries that only exercise unauthenticated routes
+    // (e.g. `readiness.rs`) — not every `tests/*.rs` file needs a token.
+    #[allow(dead_code)]
     pub issuer: String,
+    #[allow(dead_code)]
     pub org_claim: String,
+    #[allow(dead_code)]
     pub dev_issuer: std::sync::Arc<api::dev_issuer::DevIssuer>,
 }
 
@@ -118,6 +123,7 @@ impl TestApp {
             auth_org_claim: "org_id".to_string(),
             auth_audience: None,
             auth_dev_mode: true,
+            cors_allowed_origins: None,
         };
 
         let state = build_state_with_retry(config).await;
@@ -141,6 +147,7 @@ impl TestApp {
         }
     }
 
+    #[allow(dead_code)]
     pub fn token_for(&self, org_id: &str) -> String {
         self.dev_issuer
             .issue_token(&self.issuer, &self.org_claim, "test-user", org_id)

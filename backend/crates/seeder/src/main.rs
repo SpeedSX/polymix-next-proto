@@ -1,5 +1,5 @@
 //! Fake-data generator for the demo tenant (PLAN.md M2: "seeder crate
-//! producing >= 50k customers / >= 200k orders per demo tenant, batched
+//! producing >= 10k customers / >= 100k orders per demo tenant, batched
 //! inserts of 1000"). Run with `just seed` or `cargo run -p seeder`.
 //!
 //! `SEED_LOCALE=uk` (see `just seed-uk`) provisions the M4 Ukrainian demo
@@ -267,8 +267,8 @@ async fn main() -> anyhow::Result<()> {
     let locale = env_or("SEED_LOCALE", "en");
     let ukrainian = locale == UK_LOCALE;
 
-    let customer_count = env_count("SEED_CUSTOMERS", if ukrainian { 100 } else { 50_000 });
-    let order_count = env_count("SEED_ORDERS", if ukrainian { 1_000 } else { 200_000 });
+    let customer_count = env_count("SEED_CUSTOMERS", if ukrainian { 100 } else { 10_000 });
+    let order_count = env_count("SEED_ORDERS", if ukrainian { 1_000 } else { 100_000 });
     let default_org_id = if ukrainian { "demo-uk" } else { "demo" };
     let default_org_name = if ukrainian {
         "Демо Друкарня"
