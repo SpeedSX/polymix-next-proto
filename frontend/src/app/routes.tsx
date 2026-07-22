@@ -8,6 +8,8 @@ import { InvoiceList } from '../features/invoices/List'
 import { OrderDetail } from '../features/orders/Detail'
 import { OrderList } from '../features/orders/List'
 import { OrderNew } from '../features/orders/New'
+import { PricingEdit } from '../features/pricing/Edit'
+import { PricingNew } from '../features/pricing/New'
 import { SettingsCatalog } from '../features/settings/Catalog'
 import { SettingsLayout } from '../features/settings/SettingsLayout'
 import { SettingsUsersRoles } from '../features/settings/UsersRoles'
@@ -89,6 +91,18 @@ const settingsCatalogRoute = createRoute({
   component: SettingsCatalog,
 })
 
+const settingsCatalogNewRoute = createRoute({
+  getParentRoute: () => settingsLayoutRoute,
+  path: '/catalog/$entity/new',
+  component: PricingNew,
+})
+
+const settingsCatalogEditRoute = createRoute({
+  getParentRoute: () => settingsLayoutRoute,
+  path: '/catalog/$entity/$id',
+  component: PricingEdit,
+})
+
 const settingsUsersRolesRoute = createRoute({
   getParentRoute: () => settingsLayoutRoute,
   path: '/users-roles',
@@ -105,7 +119,13 @@ const routeTree = rootRoute.addChildren([
   orderDetailRoute,
   invoicesListRoute,
   invoiceDetailRoute,
-  settingsLayoutRoute.addChildren([settingsIndexRoute, settingsCatalogRoute, settingsUsersRolesRoute]),
+  settingsLayoutRoute.addChildren([
+    settingsIndexRoute,
+    settingsCatalogRoute,
+    settingsCatalogNewRoute,
+    settingsCatalogEditRoute,
+    settingsUsersRolesRoute,
+  ]),
 ])
 
 export const router = createRouter({ routeTree })

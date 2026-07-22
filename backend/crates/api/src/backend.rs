@@ -1,17 +1,24 @@
 use std::sync::Arc;
 
 use async_trait::async_trait;
-use domain::{CustomerRepo, DomainError, InvoiceRepo, OrderRepo, Tenant, TenantRepo};
+use domain::{CustomerRepo, DomainError, InvoiceRepo, OrderRepo, PricingRepo, Tenant, TenantRepo};
+use quote_engine::PriceModel;
 use surreal_store::{
-    Store, SurrealCustomerRepo, SurrealInvoiceRepo, SurrealOrderRepo, SurrealTenantRepo,
-    TenantProvisioner, migrations,
+    Store, SurrealCustomerRepo, SurrealInvoiceRepo, SurrealOrderRepo, SurrealPricingRepo,
+    SurrealTenantRepo, TenantProvisioner, migrations,
 };
+
+use crate::price_model::PriceModelCache;
 
 #[async_trait]
 pub trait Backend: Send + Sync {
     async fn customer_repo(&self, tenant_db: &str) -> Result<Arc<dyn CustomerRepo>, DomainError>;
     async fn order_repo(&self, tenant_db: &str) -> Result<Arc<dyn OrderRepo>, DomainError>;
     async fn invoice_repo(&self, tenant_db: &str) -> Result<Arc<dyn InvoiceRepo>, DomainError>;
+    async fn pricing_repo(&self, tenant_db: &str) -> Result<Arc<dyn PricingRepo>, DomainError>;
+    /// The tenant's current in-memory price-model snapshot (A2a-4), rebuilt
+    /// only when the pricelist version has moved.
+    async fn price_model(&self, tenant_db: &str) -> Result<Arc<PriceModel>, DomainError>;
     fn tenant_repo(&self) -> Arc<dyn TenantRepo>;
     async fn provision_tenant(&self, org_id: &str, org_name: &str) -> Result<Tenant, DomainError>;
     async fn ping(&self) -> Result<(), DomainError>;
@@ -22,6 +29,7 @@ pub trait Backend: Send + Sync {
 pub struct SurrealBackend {
     store: Arc<Store>,
     provisioner: TenantProvisioner,
+    price_models: PriceModelCache,
 }
 
 impl SurrealBackend {
@@ -40,6 +48,7 @@ impl SurrealBackend {
         Ok(Self {
             provisioner: TenantProvisioner::new(store.clone()),
             store,
+            price_models: PriceModelCache::new(),
         })
     }
 }
@@ -71,6 +80,20 @@ impl Backend for SurrealBackend {
             .await
             .map_err(|error| DomainError::Store(error.to_string()))?;
         Ok(Arc::new(SurrealInvoiceRepo::new(session)))
+    }
+
+    async fn pricing_repo(&self, tenant_db: &str) -> Result<Arc<dyn PricingRepo>, DomainError> {
+        let session = self
+            .store
+            .for_tenant(tenant_db)
+            .await
+            .map_err(|error| DomainError::Store(error.to_string()))?;
+        Ok(Arc::new(SurrealPricingRepo::new(session)))
+    }
+
+    async fn price_model(&self, tenant_db: &str) -> Result<Arc<PriceModel>, DomainError> {
+        let repo = self.pricing_repo(tenant_db).await?;
+        self.price_models.get(repo.as_ref(), tenant_db).await
     }
 
     fn tenant_repo(&self) -> Arc<dyn TenantRepo> {

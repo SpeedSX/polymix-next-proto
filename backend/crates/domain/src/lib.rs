@@ -5,6 +5,7 @@ pub mod invoice;
 pub mod live;
 pub mod money;
 pub mod order;
+pub mod pricing;
 pub mod search;
 pub mod tenant;
 
@@ -21,5 +22,6 @@ pub use order::{
     CustomerActivity, LineItem, MonthlyOrderCount, NewOrder, Order, OrderListQuery, OrderRepo,
     OrderStatus, StatusCount,
 };
+pub use pricing::{PricingEntity, PricingRepo};
 pub use search::{SearchHit, SearchResults};
 pub use tenant::{NewTenant, Tenant, TenantRepo};

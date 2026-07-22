@@ -38,6 +38,13 @@ impl SharedDb {
             .await
             .expect("failed to unpause surrealdb container");
     }
+
+    /// WebSocket URL of the shared container — for tests that connect their own
+    /// `Store` directly instead of driving the HTTP app.
+    #[allow(dead_code)]
+    pub fn url(&self) -> &str {
+        &self.url
+    }
 }
 
 static DB: OnceCell<SharedDb> = OnceCell::const_new();

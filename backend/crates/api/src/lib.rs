@@ -4,6 +4,7 @@ pub mod config;
 pub mod dev_issuer;
 pub mod error;
 pub mod jwks;
+pub mod price_model;
 pub mod publisher;
 pub mod routes;
 pub mod state;
@@ -51,6 +52,7 @@ pub async fn build_state(config: AppConfig) -> anyhow::Result<AppState> {
         jwks,
         dev_issuer,
         hub,
+        store,
     })
 }
 
@@ -125,6 +127,20 @@ pub fn build_router(state: AppState) -> Router {
             post(routes::invoices::set_status),
         )
         .route("/api/search", get(routes::search::search))
+        // Pricing catalog (A2a). `version` is a static segment so it wins over
+        // the `{entity}` capture. Gated on `require_auth` only until RBAC (B1)
+        // lands — see docs/adr/0014.
+        .route("/api/pricing/version", get(routes::pricing::version))
+        .route(
+            "/api/pricing/{entity}",
+            get(routes::pricing::list).post(routes::pricing::create),
+        )
+        .route(
+            "/api/pricing/{entity}/{id}",
+            get(routes::pricing::get)
+                .put(routes::pricing::update)
+                .delete(routes::pricing::delete),
+        )
         .layer(middleware::from_fn_with_state(
             state.clone(),
             auth::require_auth,
@@ -143,8 +159,18 @@ pub fn build_router(state: AppState) -> Router {
     };
     let cors = CorsLayer::new()
         .allow_origin(allow_origin)
-        .allow_methods([Method::GET, Method::POST, Method::PUT, Method::DELETE, Method::OPTIONS])
-        .allow_headers([header::AUTHORIZATION, header::CONTENT_TYPE, header::IF_MATCH])
+        .allow_methods([
+            Method::GET,
+            Method::POST,
+            Method::PUT,
+            Method::DELETE,
+            Method::OPTIONS,
+        ])
+        .allow_headers([
+            header::AUTHORIZATION,
+            header::CONTENT_TYPE,
+            header::IF_MATCH,
+        ])
         .max_age(Duration::from_secs(300));
 
     router
