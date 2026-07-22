@@ -130,6 +130,7 @@ mod tests {
             auth_org_claim: "org_id".to_string(),
             auth_audience: None,
             auth_dev_mode: true,
+            cors_allowed_origins: None,
         }
     }
 

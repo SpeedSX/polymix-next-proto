@@ -1,0 +1,51 @@
+# NOT CURRENTLY USED — kept as the recorded fallback, not deleted. The
+# prototype currently runs on SurrealDB Cloud's free tier instead (see
+# docs/adr/0011-surrealdb-hosting-cloud-free-tier-instead-of-fly.md): zero
+# cost, root-auth-compatible with our existing Store::connect, no volume to
+# provision. That free tier caps out at 1GB storage though, which the small
+# `ua` demo tenant fits comfortably but larger perf-seed
+# tenant does not — when real M6 perf testing (k6, NFR targets) needs that
+# scale, or if SurrealDB Cloud otherwise stops fitting, this config is the
+# self-hosted fallback: still valid, still the way to get a bigger volume
+# and private 6PN networking to the api. Nothing below this comment has
+# changed from when it was the primary path.
+#
+# Fly.io app for SurrealDB. Image-based (no Dockerfile) — deploy from the
+# repo root:
+#   fly deploy --config deploy/fly.surrealdb.toml
+#
+# One-time setup (see CLAUDE.md "Deploying to Fly.io" for the full sequence):
+#   fly apps create polymix-db
+#   fly volumes create polymix_db_data --app polymix-db --region iad --size 1
+#   fly secrets set -a polymix-db SURREAL_USER=root SURREAL_PASS=<strong password>
+#
+# `app` must be globally unique on Fly — rename if this is taken.
+app = "polymix-db"
+primary_region = "iad" # must match the volume's region
+
+[build]
+  image = "surrealdb/surrealdb:v3.2.1"
+
+# --user/--pass are deliberately not passed as command args (fly.toml can't
+# interpolate secrets into a static command string) — SurrealDB reads
+# SURREAL_USER/SURREAL_PASS from the environment instead, and `fly secrets
+# set` injects those as env vars into the machine. rocksdb (not surrealkv)
+# to match deploy/compose.rocksdb.yaml, the engine exercised in dev.
+[processes]
+  app = "start --bind 0.0.0.0:8000 rocksdb:/data/polymix.db"
+
+[[mounts]]
+  source = "polymix_db_data"
+  destination = "/data"
+
+# No [http_service]/[[services]] block on purpose: this app is never
+# publicly exposed. Other Fly apps in the same org reach it over the
+# private 6PN network at polymix-db.internal:8000 regardless — that
+# doesn't need a services block, only the process actually listening does.
+# Kept always-on (no autostop) rather than chasing scale-to-zero here: it's
+# the one stateful piece, autostart-on-first-packet for a private-only TCP
+# service needs Flycast and is unproven enough to risk on a database for
+# the marginal cost saving. Revisit only if idle cost actually matters.
+[[vm]]
+  size = "shared-cpu-1x"
+  memory = "256mb" # bump to 512mb+ if running the full seeded demo tenant

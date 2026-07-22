@@ -487,7 +487,7 @@ Each milestone ends runnable and demoable, with explicit acceptance criteria.
    **Done when:** with two dev orgs, customers created in one are invisible in the other (this is the tenant-isolation integration test — mandatory, running via the harness in **Integration test harness + CI**); all customer CRUD works from the UI; validation errors from the API render on the matching form fields; Clerk mode works in a browser against a real Clerk app; `just test-int` runs green in CI as its own job.
 
 3. **M2 — Orders & Invoices.**
-   Order and invoice entities per the data model: numbering, status transitions, invoice-from-order, totals math in the service; UI lists (orders filterable by customer and status), forms with line-item editing (add/remove rows), status-transition buttons; seeder crate producing ≥50k customers / ≥200k orders per demo tenant (batched inserts of 1000).
+   Order and invoice entities per the data model: numbering, status transitions, invoice-from-order, totals math in the service; UI lists (orders filterable by customer and status), forms with line-item editing (add/remove rows), status-transition buttons; seeder crate producing ≥10k customers / ≥100k orders per demo tenant (batched inserts of 1000).
    **Done when:** full flow in the UI — create order for a customer, confirm it, generate the invoice, issue it; invalid transitions rejected with 409 and a visible error; totals (net/tax/gross) correct in unit tests including rounding cases; `just seed` completes and the customers list stays responsive (<1 s page loads) on the seeded tenant.
 
 4. **M3 — Full-text search.**

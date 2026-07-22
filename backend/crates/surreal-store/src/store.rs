@@ -1,4 +1,5 @@
 use std::sync::Arc;
+use std::time::{Duration, Instant};
 
 use surrealdb::Surreal;
 use surrealdb::engine::any::Any;
@@ -14,6 +15,14 @@ pub struct DbConfig {
 }
 
 const SYSTEM_DB: &str = "system";
+
+// Startup retry for `Store::connect`: on Fly.io the api container can start
+// before the SurrealDB machine accepts connections, and without this the
+// process would exit and rely on the orchestrator to restart it repeatedly
+// until the race resolves itself.
+const CONNECT_INITIAL_BACKOFF: Duration = Duration::from_millis(500);
+const CONNECT_MAX_BACKOFF: Duration = Duration::from_secs(5);
+const CONNECT_DEADLINE: Duration = Duration::from_secs(30);
 
 /// Root-authenticated session pinned to the `system` db. Never handed out
 /// directly — tenant sessions are cloned from it (SDK >= 3.0: a clone gets
@@ -31,7 +40,43 @@ pub struct Store {
 }
 
 impl Store {
+    /// Retries the whole connect → signin → use_ns/use_db → system-db DEFINE
+    /// sequence on failure — every step is idempotent, so restarting from the
+    /// top after a partial failure (e.g. connected but signin failed) is
+    /// safe. Backoff doubles from 500ms to a 5s cap; gives up and returns the
+    /// last error once 30s have elapsed since the first attempt (the process
+    /// then exits and the orchestrator restarts it, which is correct past
+    /// the deadline). Every kind of error is retried, not just ones that
+    /// look transient: reliably distinguishing "SurrealDB isn't up yet" from
+    /// "wrong password" via SDK error types isn't worth the fragility, and
+    /// the warn log on every attempt still surfaces a misconfiguration
+    /// immediately even while retrying.
     pub async fn connect(cfg: &DbConfig) -> surrealdb::Result<Self> {
+        let start = Instant::now();
+        let mut backoff = CONNECT_INITIAL_BACKOFF;
+        let mut attempt: u32 = 1;
+        loop {
+            match Self::try_connect(cfg).await {
+                Ok(store) => return Ok(store),
+                Err(err) => {
+                    let remaining = CONNECT_DEADLINE.saturating_sub(start.elapsed());
+                    if remaining.is_zero() {
+                        return Err(err);
+                    }
+                    tracing::warn!(
+                        attempt,
+                        error = %err,
+                        "surrealdb connect attempt failed, retrying"
+                    );
+                    tokio::time::sleep(backoff.min(remaining)).await;
+                    backoff = (backoff * 2).min(CONNECT_MAX_BACKOFF);
+                    attempt += 1;
+                }
+            }
+        }
+    }
+
+    async fn try_connect(cfg: &DbConfig) -> surrealdb::Result<Self> {
         // `surrealdb::engine::any::connect` (unlike `Surreal::new::<Ws>`)
         // parses a full scheme-prefixed URL as-is — the Ws-specific endpoint
         // impl instead always prepends "ws://" itself, so handing it an
