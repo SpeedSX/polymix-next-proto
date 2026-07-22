@@ -44,7 +44,7 @@ static DB: OnceCell<SharedDb> = OnceCell::const_new();
 
 pub async fn shared_db() -> &'static SharedDb {
     DB.get_or_init(|| async {
-        let container = GenericImage::new("surrealdb/surrealdb", "v3.2.1")
+        let container = GenericImage::new("surrealdb/surrealdb", "v3.2.3")
             .with_exposed_port(8000.tcp())
             .with_cmd([
                 "start",
