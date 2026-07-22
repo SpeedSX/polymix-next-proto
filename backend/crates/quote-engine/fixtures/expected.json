@@ -1,0 +1,32 @@
+{
+  "pricelist_version": 1,
+  "currency": "EUR",
+  "ladder": [
+    { "qty": 100, "total_minor": 29030, "unit_minor": 290 },
+    { "qty": 1000, "total_minor": 160080, "unit_minor": 160 }
+  ],
+  "breakdowns": {
+    "100": {
+      "components": { "cover": 8480000, "interior": 125375000, "backing": 5000000 },
+      "operations": {
+        "operation:spiral_binding": 23900000,
+        "operation:cutting": 4000000,
+        "operation:prepress": 4000000
+      },
+      "cost_micro": 170755000,
+      "total_minor": 29030,
+      "unit_minor": 290
+    },
+    "1000": {
+      "components": { "cover": 49700000, "interior": 756500000, "backing": 50000000 },
+      "operations": {
+        "operation:spiral_binding": 194000000,
+        "operation:cutting": 13000000,
+        "operation:prepress": 4000000
+      },
+      "cost_micro": 1067200000,
+      "total_minor": 160080,
+      "unit_minor": 160
+    }
+  }
+}
