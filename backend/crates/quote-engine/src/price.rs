@@ -400,6 +400,10 @@ pub fn quote_spec(
     quantities
         .iter()
         .map(|&qty| {
+            // Mirror `resolve::finish`: this path bypasses resolve.
+            if qty < 1 {
+                return Err(ResolveError::IncompleteSpec("quantity must be >= 1".into()).into());
+            }
             let mut s = spec.clone();
             s.quantity = qty;
             let bd = price_job(model, policy, &s, margin_override)?;
