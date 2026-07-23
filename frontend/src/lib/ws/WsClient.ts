@@ -52,7 +52,10 @@ export class WsClient {
     }
     // Fetched fresh on every attempt: Clerk rotates short-lived tokens, so a
     // token cached at construction time would be rejected after the first drop.
-    const token = await this.options.getToken().catch(() => null)
+    const token = await this.options.getToken().catch((error: unknown) => {
+      console.warn('WsClient: failed to fetch auth token; will retry', error)
+      return null
+    })
     if (this.stopped) {
       return
     }
@@ -74,7 +77,8 @@ export class WsClient {
       let frame: ServerFrame
       try {
         frame = JSON.parse(String(event.data)) as ServerFrame
-      } catch {
+      } catch (error) {
+        console.warn('WsClient: dropping unparseable server frame', error)
         return
       }
       if (frame.type === 'ping') {

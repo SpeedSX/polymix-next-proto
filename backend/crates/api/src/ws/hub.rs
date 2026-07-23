@@ -35,15 +35,33 @@ pub enum ServerEvent {
 }
 
 fn envelope<T: Serialize>(entity: &'static str, event: ChangeEvent<T>) -> ServerEvent {
+    let action = match event.action {
+        ChangeAction::Create => "create",
+        ChangeAction::Update => "update",
+        ChangeAction::Delete => "delete",
+    };
+    let data = event.data.and_then(|d| match serde_json::to_value(&d) {
+        Ok(value) => Some(value),
+        Err(err) => {
+            // Dropping the payload downgrades this to a data-less change:
+            // clients fall back to a refetch, so it isn't fatal, but it must
+            // not pass silently — a consistently unserializable entity would
+            // otherwise cause endless refetch churn with no diagnostics.
+            tracing::error!(
+                entity,
+                action,
+                id = %event.id,
+                error = %err,
+                "failed to serialize live-change data; sending change without payload"
+            );
+            None
+        }
+    });
     ServerEvent::Change {
         entity,
-        action: match event.action {
-            ChangeAction::Create => "create",
-            ChangeAction::Update => "update",
-            ChangeAction::Delete => "delete",
-        },
+        action,
         id: event.id,
-        data: event.data.and_then(|d| serde_json::to_value(d).ok()),
+        data,
     }
 }
 
