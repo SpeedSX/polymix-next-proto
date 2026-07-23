@@ -12,9 +12,12 @@ use domain::order::{LineItem, can_invoice, line_items_total, validate_line_item_
 use domain::tenant::Tenant;
 use surrealdb::Surreal;
 use surrealdb::engine::any::Any;
-use surrealdb::types::{RecordId, RecordIdKey, SurrealValue};
+use surrealdb::types::{RecordId, SurrealValue};
 use ulid::Ulid;
 
+use crate::common::{
+    CountRow, IdOnly, SearchHitRow, map_err, non_empty_q, record_key, sort_clause, to_hit,
+};
 use crate::counter::next_number;
 use crate::exchange_rate::lookup_rate;
 use crate::order_repo::{LineItemRow, MoneyRow};
@@ -121,29 +124,6 @@ struct IssuePatch {
     updated_at: String,
 }
 
-#[derive(Debug, SurrealValue)]
-#[surreal(crate = "surrealdb::types")]
-struct IdOnly {
-    id: RecordId,
-}
-
-#[derive(Debug, SurrealValue)]
-#[surreal(crate = "surrealdb::types")]
-struct CountRow {
-    count: i64,
-}
-
-fn record_key(id: &RecordId) -> String {
-    match &id.key {
-        RecordIdKey::String(key) => key.clone(),
-        other => format!("{other:?}"),
-    }
-}
-
-fn map_err(err: surrealdb::Error) -> DomainError {
-    DomainError::Store(err.to_string())
-}
-
 impl InvoiceRow {
     pub(crate) fn key(&self) -> String {
         record_key(&self.id)
@@ -173,29 +153,6 @@ impl TryFrom<InvoiceRow> for Invoice {
             updated_at: row.updated_at,
         })
     }
-}
-
-fn sort_clause(sort: &str) -> Result<String, DomainError> {
-    let (field, dir) = match sort.strip_prefix('-') {
-        Some(field) => (field, "DESC"),
-        None => (sort, "ASC"),
-    };
-    if !ALLOWED_SORT_FIELDS.contains(&field) {
-        let mut details = HashMap::new();
-        details.insert(
-            "sort".to_string(),
-            FieldError::with_params(
-                "unknown_sort_field",
-                HashMap::from([("field".to_string(), field.to_string())]),
-            ),
-        );
-        return Err(DomainError::Validation(details));
-    }
-    Ok(format!("{field} {dir}"))
-}
-
-fn non_empty_q(q: &Option<String>) -> Option<&str> {
-    q.as_deref().filter(|s| !s.is_empty())
 }
 
 // Matches the `invoice_search_number` index (see
@@ -239,22 +196,6 @@ fn currency_mismatch_error(order_currency: &str) -> DomainError {
     DomainError::Validation(details)
 }
 
-#[derive(Debug, SurrealValue)]
-#[surreal(crate = "surrealdb::types")]
-struct SearchHitRow {
-    id: RecordId,
-    label: String,
-    highlight: Option<String>,
-}
-
-fn to_hit(row: SearchHitRow) -> domain::SearchHit {
-    domain::SearchHit {
-        id: record_key(&row.id),
-        highlight: row.highlight.unwrap_or_else(|| row.label.clone()),
-        label: row.label,
-    }
-}
-
 pub struct SurrealInvoiceRepo {
     session: Arc<Surreal<Any>>,
 }
@@ -289,7 +230,7 @@ impl InvoiceRepo for SurrealInvoiceRepo {
                 "SELECT *, {SEARCH_SCORE} AS score FROM type::table($table) {filters} ORDER BY score DESC LIMIT $limit START $start"
             ))
         } else {
-            let order = sort_clause(&query.sort)?;
+            let order = sort_clause(&query.sort, ALLOWED_SORT_FIELDS)?;
             self.session.query(format!(
                 "SELECT * FROM type::table($table) {filters} ORDER BY {order} LIMIT $limit START $start"
             ))

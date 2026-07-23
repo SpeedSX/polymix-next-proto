@@ -3,14 +3,12 @@ use surrealdb::Surreal;
 use surrealdb::engine::any::Any;
 use surrealdb::types::SurrealValue;
 
+use crate::common::map_err;
+
 #[derive(Debug, SurrealValue)]
 #[surreal(crate = "surrealdb::types")]
 struct CounterRow {
     value: i64,
-}
-
-fn map_err(err: surrealdb::Error) -> DomainError {
-    DomainError::Store(err.to_string())
 }
 
 /// Assigns the next per-tenant sequence number for `kind` ("order" |

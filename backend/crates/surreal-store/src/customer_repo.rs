@@ -6,13 +6,14 @@ use domain::customer::{
     Address, Contact, Customer, CustomerRepo, CustomerStatus, ListQuery, NewCustomer, Paged,
     validate_transition,
 };
-use domain::error::{ConflictReason, DomainError, FieldError};
+use domain::error::{ConflictReason, DomainError};
 use domain::tenant::Tenant;
 use surrealdb::Surreal;
 use surrealdb::engine::any::Any;
-use surrealdb::types::{RecordId, RecordIdKey, SurrealValue, Value};
+use surrealdb::types::{RecordId, SurrealValue, Value};
 use ulid::Ulid;
 
+use crate::common::{CountRow, IdOnly, map_err, non_empty_q, record_key, sort_clause};
 use crate::order_repo::MoneyRow;
 use crate::status::{customer_kind_from_db, customer_status_from_db};
 
@@ -171,33 +172,10 @@ struct StatusPatch {
     version: i64,
 }
 
-#[derive(Debug, SurrealValue)]
-#[surreal(crate = "surrealdb::types")]
-struct CountRow {
-    count: i64,
-}
-
-#[derive(Debug, SurrealValue)]
-#[surreal(crate = "surrealdb::types")]
-struct IdOnly {
-    id: RecordId,
-}
-
-fn record_key(id: &RecordId) -> String {
-    match &id.key {
-        RecordIdKey::String(key) => key.clone(),
-        other => format!("{other:?}"),
-    }
-}
-
 impl CustomerRow {
     pub(crate) fn key(&self) -> String {
         record_key(&self.id)
     }
-}
-
-fn map_err(err: surrealdb::Error) -> DomainError {
-    DomainError::Store(err.to_string())
 }
 
 fn customer_from_row_with_currency(
@@ -282,29 +260,6 @@ fn content_from(
         updated_at,
         version,
     }
-}
-
-fn sort_clause(sort: &str) -> Result<String, DomainError> {
-    let (field, dir) = match sort.strip_prefix('-') {
-        Some(field) => (field, "DESC"),
-        None => (sort, "ASC"),
-    };
-    if !ALLOWED_SORT_FIELDS.contains(&field) {
-        let mut details = std::collections::HashMap::new();
-        details.insert(
-            "sort".to_string(),
-            FieldError::with_params(
-                "unknown_sort_field",
-                std::collections::HashMap::from([("field".to_string(), field.to_string())]),
-            ),
-        );
-        return Err(DomainError::Validation(details));
-    }
-    Ok(format!("{field} {dir}"))
-}
-
-fn non_empty_q(q: &Option<String>) -> Option<&str> {
-    q.as_deref().filter(|s| !s.is_empty())
 }
 
 /// Non-full-text filters, shared by the plain-list and the per-field search
@@ -527,7 +482,7 @@ impl CustomerRepo for SurrealCustomerRepo {
             .collect();
             (rows, total)
         } else {
-            let order = sort_clause(&query.sort)?;
+            let order = sort_clause(&query.sort, ALLOWED_SORT_FIELDS)?;
             let filters = where_clause(&query);
             let mut list_query = self
                 .session

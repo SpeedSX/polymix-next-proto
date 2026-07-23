@@ -11,14 +11,11 @@ use surrealdb::engine::any::Any;
 use surrealdb::types::Action;
 use surrealdb::{Notification, Surreal};
 
+use crate::common::map_err;
 use crate::customer_repo::{CustomerRow, customer_from_row_untenanted};
 use crate::invoice_repo::InvoiceRow;
 use crate::order_repo::OrderRow;
 use crate::{customer_repo, invoice_repo, order_repo};
-
-fn map_err(err: surrealdb::Error) -> DomainError {
-    DomainError::Store(err.to_string())
-}
 
 fn change_action(action: Action) -> Result<ChangeAction, DomainError> {
     match action {
