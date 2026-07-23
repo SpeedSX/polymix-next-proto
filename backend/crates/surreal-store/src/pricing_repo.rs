@@ -21,6 +21,8 @@ use surrealdb::Surreal;
 use surrealdb::engine::any::Any;
 use ulid::Ulid;
 
+use crate::common::map_err;
+
 const VERSION_TABLE: &str = "meta";
 const VERSION_ID: &str = "pricing";
 
@@ -39,10 +41,6 @@ const DELETE_TXN: &str = "BEGIN; \
     DELETE type::record($tb, $key); \
     UPSERT meta:pricing SET version = (version ?? 0) + 1; \
     COMMIT;";
-
-fn map_err(err: surrealdb::Error) -> DomainError {
-    DomainError::Store(err.to_string())
-}
 
 fn invalid_shape() -> DomainError {
     DomainError::Validation(std::collections::HashMap::from([(
