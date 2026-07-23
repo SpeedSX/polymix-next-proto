@@ -12,7 +12,10 @@ Related docs: `docs/instant-quote.md` (portal narrative),
 `docs/product-configuration.md` (template/effects layer),
 `docs/quote-engine-spec.md` (normative engine spec — this design adds a
 small set of deltas to it, listed in §"Spec deltas"),
-`docs/rbac-design.md` (permission catalog this design extends).
+`docs/rbac-design.md` (permission catalog this design extends),
+`docs/order-production-design.md` (target Order + `production_job` model that
+consumes the quote→order output; supersedes the conversion snapshot rule
+below — see `docs/adr/0015-production-plan-snapshots-onto-job.md`).
 
 ## Context
 
@@ -153,7 +156,10 @@ first (orders require `customer_id`); the UI offers that as one step.
 
 ### QuoteLine
 
-Tagged union mirroring the three tiers:
+Tagged union mirroring the three tiers. Every variant carries a stable
+`line_id` (uuid, assigned on create, preserved across edits and clone) so an
+order line and its `production_job` can reference the exact source line — see
+`docs/order-production-design.md`:
 
 ```
 QuoteLine =
@@ -240,10 +246,18 @@ already converted; the transactional expiry check above always runs):
   conversion fails rather than creating an order if that invariant does
   not hold.
 - Order gains `quote: option<record<quote>>`; quote gains `order:
-  option<record<order>>`. One order per quote (v1).
-- The engine-priced lines' `job_spec` + `breakdown` snapshots stay on
-  the quote — they are the production plan A6 will consume; v1 does not
-  copy them onto the order, it follows the link.
+  option<record<order>>`. One order per quote (v1). Each order line also
+  carries `source: option<{ quote, line_id }>` pointing at the quote line it
+  was priced from (`None` for manual lines); the two order lines produced by
+  the residual-minor split share one `line_id`.
+- The engine-priced lines' `job_spec` + `breakdown` are the production plan.
+  A6 does **not** read them live off the quote: at Order confirm they are
+  snapshotted onto a dedicated `production_job` (one per engine-priced quote
+  line), which owns the mutable shop-floor plan production executes. The quote
+  keeps its own copies as the immutable commercial record; the job's
+  `quote_line_ref` links back for traceability. Full model and rationale:
+  `docs/order-production-design.md` and
+  `docs/adr/0015-production-plan-snapshots-onto-job.md`.
 
 ## Spec deltas (quote-engine-spec.md)
 
