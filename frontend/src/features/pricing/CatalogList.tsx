@@ -79,6 +79,7 @@ function columnsFor(entity: PricingEntitySegment, t: (key: string) => string): C
       ]
     case 'policies':
       return [
+        { header: t('fields.name'), cell: (d) => String(d.name ?? '') },
         { header: t('fields.currency'), cell: (d) => String(d.currency ?? '') },
         { header: t('list.bands'), cell: (d) => (d.margin_bands as unknown[] | undefined)?.length ?? 0 },
         {

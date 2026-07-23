@@ -197,6 +197,7 @@ pub struct Operation {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct PricingPolicy {
     pub id: String,
+    pub name: String,
     pub currency: String,
     /// Sorted by `min_qty` ascending; the first band must have `min_qty` 1.
     pub margin_bands: Vec<MarginBand>,
@@ -437,6 +438,7 @@ mod tests {
     fn band_selection_picks_largest_min_qty_not_exceeding_qty() {
         let policy = PricingPolicy {
             id: "pricing_policy:standard".into(),
+            name: "Standard".into(),
             currency: "EUR".into(),
             margin_bands: vec![
                 MarginBand {

@@ -312,8 +312,7 @@ export function fromOperationDoc(doc: CatalogDoc): OperationFormValues {
 }
 
 // --- Pricing policy (12e) ----------------------------------------------------
-// Note: spec §2 has no `name` on pricing_policy; policies are labelled by
-// currency. `rounding.mode` is pinned to "up".
+// `rounding.mode` is pinned to "up".
 
 const bandRowSchema = z.object({ minQty: z.coerce.number().int().min(1), multiplier: z.string() })
 export type BandRow = z.infer<typeof bandRowSchema>
@@ -322,6 +321,7 @@ export const CURRENCY_OPTIONS = ['EUR', 'GBP', 'USD', 'UAH'] as const
 
 export const policyFormSchema = z
   .object({
+    name: z.string().trim().min(1),
     currency: z.string().length(3),
     bands: z.array(bandRowSchema),
     roundingStep: z.string(),
@@ -355,6 +355,7 @@ export type PolicyFormValues = z.infer<typeof policyFormSchema>
 
 export function emptyPolicyFormValues(currency = 'EUR'): PolicyFormValues {
   return {
+    name: '',
     currency,
     bands: [{ minQty: 1, multiplier: '1.7' }],
     roundingStep: '0.10',
@@ -364,6 +365,7 @@ export function emptyPolicyFormValues(currency = 'EUR'): PolicyFormValues {
 
 export function toPolicyDoc(values: PolicyFormValues): CatalogDoc {
   return {
+    name: values.name.trim(),
     currency: values.currency.toUpperCase(),
     margin_bands: values.bands.map((band) => ({
       min_qty: band.minQty,
@@ -378,6 +380,7 @@ export function fromPolicyDoc(doc: CatalogDoc): PolicyFormValues {
   const bands = (doc.margin_bands ?? []) as { min_qty: number; multiplier_bp: number }[]
   const rounding = (doc.rounding ?? { step_minor: 10 }) as { step_minor: number }
   return {
+    name: String(doc.name ?? ''),
     currency: String(doc.currency ?? 'EUR'),
     bands: bands.map((band) => ({ minQty: band.min_qty, multiplier: bpToMultiplier(band.multiplier_bp) })),
     roundingStep: fromMinor(rounding.step_minor),

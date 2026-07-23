@@ -48,7 +48,7 @@
     { "id": "operation:lamination", "setup_micro": 6000000, "unit_basis": "per_m2", "unit_price_micro": 200000 }
   ],
   "pricing_policies": [
-    { "id": "pricing_policy:standard", "currency": "EUR",
+    { "id": "pricing_policy:standard", "name": "Standard", "currency": "EUR",
       "margin_bands": [
         { "min_qty": 1, "multiplier_bp": 17000 },
         { "min_qty": 250, "multiplier_bp": 16000 },

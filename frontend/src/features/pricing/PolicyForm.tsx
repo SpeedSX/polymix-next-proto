@@ -41,6 +41,8 @@ export function PolicyForm({
       headerActions={headerActions}
     >
       <Stack>
+        <TextInput label={t('fields.name')} {...form.getInputProps('name')} />
+
         <Select
           label={t('fields.currency')}
           data={[...CURRENCY_OPTIONS]}

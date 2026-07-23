@@ -78,7 +78,7 @@ A linear fit `total ≈ 1549.9 + 1.815·qty` matches every point to within ~0.8%
 
 // pricing policy — single band, chosen to reproduce the observed smooth ladder (see fit above);
 // multiplier_bp/rounding/min_price_minor are placeholders, currency PLN to match the source
-{ "id": "pricing_policy:spiral_catalog", "currency": "PLN",
+{ "id": "pricing_policy:spiral_catalog", "name": "Spiral catalog", "currency": "PLN",
   "margin_bands": [ { "min_qty": 1, "multiplier_bp": 17000 } ],
   "rounding": { "step_minor": 10, "mode": "up" },
   "min_price_minor": 2500 }

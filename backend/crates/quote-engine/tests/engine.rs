@@ -12,7 +12,7 @@ use serde_json::{Value, json};
 fn base_dataset() -> Value {
     json!({
         "pricing_policies": [{
-            "id": "pricing_policy:p", "currency": "EUR",
+            "id": "pricing_policy:p", "name": "P", "currency": "EUR",
             "margin_bands": [{ "min_qty": 1, "multiplier_bp": 10000 }],
             "rounding": { "step_minor": 1, "mode": "up" }, "min_price_minor": 0
         }],

@@ -52,13 +52,9 @@ impl PricingEntity {
         }
     }
 
-    /// Field to sort a list by. `pricing_policy` has no `name` in the normative
-    /// schema (spec §2), so it sorts by currency instead.
+    /// Field to sort a list by. Every catalog entity carries a `name`.
     pub fn sort_field(self) -> &'static str {
-        match self {
-            Self::Policy => "currency",
-            _ => "name",
-        }
+        "name"
     }
 
     pub const ALL: [PricingEntity; 5] = [
@@ -372,13 +368,13 @@ mod tests {
 
     #[test]
     fn policy_band_rules() {
-        let ok = json!({ "id": "pricing_policy:standard", "currency": "EUR",
+        let ok = json!({ "id": "pricing_policy:standard", "name": "Standard", "currency": "EUR",
             "margin_bands": [ { "min_qty": 1, "multiplier_bp": 17000 },
                               { "min_qty": 250, "multiplier_bp": 16000 } ],
             "rounding": { "step_minor": 10, "mode": "up" }, "min_price_minor": 2500 });
         assert!(validate(PricingEntity::Policy, &ok).is_ok());
 
-        let bad_first = json!({ "id": "pricing_policy:x", "currency": "EUR",
+        let bad_first = json!({ "id": "pricing_policy:x", "name": "X", "currency": "EUR",
             "margin_bands": [ { "min_qty": 5, "multiplier_bp": 17000 } ],
             "rounding": { "step_minor": 10, "mode": "up" }, "min_price_minor": 2500 });
         assert!(matches!(
@@ -386,7 +382,7 @@ mod tests {
             Err(DomainError::Validation(e)) if e["margin_bands"].code == "first_band_min_qty_one"
         ));
 
-        let not_ascending = json!({ "id": "pricing_policy:x", "currency": "EUR",
+        let not_ascending = json!({ "id": "pricing_policy:x", "name": "X", "currency": "EUR",
             "margin_bands": [ { "min_qty": 1, "multiplier_bp": 17000 },
                               { "min_qty": 1, "multiplier_bp": 16000 } ],
             "rounding": { "step_minor": 10, "mode": "up" }, "min_price_minor": 2500 });
