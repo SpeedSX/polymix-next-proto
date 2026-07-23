@@ -14,9 +14,12 @@ use domain::order::{
 use domain::tenant::{DEFAULT_CURRENCY, Tenant};
 use surrealdb::Surreal;
 use surrealdb::engine::any::Any;
-use surrealdb::types::{RecordId, RecordIdKey, SurrealValue};
+use surrealdb::types::{RecordId, SurrealValue};
 use ulid::Ulid;
 
+use crate::common::{
+    CountRow, IdOnly, SearchHitRow, map_err, non_empty_q, record_key, sort_clause, to_hit,
+};
 use crate::counter::next_number;
 use crate::status::{customer_status_from_db, order_status_from_db};
 
@@ -129,12 +132,6 @@ struct StatusPatch {
 
 #[derive(Debug, SurrealValue)]
 #[surreal(crate = "surrealdb::types")]
-struct IdOnly {
-    id: RecordId,
-}
-
-#[derive(Debug, SurrealValue)]
-#[surreal(crate = "surrealdb::types")]
 struct CustomerStatusRow {
     status: i64,
 }
@@ -143,12 +140,6 @@ struct CustomerStatusRow {
 #[surreal(crate = "surrealdb::types")]
 struct CustomerCurrencyRow {
     default_currency: Option<String>,
-}
-
-#[derive(Debug, SurrealValue)]
-#[surreal(crate = "surrealdb::types")]
-struct CountRow {
-    count: i64,
 }
 
 // Slim per-order projection for `customer_activity` — no line items, no
@@ -284,17 +275,6 @@ fn aggregate_activity(
     }
 }
 
-fn record_key(id: &RecordId) -> String {
-    match &id.key {
-        RecordIdKey::String(key) => key.clone(),
-        other => format!("{other:?}"),
-    }
-}
-
-fn map_err(err: surrealdb::Error) -> DomainError {
-    DomainError::Store(err.to_string())
-}
-
 fn customer_not_found_error() -> DomainError {
     let mut details = HashMap::new();
     details.insert("customer_id".to_string(), FieldError::code("not_found"));
@@ -325,29 +305,6 @@ impl TryFrom<OrderRow> for Order {
             updated_at: row.updated_at,
         })
     }
-}
-
-fn sort_clause(sort: &str) -> Result<String, DomainError> {
-    let (field, dir) = match sort.strip_prefix('-') {
-        Some(field) => (field, "DESC"),
-        None => (sort, "ASC"),
-    };
-    if !ALLOWED_SORT_FIELDS.contains(&field) {
-        let mut details = HashMap::new();
-        details.insert(
-            "sort".to_string(),
-            FieldError::with_params(
-                "unknown_sort_field",
-                HashMap::from([("field".to_string(), field.to_string())]),
-            ),
-        );
-        return Err(DomainError::Validation(details));
-    }
-    Ok(format!("{field} {dir}"))
-}
-
-fn non_empty_q(q: &Option<String>) -> Option<&str> {
-    q.as_deref().filter(|s| !s.is_empty())
 }
 
 // One FULLTEXT index per field (see migrations/0004_search.surql) means
@@ -387,22 +344,6 @@ fn where_clause(query: &OrderListQuery) -> String {
         String::new()
     } else {
         format!("WHERE {}", conditions.join(" AND "))
-    }
-}
-
-#[derive(Debug, SurrealValue)]
-#[surreal(crate = "surrealdb::types")]
-struct SearchHitRow {
-    id: RecordId,
-    label: String,
-    highlight: Option<String>,
-}
-
-fn to_hit(row: SearchHitRow) -> domain::SearchHit {
-    domain::SearchHit {
-        id: record_key(&row.id),
-        highlight: row.highlight.unwrap_or_else(|| row.label.clone()),
-        label: row.label,
     }
 }
 
@@ -492,7 +433,7 @@ impl OrderRepo for SurrealOrderRepo {
                 "SELECT *, {CUSTOMER_NAME_PROJECTION}, {SEARCH_SCORE} AS score FROM type::table($table) {filters} ORDER BY score DESC LIMIT $limit START $start"
             ))
         } else {
-            let order = sort_clause(&query.sort)?;
+            let order = sort_clause(&query.sort, ALLOWED_SORT_FIELDS)?;
             self.session.query(format!(
                 "SELECT *, {CUSTOMER_NAME_PROJECTION} FROM type::table($table) {filters} ORDER BY {order} LIMIT $limit START $start"
             ))

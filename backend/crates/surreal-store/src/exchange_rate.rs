@@ -8,6 +8,8 @@ use surrealdb::Surreal;
 use surrealdb::engine::any::Any;
 use surrealdb::types::SurrealValue;
 
+use crate::common::map_err;
+
 const TABLE: &str = "exchange_rate";
 
 /// Units of each currency per 1 EUR — the numeraire this static table is
@@ -31,10 +33,6 @@ struct ExchangeRateContent {
 #[surreal(crate = "surrealdb::types")]
 struct RateRow {
     rate: String,
-}
-
-fn map_err(err: surrealdb::Error) -> DomainError {
-    DomainError::Store(err.to_string())
 }
 
 /// `1 base = <rate> quote`, e.g. `compute_rate("EUR", "USD")` -> `Some("1.0842")`.
