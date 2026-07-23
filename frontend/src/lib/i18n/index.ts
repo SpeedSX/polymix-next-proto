@@ -48,7 +48,7 @@ function restoredLanguage(): SupportedLanguage {
   }
 }
 
-void i18n
+i18n
   .use(ICU)
   .use(initReactI18next)
   .init({
@@ -79,6 +79,11 @@ void i18n
     interpolation: {
       escapeValue: false,
     },
+  })
+  // A rejected init leaves the app rendering raw translation keys; surface it
+  // instead of leaving a dead, silent promise.
+  .catch((error: unknown) => {
+    console.error('i18n initialization failed', error)
   })
 
 z.setErrorMap(zodErrorMap)

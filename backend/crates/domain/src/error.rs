@@ -203,3 +203,217 @@ fn flatten_validation_errors(
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use validator::Validate;
+
+    #[test]
+    fn field_error_code_starts_with_no_params() {
+        let err = FieldError::code("required");
+        assert_eq!(err.code, "required");
+        assert!(err.params.is_empty());
+    }
+
+    #[test]
+    fn field_error_with_params_keeps_them() {
+        let params = HashMap::from([("max".to_string(), "10".to_string())]);
+        let err = FieldError::with_params("too_long", params);
+        assert_eq!(err.code, "too_long");
+        assert_eq!(err.params.get("max").map(String::as_str), Some("10"));
+    }
+
+    #[test]
+    fn empty_params_are_skipped_when_serialized() {
+        let json = serde_json::to_value(FieldError::code("required")).unwrap();
+        assert_eq!(json["code"], "required");
+        assert!(json.get("params").is_none());
+    }
+
+    #[test]
+    fn non_empty_params_are_serialized() {
+        let err = FieldError::with_params(
+            "out_of_range",
+            HashMap::from([("min".to_string(), "0".to_string())]),
+        );
+        let json = serde_json::to_value(err).unwrap();
+        assert_eq!(json["params"]["min"], "0");
+    }
+
+    #[test]
+    fn conflict_codes_are_stable_and_unique() {
+        let reasons = [
+            ConflictReason::CustomerHasOrders,
+            ConflictReason::CustomerModified,
+            ConflictReason::CustomerNotActiveForOrder,
+            ConflictReason::OrderHasInvoice,
+            ConflictReason::OrderNotConfirmedForInvoice,
+            ConflictReason::OrderAlreadyInvoiced,
+            ConflictReason::InvoiceNotDraft,
+            ConflictReason::InvoiceCannotBeDeleted,
+            ConflictReason::OrderStatusTransition {
+                from: OrderStatus::Draft,
+                to: OrderStatus::Completed,
+            },
+            ConflictReason::InvoiceStatusTransition {
+                from: InvoiceStatus::Draft,
+                to: InvoiceStatus::Paid,
+            },
+            ConflictReason::CustomerStatusTransition {
+                from: CustomerStatus::Lead,
+                to: CustomerStatus::Blocked,
+            },
+        ];
+        let codes: Vec<&str> = reasons.iter().map(|r| r.code()).collect();
+        let unique: std::collections::HashSet<&str> = codes.iter().copied().collect();
+        assert_eq!(codes.len(), unique.len(), "conflict codes must be unique");
+        assert!(codes.iter().all(|c| !c.is_empty()));
+    }
+
+    #[test]
+    fn non_transition_conflicts_have_no_details() {
+        assert!(ConflictReason::CustomerHasOrders.details().is_none());
+        assert!(ConflictReason::OrderHasInvoice.details().is_none());
+        assert!(ConflictReason::InvoiceCannotBeDeleted.details().is_none());
+    }
+
+    #[test]
+    fn order_transition_details_use_numeric_status_codes() {
+        // OrderStatus serializes as a u8 code, so `status_code` takes the
+        // integer branch and stringifies the code.
+        let details = ConflictReason::OrderStatusTransition {
+            from: OrderStatus::Draft,
+            to: OrderStatus::Completed,
+        }
+        .details()
+        .expect("transition reasons carry details");
+        assert_eq!(details.get("from").map(String::as_str), Some("0"));
+        assert_eq!(details.get("to").map(String::as_str), Some("3"));
+    }
+
+    #[test]
+    fn invoice_transition_details_use_string_status_codes() {
+        // InvoiceStatus serializes as a snake_case string, exercising the
+        // string branch of `status_code`.
+        let details = ConflictReason::InvoiceStatusTransition {
+            from: InvoiceStatus::Draft,
+            to: InvoiceStatus::Issued,
+        }
+        .details()
+        .expect("transition reasons carry details");
+        assert_eq!(details.get("from").map(String::as_str), Some("draft"));
+        assert_eq!(details.get("to").map(String::as_str), Some("issued"));
+    }
+
+    #[test]
+    fn customer_transition_details_use_numeric_status_codes() {
+        let details = ConflictReason::CustomerStatusTransition {
+            from: CustomerStatus::Lead,
+            to: CustomerStatus::Blocked,
+        }
+        .details()
+        .expect("transition reasons carry details");
+        assert_eq!(details.get("from").map(String::as_str), Some("0"));
+        assert_eq!(details.get("to").map(String::as_str), Some("3"));
+    }
+
+    #[test]
+    fn display_mentions_the_status_names_for_transitions() {
+        let reason = ConflictReason::OrderStatusTransition {
+            from: OrderStatus::Draft,
+            to: OrderStatus::Completed,
+        };
+        let text = reason.to_string();
+        assert!(text.contains("Draft"), "got: {text}");
+        assert!(text.contains("Completed"), "got: {text}");
+    }
+
+    #[test]
+    fn display_is_human_readable_for_simple_conflicts() {
+        assert_eq!(
+            ConflictReason::CustomerHasOrders.to_string(),
+            "customer has orders and cannot be deleted"
+        );
+        assert!(
+            ConflictReason::OrderAlreadyInvoiced
+                .to_string()
+                .contains("already has an invoice")
+        );
+    }
+
+    #[test]
+    fn domain_error_display_wraps_the_conflict_reason() {
+        let err = DomainError::Conflict(ConflictReason::CustomerModified);
+        assert_eq!(
+            err.to_string(),
+            "conflict: customer was modified by someone else since it was loaded"
+        );
+        assert_eq!(DomainError::NotFound.to_string(), "not found");
+        assert_eq!(
+            DomainError::Store("boom".to_string()).to_string(),
+            "store error: boom"
+        );
+    }
+
+    #[derive(Validate)]
+    struct Leaf {
+        #[validate(length(min = 1, code = "required"))]
+        name: String,
+    }
+
+    #[derive(Validate)]
+    struct Branch {
+        #[validate(nested)]
+        leaf: Leaf,
+        #[validate(nested)]
+        leaves: Vec<Leaf>,
+    }
+
+    #[test]
+    fn from_validation_errors_flattens_top_level_field() {
+        let leaf = Leaf {
+            name: String::new(),
+        };
+        let DomainError::Validation(details) = DomainError::from(leaf.validate().unwrap_err())
+        else {
+            panic!("expected a validation error");
+        };
+        assert_eq!(
+            details.get("name").map(|f| f.code.as_str()),
+            Some("required")
+        );
+    }
+
+    #[test]
+    fn from_validation_errors_flattens_nested_struct_and_list_paths() {
+        let branch = Branch {
+            leaf: Leaf {
+                name: String::new(),
+            },
+            leaves: vec![
+                Leaf {
+                    name: "ok".to_string(),
+                },
+                Leaf {
+                    name: String::new(),
+                },
+            ],
+        };
+        let DomainError::Validation(details) = DomainError::from(branch.validate().unwrap_err())
+        else {
+            panic!("expected a validation error");
+        };
+        // Nested struct field is flattened to a dotted path...
+        assert_eq!(
+            details.get("leaf.name").map(|f| f.code.as_str()),
+            Some("required")
+        );
+        // ...and list entries carry their index, only the failing one.
+        assert_eq!(
+            details.get("leaves[1].name").map(|f| f.code.as_str()),
+            Some("required")
+        );
+        assert!(!details.contains_key("leaves[0].name"));
+    }
+}

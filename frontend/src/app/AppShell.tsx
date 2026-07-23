@@ -131,7 +131,9 @@ function LanguageSwitcher({ collapsed }: { collapsed: boolean }) {
   const { t, i18n } = useTranslation()
 
   const change = (lng: SupportedLanguage) => {
-    void i18n.changeLanguage(lng)
+    i18n.changeLanguage(lng).catch((error: unknown) => {
+      console.error('failed to change language', error)
+    })
     try {
       localStorage.setItem(LANGUAGE_STORAGE_KEY, lng)
     } catch {
