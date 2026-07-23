@@ -19,11 +19,8 @@ const READY_QUERY_TIMEOUT: Duration = Duration::from_secs(1);
 /// DB outage would otherwise turn into an API restart loop instead of the
 /// orchestrator simply pausing traffic until `ready` recovers.
 pub async fn ready(State(state): State<AppState>) -> impl IntoResponse {
-    let session = state.store.system();
-    let check = async { session.query("RETURN 1").await?.check() };
-
-    match tokio::time::timeout(READY_QUERY_TIMEOUT, check).await {
-        Ok(Ok(_)) => (StatusCode::OK, Json(json!({ "status": "ready" }))),
+    match tokio::time::timeout(READY_QUERY_TIMEOUT, state.backend.ping()).await {
+        Ok(Ok(())) => (StatusCode::OK, Json(json!({ "status": "ready" }))),
         Ok(Err(err)) => {
             tracing::error!(error = %err, "readiness check query failed");
             (
