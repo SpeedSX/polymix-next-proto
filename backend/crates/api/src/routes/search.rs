@@ -29,17 +29,28 @@ pub async fn search(
     // Fan out across entity repositories concurrently rather than adding up
     // each backend setup + query round-trip sequentially.
     let tenant_db = auth.tenant_db.as_str();
-    let (customers, orders, invoices) = tokio::try_join!(
+    let (customers, orders, invoices, quotes) = tokio::try_join!(
         search_customers(&state, tenant_db, q),
         search_orders(&state, tenant_db, q),
         search_invoices(&state, tenant_db, q),
+        search_quotes(&state, tenant_db, q),
     )?;
 
     Ok(Json(SearchResults {
         customers,
         orders,
         invoices,
+        quotes,
     }))
+}
+
+async fn search_quotes(
+    state: &AppState,
+    tenant_db: &str,
+    q: &str,
+) -> Result<Vec<SearchHit>, ApiError> {
+    let repo = state.backend.quote_repo(tenant_db).await?;
+    Ok(repo.search(q, HITS_PER_ENTITY).await?)
 }
 
 async fn search_customers(

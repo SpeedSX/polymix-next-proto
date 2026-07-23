@@ -25,6 +25,7 @@ struct TenantRow {
     // migration) — missing, not empty-string.
     order_prefix: Option<String>,
     invoice_prefix: Option<String>,
+    quote_prefix: Option<String>,
     created_at: String,
     updated_at: String,
 }
@@ -39,6 +40,7 @@ struct TenantContent {
     default_currency: String,
     order_prefix: String,
     invoice_prefix: String,
+    quote_prefix: String,
     created_at: String,
     updated_at: String,
 }
@@ -54,6 +56,7 @@ impl From<TenantRow> for Tenant {
             default_currency: row.default_currency,
             order_prefix: row.order_prefix.unwrap_or_default(),
             invoice_prefix: row.invoice_prefix.unwrap_or_default(),
+            quote_prefix: row.quote_prefix.unwrap_or_default(),
             created_at: row.created_at,
             updated_at: row.updated_at,
         }
@@ -116,6 +119,7 @@ impl TenantRepo for SurrealTenantRepo {
             default_currency: data.default_currency,
             order_prefix: String::new(),
             invoice_prefix: String::new(),
+            quote_prefix: String::new(),
             created_at: now.clone(),
             updated_at: now,
         };

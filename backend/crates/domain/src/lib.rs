@@ -6,6 +6,7 @@ pub mod live;
 pub mod money;
 pub mod order;
 pub mod pricing;
+pub mod quote;
 pub mod search;
 pub mod tenant;
 
@@ -23,5 +24,9 @@ pub use order::{
     OrderStatus, StatusCount,
 };
 pub use pricing::{PricingEntity, PricingRepo};
+pub use quote::{
+    Adjustment, AdjustmentKind, EnginePricing, NewQuote, NewQuoteLine, Prospect, Quote, QuoteLine,
+    QuoteListQuery, QuoteRepo, QuoteStatus, QuoteWrite,
+};
 pub use search::{SearchHit, SearchResults};
 pub use tenant::{NewTenant, Tenant, TenantRepo};

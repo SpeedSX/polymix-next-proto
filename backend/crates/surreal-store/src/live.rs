@@ -1,11 +1,11 @@
-//! Typed live-change streams over the three tenant tables. The api crate's
+//! Typed live-change streams over the tenant tables. The api crate's
 //! WS hub consumes these; it never sees `RecordId` or the row structs — the
 //! same layering rule as the repos.
 
 use std::sync::Arc;
 
 use domain::error::DomainError;
-use domain::{ChangeAction, ChangeEvent, Invoice, LiveChange, Order};
+use domain::{ChangeAction, ChangeEvent, Invoice, LiveChange, Order, Quote};
 use futures::stream::{Stream, StreamExt, select_all};
 use surrealdb::engine::any::Any;
 use surrealdb::types::Action;
@@ -15,7 +15,8 @@ use crate::common::map_err;
 use crate::customer_repo::{CustomerRow, customer_from_row_untenanted};
 use crate::invoice_repo::InvoiceRow;
 use crate::order_repo::OrderRow;
-use crate::{customer_repo, invoice_repo, order_repo};
+use crate::quote_repo::QuoteRow;
+use crate::{customer_repo, invoice_repo, order_repo, quote_repo};
 
 fn change_action(action: Action) -> Result<ChangeAction, DomainError> {
     match action {
@@ -75,8 +76,8 @@ impl Stream for LiveChanges {
     }
 }
 
-/// Opens `LIVE SELECT` streams on `customer`, `order`, and `invoice` in the
-/// session's database and merges them into one stream of domain-typed
+/// Opens `LIVE SELECT` streams on `customer`, `order`, `invoice`, and `quote`
+/// in the session's database and merges them into one stream of domain-typed
 /// changes. Dropping the returned stream kills the live queries server-side
 /// (the SDK sends `KILL` from each inner stream's `Drop`) — the hub's
 /// teardown relies on this.
@@ -99,6 +100,11 @@ pub async fn live_changes(session: Arc<Surreal<Any>>) -> Result<LiveChanges, Dom
         .live()
         .await
         .map_err(map_err)?;
+    let quotes = session
+        .select::<Vec<QuoteRow>>(quote_repo::TABLE)
+        .live()
+        .await
+        .map_err(map_err)?;
 
     let customers = customers
         .map(|n| {
@@ -117,9 +123,14 @@ pub async fn live_changes(session: Arc<Surreal<Any>>) -> Result<LiveChanges, Dom
                 .map(|e| LiveChange::Invoice(Box::new(e)))
         })
         .boxed();
+    let quotes = quotes
+        .map(|n| {
+            map_event(n, QuoteRow::key, Quote::try_from).map(|e| LiveChange::Quote(Box::new(e)))
+        })
+        .boxed();
 
     Ok(LiveChanges {
-        inner: select_all([customers, orders, invoices]),
+        inner: select_all([customers, orders, invoices, quotes]),
         _session: session,
     })
 }

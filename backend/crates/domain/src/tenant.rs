@@ -23,6 +23,8 @@ pub struct Tenant {
     pub order_prefix: String,
     /// Same as `order_prefix`, for invoice numbers.
     pub invoice_prefix: String,
+    /// Same as `order_prefix`, for quote numbers.
+    pub quote_prefix: String,
     pub created_at: String,
     pub updated_at: String,
 }

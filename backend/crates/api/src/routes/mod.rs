@@ -1,9 +1,11 @@
 pub mod customers;
 pub mod dev;
 pub mod dictionaries;
+pub mod estimate;
 pub mod health;
 pub mod invoices;
 pub mod me;
 pub mod orders;
 pub mod pricing;
+pub mod quotes;
 pub mod search;

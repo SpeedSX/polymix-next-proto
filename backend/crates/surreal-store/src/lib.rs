@@ -8,6 +8,7 @@ pub mod migrations;
 pub mod order_repo;
 pub mod pricing_repo;
 pub mod provision;
+pub mod quote_repo;
 mod status;
 pub mod store;
 pub mod tenant_repo;
@@ -19,6 +20,7 @@ pub use live::live_changes;
 pub use order_repo::SurrealOrderRepo;
 pub use pricing_repo::SurrealPricingRepo;
 pub use provision::TenantProvisioner;
+pub use quote_repo::SurrealQuoteRepo;
 pub use store::{DbConfig, Store};
 pub use tenant_repo::SurrealTenantRepo;
 

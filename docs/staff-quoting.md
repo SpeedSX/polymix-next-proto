@@ -388,6 +388,42 @@ conversion (here) subsumes half of A4 (the other half — portal quote
   spec (same shape as the machine pin) once the need is proven.
 - **Waste override** for a known-clean job: not in v1; the waste model
   is per machine and quotes err conservative.
+- **Per-component operation scoping**: v1 operations are job-level — they
+  bind to a whole-job dimension by `unit_basis` (`per_item`/`per_m2` → finished
+  items, `per_sheet` → the sum of *all* components' sheets, `per_cm` → the job
+  format edge). Qty- and area-based finishing already scopes correctly to
+  finished items, so the gap is specifically a **`per_sheet` operation that
+  should apply to a subset of components** (e.g. sheet-level coating or spot-UV
+  on the cover's sheets only) — it over-bills against total job sheets and
+  cannot be targeted. v1 answer is a manual line for that charge. The clean
+  later addition is an optional operation `target` scope (a set of component
+  roles), the same shape as the per-component machine pin — an additive engine
+  delta, no re-architecture. Flexibility here is core to the expert composer's
+  purpose, so this is a "when proven", not "never".
+- **Partial-quantity finishing**: applying an operation to only part of the
+  order quantity ("laminate 200 of the 500") is not expressible in v1 — an
+  operation's cost keys off the whole `job.quantity`. Real but occasional; v1
+  answer is a manual line (or splitting into two quote lines). A later
+  per-operation quantity/fraction input is a bounded engine delta once the need
+  recurs.
+- **Staged / post-assembly operations with quantity transformation** — the big
+  one, and a model evolution rather than an additive delta. v1 is single-stage
+  and flat: operations are an unordered set, each billed against a *static*
+  job-level dimension (`qty`, `total_sheets`, format edge/area) computed from the
+  original components. There is no assembly point (components → one unit) and no
+  working count that flows and transforms between operations — so an operation
+  that changes the piece count (each leaf cut into two or more, n-up-then-
+  guillotine, fold, gang) cannot make a downstream operation count the new
+  number. A complete production model needs operations to become an **ordered
+  pipeline** threading a working piece-count, with an assembly stage and
+  per-stage quantity transforms. The production layer already carries half of
+  this — `order-production-design.md`'s `JobOperation` is *sequenced* and notes
+  the engine's operation order "is not guaranteed production-correct (e.g.
+  laminate-before-cut)" — but only for scheduling/execution, not for cost math.
+  This is a future engine version (JDF-style process chain), the likely point
+  where the quote engine and the production routing model converge; not v1, and
+  not a drop-in field. v1 answer remains manual lines / split lines for anything
+  the flat model mis-costs.
 - **Parametric geometry / per-m² roll printing / new unit bases**: the
   engine-boundary items from `product-configuration.md` remain engine
   releases; staff mode changes nothing about them. Manual lines carry

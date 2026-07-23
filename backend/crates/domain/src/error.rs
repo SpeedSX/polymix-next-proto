@@ -6,6 +6,7 @@ use serde::Serialize;
 use crate::customer::CustomerStatus;
 use crate::invoice::InvoiceStatus;
 use crate::order::OrderStatus;
+use crate::quote::QuoteStatus;
 
 #[derive(Debug, Clone, thiserror::Error)]
 pub enum DomainError {
@@ -61,9 +62,18 @@ pub enum ConflictReason {
     OrderAlreadyInvoiced,
     InvoiceNotDraft,
     InvoiceCannotBeDeleted,
+    QuoteNotDraft,
+    QuoteNotAccepted,
+    QuoteAlreadyConverted,
+    QuoteExpired,
+    QuoteConvertRequiresCustomer,
     OrderStatusTransition {
         from: OrderStatus,
         to: OrderStatus,
+    },
+    QuoteStatusTransition {
+        from: QuoteStatus,
+        to: QuoteStatus,
     },
     InvoiceStatusTransition {
         from: InvoiceStatus,
@@ -86,7 +96,13 @@ impl ConflictReason {
             Self::OrderAlreadyInvoiced => "order_already_invoiced",
             Self::InvoiceNotDraft => "invoice_not_draft",
             Self::InvoiceCannotBeDeleted => "invoice_cannot_be_deleted",
+            Self::QuoteNotDraft => "quote_not_draft",
+            Self::QuoteNotAccepted => "quote_not_accepted",
+            Self::QuoteAlreadyConverted => "quote_already_converted",
+            Self::QuoteExpired => "quote_expired",
+            Self::QuoteConvertRequiresCustomer => "quote_convert_requires_customer",
             Self::OrderStatusTransition { .. } => "order_status_transition",
+            Self::QuoteStatusTransition { .. } => "quote_status_transition",
             Self::InvoiceStatusTransition { .. } => "invoice_status_transition",
             Self::CustomerStatusTransition { .. } => "customer_status_transition",
         }
@@ -99,6 +115,10 @@ impl ConflictReason {
     pub fn details(&self) -> Option<HashMap<String, String>> {
         match self {
             Self::OrderStatusTransition { from, to } => Some(HashMap::from([
+                ("from".to_string(), status_code(from)),
+                ("to".to_string(), status_code(to)),
+            ])),
+            Self::QuoteStatusTransition { from, to } => Some(HashMap::from([
                 ("from".to_string(), status_code(from)),
                 ("to".to_string(), status_code(to)),
             ])),
@@ -151,8 +171,31 @@ impl fmt::Display for ConflictReason {
             Self::InvoiceCannotBeDeleted => {
                 write!(f, "invoices cannot be deleted; void them instead")
             }
+            Self::QuoteNotDraft => write!(
+                f,
+                "quote can only be edited while in draft status; clone it to revise"
+            ),
+            Self::QuoteNotAccepted => {
+                write!(
+                    f,
+                    "quote must be accepted before it can be converted to an order"
+                )
+            }
+            Self::QuoteAlreadyConverted => {
+                write!(f, "quote has already been converted to an order")
+            }
+            Self::QuoteExpired => write!(f, "quote has expired"),
+            Self::QuoteConvertRequiresCustomer => {
+                write!(
+                    f,
+                    "prospect quote must be assigned a customer before conversion"
+                )
+            }
             Self::OrderStatusTransition { from, to } => {
                 write!(f, "cannot transition order from {from:?} to {to:?}")
+            }
+            Self::QuoteStatusTransition { from, to } => {
+                write!(f, "cannot transition quote from {from:?} to {to:?}")
             }
             Self::InvoiceStatusTransition { from, to } => {
                 write!(f, "cannot transition invoice from {from:?} to {to:?}")
