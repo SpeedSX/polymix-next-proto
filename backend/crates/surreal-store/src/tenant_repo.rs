@@ -3,10 +3,11 @@ use domain::error::DomainError;
 use domain::tenant::{NewTenant, Tenant, TenantRepo};
 use surrealdb::Surreal;
 use surrealdb::engine::any::Any;
-use surrealdb::types::{RecordId, RecordIdKey, SurrealValue};
+use surrealdb::types::{RecordId, SurrealValue};
 use ulid::Ulid;
 
 use crate::TENANT_ORG_ID_INDEX;
+use crate::common::{map_err, record_key};
 
 const TABLE: &str = "tenant";
 
@@ -42,13 +43,6 @@ struct TenantContent {
     updated_at: String,
 }
 
-fn record_key(id: &RecordId) -> String {
-    match &id.key {
-        RecordIdKey::String(key) => key.clone(),
-        other => format!("{other:?}"),
-    }
-}
-
 impl From<TenantRow> for Tenant {
     fn from(row: TenantRow) -> Self {
         Tenant {
@@ -64,10 +58,6 @@ impl From<TenantRow> for Tenant {
             updated_at: row.updated_at,
         }
     }
-}
-
-fn map_err(err: surrealdb::Error) -> DomainError {
-    DomainError::Store(err.to_string())
 }
 
 /// SurrealDB 3.2 doesn't map a unique-index violation to a structured

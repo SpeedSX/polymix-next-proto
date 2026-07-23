@@ -1,3 +1,4 @@
+mod common;
 pub mod counter;
 pub mod customer_repo;
 pub mod exchange_rate;
