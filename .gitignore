@@ -5,3 +5,4 @@
 .claude/*
 !.claude/skills/
 *.stackdump
+node_modules
