@@ -1,5 +1,7 @@
 use std::sync::Arc;
 
+use surreal_store::Store;
+
 use crate::backend::Backend;
 use crate::config::AppConfig;
 use crate::dev_issuer::DevIssuer;
@@ -15,4 +17,7 @@ pub struct AppState {
     pub jwks: Arc<JwksCache>,
     pub dev_issuer: Option<Arc<DevIssuer>>,
     pub hub: Arc<Hub>,
+    /// Shared store handle for infrastructure checks (the readiness probe);
+    /// request traffic goes through `backend`.
+    pub store: Arc<Store>,
 }

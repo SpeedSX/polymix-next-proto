@@ -1,6 +1,6 @@
 services:
   surrealdb:
-    image: surrealdb/surrealdb:v3.2.1
+    image: surrealdb/surrealdb:v3.2.3
     # The image's default "nonroot" user can't write to a freshly created
     # named volume (root-owned by the container runtime) — run as root here
     # since this is a local/prototype datastore, not a hardened deployment.

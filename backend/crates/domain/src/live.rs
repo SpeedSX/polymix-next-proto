@@ -1,4 +1,4 @@
-use crate::{Customer, Invoice, Order};
+use crate::{Customer, Invoice, Order, Quote};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ChangeAction {
@@ -20,4 +20,5 @@ pub enum LiveChange {
     Customer(Box<ChangeEvent<Customer>>),
     Order(Box<ChangeEvent<Order>>),
     Invoice(Box<ChangeEvent<Invoice>>),
+    Quote(Box<ChangeEvent<Quote>>),
 }

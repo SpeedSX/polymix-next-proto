@@ -4,7 +4,9 @@ pub mod config;
 pub mod dev_issuer;
 pub mod error;
 pub mod jwks;
+pub mod price_model;
 pub mod publisher;
+pub mod quote_pricing;
 pub mod routes;
 pub mod state;
 pub mod ws;
@@ -51,6 +53,7 @@ pub async fn build_state(config: AppConfig) -> anyhow::Result<AppState> {
         jwks,
         dev_issuer,
         hub,
+        store,
     })
 }
 
@@ -124,7 +127,45 @@ pub fn build_router(state: AppState) -> Router {
             "/api/invoices/{id}/status",
             post(routes::invoices::set_status),
         )
+        // Stateless pricing (the calculator) + quote documents (Step 3).
+        // Authenticated + tenant-scoped only until RBAC (B1).
+        .route("/api/estimate", post(routes::estimate::estimate))
+        .route(
+            "/api/estimate/template",
+            post(routes::estimate::estimate_template),
+        )
+        .route(
+            "/api/quotes",
+            get(routes::quotes::list).post(routes::quotes::create),
+        )
+        .route(
+            "/api/quotes/{id}",
+            get(routes::quotes::get)
+                .put(routes::quotes::update)
+                .delete(routes::quotes::delete),
+        )
+        .route("/api/quotes/{id}/status", post(routes::quotes::set_status))
+        .route("/api/quotes/{id}/reprice", post(routes::quotes::reprice))
+        .route("/api/quotes/{id}/clone", post(routes::quotes::clone))
+        .route(
+            "/api/quotes/{id}/order",
+            post(routes::quotes::convert_to_order),
+        )
         .route("/api/search", get(routes::search::search))
+        // Pricing catalog (A2a). `version` is a static segment so it wins over
+        // the `{entity}` capture. Gated on `require_auth` only until RBAC (B1)
+        // lands — see docs/adr/0014.
+        .route("/api/pricing/version", get(routes::pricing::version))
+        .route(
+            "/api/pricing/{entity}",
+            get(routes::pricing::list).post(routes::pricing::create),
+        )
+        .route(
+            "/api/pricing/{entity}/{id}",
+            get(routes::pricing::get)
+                .put(routes::pricing::update)
+                .delete(routes::pricing::delete),
+        )
         .layer(middleware::from_fn_with_state(
             state.clone(),
             auth::require_auth,

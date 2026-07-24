@@ -16,4 +16,5 @@ pub struct SearchResults {
     pub customers: Vec<SearchHit>,
     pub orders: Vec<SearchHit>,
     pub invoices: Vec<SearchHit>,
+    pub quotes: Vec<SearchHit>,
 }

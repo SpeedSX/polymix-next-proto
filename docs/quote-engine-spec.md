@@ -109,6 +109,7 @@ v1 simplification (checked at pricing, error `E203` folded into capability): a m
 ```jsonc
 {
   "id": "pricing_policy:standard",
+  "name": "Standard",
   "currency": "EUR",
   "margin_bands": [                       // sorted by min_qty ascending; first band MUST have min_qty 1
     { "min_qty": 1,    "multiplier_bp": 17000 },   // basis points: 17000 = ×1.7

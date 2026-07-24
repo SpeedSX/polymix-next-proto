@@ -10,6 +10,7 @@ path = "src/main.rs"
 
 [dependencies]
 domain.workspace = true
+quote-engine.workspace = true
 surreal-store.workspace = true
 axum = { workspace = true, features = ["ws"] }
 futures.workspace = true
@@ -26,6 +27,7 @@ ulid.workspace = true
 validator.workspace = true
 async-trait.workspace = true
 chrono.workspace = true
+moka.workspace = true
 reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls"] }
 rustls = { version = "0.23", default-features = false, features = ["aws-lc-rs"] }
 rsa = "0.9"
@@ -35,5 +37,6 @@ base64 = "0.22"
 [dev-dependencies]
 tokio = { workspace = true, features = ["test-util"] }
 testcontainers = "0.27"
+surrealdb.workspace = true
 tower = { version = "0.5", features = ["util"] }
 tokio-tungstenite = "0.29"

@@ -26,10 +26,919 @@
     /* light input fields */
     .input { background: #ffffff; }
     select.input { background: #ffffff; }
+    @keyframes spin13 { to { transform: rotate(360deg); } }
   </style>
 </helmet>
 
 <div style="display:flex; flex-wrap:wrap; gap:44px; align-items:flex-start; padding:60px;">
+
+  <!-- ============ 15a — Adjustment panel (per-line commercial override) ============ -->
+  <section id="15a" style="display:flex; flex-direction:column; gap:16px; width:1180px; flex:none;">
+    <div style="display:flex; align-items:center; gap:8px;">
+      <span class="opt-badge">15a</span>
+      <span class="tagline" style="font-size:10px;">adjustment panel · bottom of engine-line drawer · one override per line</span>
+    </div>
+
+    <div style="display:flex; flex-wrap:wrap; gap:22px; align-items:flex-start;">
+
+      <!-- interactive drawer: cost region + commercial (adjustment) region -->
+      <div class="blueprint" style="flex:1; min-width:560px; background:#fff; display:flex; flex-direction:column; overflow:hidden;">
+        <i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i>
+        <!-- line spine (reflects active adjustment) -->
+        <div style="display:grid; grid-template-columns:34px 96px 1fr 96px 120px; gap:12px; align-items:center; padding:14px 16px; border-bottom:1px solid var(--color-divider);">
+          <div class="text-muted" style="font-variant-numeric:tabular-nums;">2</div>
+          <div><span class="tag tag-outline" style="font-family:var(--font-heading); font-weight:600;">Expert</span></div>
+          <div style="display:flex; align-items:center; gap:8px;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--color-accent)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="transform:rotate(90deg);"><path d="m9 18 6-6-6-6"></path></svg><span style="font-weight:600;">Hardcover monograph — 160pp</span></div>
+          <div style="text-align:right; font-variant-numeric:tabular-nums;">
+            <sc-if value="{{ adjActive }}" hint-placeholder-val="{{ true }}"><div class="text-muted" style="text-decoration:line-through; font-size:12px;">{{ engineUnitStr }}</div></sc-if>
+            <div style="font-weight:600;">{{ finalUnitStr }}</div>
+          </div>
+          <div style="text-align:right; font-variant-numeric:tabular-nums;">
+            <sc-if value="{{ adjActive }}" hint-placeholder-val="{{ true }}"><div class="text-muted" style="text-decoration:line-through; font-size:12px;">{{ engineTotalStr }}</div></sc-if>
+            <div style="font-weight:700;">{{ finalStr }}</div>
+          </div>
+        </div>
+
+        <!-- cost region (collapsed summary) -->
+        <div style="padding:14px 16px 12px 44px; background:var(--color-accent-100); border-bottom:1px solid var(--color-divider); display:flex; justify-content:space-between; align-items:center; font-variant-numeric:tabular-nums; font-size:13px;">
+          <span style="font-family:var(--font-heading); font-weight:600; font-size:11px; letter-spacing:0.08em; text-transform:uppercase; color:var(--color-accent-700);">Cost — breakdown</span>
+          <span class="text-muted">engine cost {{ engineCostStr }} · engine price <span style="color:var(--color-text); font-weight:600;">{{ engineTotalStr }}</span></span>
+        </div>
+
+        <!-- commercial region (adjustment) -->
+        <div style="padding:16px 16px 18px 44px; display:flex; flex-direction:column; gap:14px;">
+          <div style="display:flex; align-items:center; gap:10px;">
+            <span style="font-family:var(--font-heading); font-weight:600; font-size:11px; letter-spacing:0.08em; text-transform:uppercase; color:var(--color-accent-700);">Commercial — adjustment</span>
+            <span class="tag tag-neutral" style="font-size:11px;">quotes:override</span>
+          </div>
+
+          <!-- mode toggle -->
+          <div style="display:inline-flex; align-self:flex-start; border:1px solid var(--color-divider); background:var(--color-surface); padding:3px; gap:3px; font-family:var(--font-heading); font-weight:600; font-size:13px;">
+            <button onClick="{{ setAdjMode }}" data-m="margin" style="all:unset; cursor:pointer; padding:7px 15px; background:{{ adjMarginBg }}; color:{{ adjMarginFg }};">Margin override</button>
+            <button onClick="{{ setAdjMode }}" data-m="discount" style="all:unset; cursor:pointer; padding:7px 15px; background:{{ adjDiscBg }}; color:{{ adjDiscFg }};">Discount</button>
+            <button onClick="{{ setAdjMode }}" data-m="price" style="all:unset; cursor:pointer; padding:7px 15px; background:{{ adjPriceBg }}; color:{{ adjPriceFg }};">Price override</button>
+          </div>
+
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:20px; align-items:start;">
+            <!-- input (mode-conditional) -->
+            <div style="display:flex; flex-direction:column; gap:8px;">
+              <sc-if value="{{ isAdjMargin }}" hint-placeholder-val="{{ false }}">
+                <div class="field"><label>Margin multiplier</label>
+                  <div style="display:flex; align-items:center; gap:8px;"><span class="text-muted" style="font-weight:600;">×</span><input class="input" value="{{ adjMult }}" onChange="{{ onAdjMult }}" style="width:120px; font-variant-numeric:tabular-nums;"></div>
+                </div>
+                <div class="text-muted" style="font-size:12px; display:flex; align-items:center; gap:6px;"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M12 16v-4"></path><path d="M12 8h.01"></path></svg>engine margin ×1.35 (band ≥ 250)</div>
+              </sc-if>
+              <sc-if value="{{ isAdjDiscount }}" hint-placeholder-val="{{ true }}">
+                <div class="field"><label>Discount</label>
+                  <div style="display:flex; align-items:center; gap:8px;"><input class="input" value="{{ adjPct }}" onChange="{{ onAdjPct }}" style="width:100px; font-variant-numeric:tabular-nums;"><span class="text-muted" style="font-weight:600;">%</span></div>
+                </div>
+                <div class="text-muted" style="font-size:12px;">off engine price {{ engineTotalStr }} · client-side, live</div>
+              </sc-if>
+              <sc-if value="{{ isAdjPrice }}" hint-placeholder-val="{{ false }}">
+                <div class="field"><label>Price override <span class="text-muted" style="text-transform:none; letter-spacing:0;">· GBP</span></label>
+                  <div style="display:flex; align-items:center; gap:8px;"><span class="text-muted" style="font-weight:600;">£</span><input class="input" value="{{ adjPrice }}" onChange="{{ onAdjPrice }}" style="width:130px; font-variant-numeric:tabular-nums;"></div>
+                </div>
+                <div class="text-muted" style="font-size:12px;">entered value is the final · engine price kept for record</div>
+              </sc-if>
+
+              <sc-if value="{{ adjInvalid }}" hint-placeholder-val="{{ false }}">
+                <div style="display:flex; align-items:center; gap:6px; color:var(--color-danger,#c0392b); font-size:12.5px; font-weight:600;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><path d="M12 9v4"></path><path d="M12 17h.01"></path></svg>{{ adjError }}</div>
+              </sc-if>
+            </div>
+
+            <!-- live final -->
+            <div class="blueprint" style="background:var(--color-surface); padding:14px 16px; display:flex; flex-direction:column; gap:6px; font-variant-numeric:tabular-nums;">
+              <i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i>
+              <div style="display:flex; justify-content:space-between; font-size:13px;"><span class="text-muted">Engine price</span><span style="text-decoration:{{ engineStrike }};">{{ engineTotalStr }}</span></div>
+              <div style="display:flex; justify-content:space-between; align-items:baseline;"><span style="font-family:var(--font-heading); font-weight:600; font-size:13px;">Final</span>
+                <span style="font-family:var(--font-heading); font-weight:700; font-size:22px; color:{{ finalColor }};">{{ finalStr }}</span>
+              </div>
+              <sc-if value="{{ adjPending }}" hint-placeholder-val="{{ false }}">
+                <div style="display:flex; align-items:center; gap:6px; color:var(--color-accent-700); font-size:11.5px;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="animation:spin13 .9s linear infinite;"><path d="M21 12a9 9 0 1 1-6.2-8.5"></path></svg>recompute on save — engine re-runs (rounding · min price)</div>
+              </sc-if>
+            </div>
+          </div>
+
+          <!-- reason -->
+          <div class="field"><label>Reason <span class="text-muted" style="text-transform:none; letter-spacing:0;">· recommended</span></label>
+            <input class="input" value="{{ adjReason }}" onChange="{{ onAdjReason }}" placeholder="e.g. repeat-customer goodwill, price-match Booktrade">
+          </div>
+          <sc-if value="{{ showReasonHint }}" hint-placeholder-val="{{ false }}">
+            <div class="text-muted" style="font-size:12px; display:flex; align-items:center; gap:6px; margin-top:-6px;"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z"></path></svg>Add a reason so the margin report keeps a clean audit trail.</div>
+          </sc-if>
+
+          <div style="display:flex; gap:10px; align-items:center;">
+            <button onClick="{{ removeAdj }}" class="btn btn-ghost" style="padding-inline:14px;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"></path><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"></path></svg>Remove adjustment</button>
+            <button class="btn btn-primary blueprint" style="margin-left:auto; padding-inline:18px;"><i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i>Apply adjustment</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- states gallery -->
+      <div style="width:340px; display:flex; flex-direction:column; gap:16px;">
+        <!-- default / no adjustment -->
+        <div class="blueprint" style="background:#fff; padding:14px 16px; display:flex; flex-direction:column; gap:8px;">
+          <i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i>
+          <div class="tagline" style="font-size:9px;">default — no adjustment</div>
+          <div style="display:flex; justify-content:space-between; align-items:center;"><span style="font-weight:600;">Line total</span><span style="font-family:var(--font-heading); font-weight:700; font-variant-numeric:tabular-nums;">£834.65</span></div>
+          <button style="all:unset; cursor:pointer; display:inline-flex; align-items:center; gap:6px; color:var(--color-accent); font-size:12.5px; font-weight:600;"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"></path><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"></path></svg>Adjust price</button>
+        </div>
+
+        <!-- active -->
+        <div class="blueprint" style="background:#fff; padding:14px 16px; display:flex; flex-direction:column; gap:9px;">
+          <i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i>
+          <div class="tagline" style="font-size:9px;">active adjustment</div>
+          <div style="display:flex; align-items:center; gap:8px;"><span class="tag tag-accent" style="font-size:11px; font-family:var(--font-heading); font-weight:600;">Discount 12%</span></div>
+          <div style="display:flex; justify-content:space-between; align-items:baseline; font-variant-numeric:tabular-nums;"><span class="text-muted" style="text-decoration:line-through; font-size:13px;">£834.65</span><span style="font-family:var(--font-heading); font-weight:700; font-size:18px;">£734.49</span></div>
+          <div class="text-muted" style="font-size:12px;">Reason: price-match Booktrade quote</div>
+          <button style="all:unset; cursor:pointer; display:inline-flex; align-items:center; gap:6px; color:var(--color-danger,#c0392b); font-size:12px; font-weight:600;"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"></path><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>Remove adjustment</button>
+        </div>
+
+        <!-- validation -->
+        <div class="blueprint" style="background:#fff; padding:14px 16px; display:flex; flex-direction:column; gap:8px;">
+          <i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i>
+          <div class="tagline" style="font-size:9px;">inline validation</div>
+          <div class="field"><label>Discount</label><div style="display:flex; align-items:center; gap:8px;"><input class="input" value="140" readonly style="width:90px; border-color:var(--color-danger,#c0392b); box-shadow:inset 0 0 0 1px var(--color-danger,#c0392b); font-variant-numeric:tabular-nums;"><span class="text-muted" style="font-weight:600;">%</span></div></div>
+          <div style="display:flex; align-items:center; gap:6px; color:var(--color-danger,#c0392b); font-size:12px; font-weight:600;"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><path d="M12 9v4"></path><path d="M12 17h.01"></path></svg>Discount must be 0–100%</div>
+        </div>
+
+        <!-- record read-only -->
+        <div class="blueprint" style="background:var(--color-surface); padding:14px 16px; display:flex; flex-direction:column; gap:9px;">
+          <i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i>
+          <div class="tagline" style="font-size:9px; display:flex; align-items:center; gap:6px;">record — frozen <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg></div>
+          <div style="display:flex; align-items:center; gap:8px;"><span class="tag tag-outline" style="font-size:11px; font-family:var(--font-heading); font-weight:600;">Price override</span></div>
+          <div style="display:flex; justify-content:space-between; align-items:baseline; font-variant-numeric:tabular-nums;"><span class="text-muted" style="text-decoration:line-through; font-size:13px;">£2,050.00</span><span style="font-family:var(--font-heading); font-weight:700; font-size:18px;">£1,800.00</span></div>
+          <div class="text-muted" style="font-size:12px;">Reason: repeat-customer goodwill · A. Okafor</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ 14a — Quote detail · DRAFT editor (per-line inline edit) ============ -->
+  <section id="14a" style="display:flex; flex-direction:column; gap:16px; width:1580px; flex:none;">
+    <div style="display:flex; align-items:center; gap:8px;">
+      <span class="opt-badge">14a</span>
+      <span class="tagline" style="font-size:10px;">quote detail — draft · everything mutable · inline breakdowns</span>
+    </div>
+
+    <div class="blueprint" style="background:var(--color-bg); display:flex; overflow:hidden;">
+      <i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i>
+
+      <!-- app rail -->
+      <aside style="width:60px; flex:none; background:var(--color-accent-900); display:flex; flex-direction:column; align-items:center; gap:6px; padding:18px 0;">
+        <svg width="30" height="30" viewBox="0 0 120 120" style="margin-bottom:12px;"><rect x="8" y="8" width="48" height="48" rx="15" fill="#94bce3"></rect><rect x="64" y="8" width="48" height="48" rx="15" fill="#cfe4fa"></rect><rect x="8" y="64" width="48" height="48" rx="15" fill="#7e9cb8"></rect><rect x="64" y="64" width="48" height="48" rx="15" fill="#b5d9fd"></rect></svg>
+        <a href="#" aria-current="page" style="width:38px; height:38px; display:flex; align-items:center; justify-content:center; color:#fff; background:rgba(148,188,227,0.18); box-shadow:inset 2px 0 0 #94bce3;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><path d="M14 2v6h6"></path></svg></a>
+        <a href="#" style="width:38px; height:38px; display:flex; align-items:center; justify-content:center; color:#c4d2e0;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="1"></rect><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"></path></svg></a>
+        <a href="#" style="width:38px; height:38px; display:flex; align-items:center; justify-content:center; color:#c4d2e0;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle></svg></a>
+        <a href="#" style="margin-top:auto; width:38px; height:38px; display:flex; align-items:center; justify-content:center; color:#c4d2e0;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg></a>
+      </aside>
+
+      <div style="flex:1; display:flex; flex-direction:column; min-width:0;">
+        <!-- page header -->
+        <header style="display:flex; align-items:center; gap:16px; padding:16px 26px; border-bottom:1px solid var(--color-divider);">
+          <div style="min-width:0;">
+            <div class="text-muted" style="font-size:11px; letter-spacing:0.08em; text-transform:uppercase;">Quotes <span style="opacity:0.5;">/</span> Q-2048</div>
+            <div style="display:flex; align-items:center; gap:12px; margin-top:2px;"><h3 style="margin:0; font-size:24px;">Q-2048</h3><span class="tag tag-neutral" style="font-family:var(--font-heading); font-weight:600;">Draft</span></div>
+          </div>
+          <div style="margin-left:auto; display:flex; gap:10px; align-items:center;">
+            <button class="btn btn-ghost btn-icon" aria-label="Delete draft" title="Delete draft" style="color:var(--color-danger,#c0392b);"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"></path><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"></path></svg></button>
+            <button class="btn btn-ghost" style="padding-inline:14px;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path><path d="M3 3v5h5"></path></svg>Reprice</button>
+            <button class="btn btn-ghost" style="padding-inline:14px;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>Clone</button>
+            <button class="btn btn-primary blueprint" style="padding-inline:18px;"><i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="m22 2-7 20-4-9-9-4Z"></path><path d="M22 2 11 13"></path></svg>Send</button>
+          </div>
+        </header>
+
+        <!-- party & metadata band -->
+        <div style="display:flex; align-items:flex-end; gap:26px; flex-wrap:wrap; padding:18px 26px; background:var(--color-surface); border-bottom:1px solid var(--color-divider);">
+          <div class="field" style="gap:6px;">
+            <label>Bill to</label>
+            <div style="display:inline-flex; align-self:flex-start; border:1px solid var(--color-divider); background:#fff; padding:3px; gap:3px; font-family:var(--font-heading); font-weight:600; font-size:13px;">
+              <button onClick="{{ setParty }}" data-p="customer" style="all:unset; cursor:pointer; padding:7px 14px; background:{{ partyCustBg }}; color:{{ partyCustFg }};">Customer</button>
+              <button onClick="{{ setParty }}" data-p="prospect" style="all:unset; cursor:pointer; padding:7px 14px; background:{{ partyProsBg }}; color:{{ partyProsFg }};">Prospect</button>
+            </div>
+          </div>
+          <div class="field"><label>{{ partyLabel }}</label><input class="input" value="Thames &amp; Hudson Ltd" style="min-width:260px; background:#fff;"></div>
+          <div class="field"><label>Currency <span class="text-muted" style="text-transform:none; letter-spacing:0;">· locked</span></label><span class="tag tag-outline" style="min-height:38px; display:inline-flex; align-items:center; padding-inline:14px;">GBP £</span></div>
+          <div class="field"><label>Valid until</label><input class="input" type="date" value="2026-08-21" style="background:#fff;"></div>
+          <div class="field"><label>Pricelist</label><span class="tag tag-accent" style="min-height:38px; display:inline-flex; align-items:center; padding-inline:12px;">v2026.3</span></div>
+          <div class="text-muted" style="font-size:11.5px; margin-left:auto; align-self:center;">Created by A. Okafor · 18 Jul 2026</div>
+        </div>
+
+        <!-- line list -->
+        <div style="padding:20px 26px; display:flex; flex-direction:column; gap:10px;">
+          <div style="display:flex; align-items:center; gap:10px;">
+            <span style="font-family:var(--font-heading); font-weight:600; font-size:13px; letter-spacing:0.06em; text-transform:uppercase; color:var(--color-accent-700);">Lines</span>
+            <span class="text-muted" style="font-size:12px;">4 lines</span>
+            <div style="margin-left:auto; display:flex; gap:8px;">
+              <button class="btn btn-secondary" disabled title="Tier-1 templates land in Step 4" style="opacity:0.55; cursor:not-allowed;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14"></path><path d="M5 12h14"></path></svg>Product <span style="font-size:10px; letter-spacing:0.04em; text-transform:uppercase; opacity:0.8;">soon</span></button>
+              <button class="btn btn-secondary"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14"></path><path d="M5 12h14"></path></svg>Expert</button>
+              <button class="btn btn-secondary"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14"></path><path d="M5 12h14"></path></svg>Manual</button>
+            </div>
+          </div>
+
+          <!-- column header -->
+          <div style="display:grid; grid-template-columns:34px 96px 1fr 70px 96px 120px 92px; gap:12px; align-items:center; padding:0 12px; font-family:var(--font-heading); font-weight:600; font-size:11px; letter-spacing:0.06em; text-transform:uppercase; color:var(--color-text-muted,#6b7280);">
+            <div>#</div><div>Type</div><div>Description</div><div style="text-align:right;">Qty</div><div style="text-align:right;">Unit</div><div style="text-align:right;">Line total</div><div></div>
+          </div>
+
+          <!-- LINE 1 · Expert/Spec (engine, expandable) -->
+          <div style="border:1px solid var(--color-divider); background:#fff;">
+            <div style="display:grid; grid-template-columns:34px 96px 1fr 70px 96px 120px 92px; gap:12px; align-items:center; padding:14px 12px;">
+              <div class="text-muted" style="font-variant-numeric:tabular-nums;">1</div>
+              <div><span class="tag tag-outline" style="font-family:var(--font-heading); font-weight:600;">Expert</span></div>
+              <div>
+                <button onClick="{{ toggleL2 }}" style="all:unset; cursor:pointer; display:flex; align-items:center; gap:8px;">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--color-accent)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="transform:{{ caretL2 }}; transition:transform .12s;"><path d="m9 18 6-6-6-6"></path></svg>
+                  <span style="font-weight:600;">Hardcover monograph — 160pp printed case</span>
+                </button>
+                <div class="text-muted" style="font-size:12px; padding-left:22px;">Spec · 3 components · 2 operations</div>
+              </div>
+              <input class="input" value="500" style="text-align:right; font-variant-numeric:tabular-nums;">
+              <div style="text-align:right; font-variant-numeric:tabular-nums;" class="text-muted">£1.67</div>
+              <div style="text-align:right; font-variant-numeric:tabular-nums; font-weight:600;">£834.65</div>
+              <div style="display:flex; justify-content:flex-end; gap:4px;">
+                <button class="btn btn-ghost btn-icon" aria-label="Edit in composer"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"></path><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"></path></svg></button>
+                <button class="btn btn-ghost btn-icon" aria-label="Remove"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"></path><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"></path></svg></button>
+              </div>
+            </div>
+            <sc-if value="{{ openL2 }}" hint-placeholder-val="{{ true }}">
+              <div style="border-top:1px solid var(--color-divider); background:var(--color-accent-100); padding:14px 18px 16px 46px; display:flex; gap:40px; flex-wrap:wrap;">
+                <div style="flex:1; min-width:260px;">
+                  <div style="font-family:var(--font-heading); font-weight:600; font-size:11px; letter-spacing:0.08em; text-transform:uppercase; color:var(--color-accent-700); margin-bottom:6px;">Breakdown snapshot</div>
+                  <table class="table" style="font-variant-numeric:tabular-nums;"><tbody>
+                    <tr><td>Cover · HP Indigo 12000</td><td class="text-muted" style="text-align:right;">125 sheets</td><td style="text-align:right;">£96.25</td></tr>
+                    <tr><td>Text · Komori Lithrone 40</td><td class="text-muted" style="text-align:right;">2,500 sheets</td><td style="text-align:right;">£245.00</td></tr>
+                    <tr><td>Endpapers · —</td><td class="text-muted" style="text-align:right;">250 sheets</td><td style="text-align:right;">£45.00</td></tr>
+                    <tr><td>Soft-touch lamination</td><td class="text-muted" style="text-align:right;">—</td><td style="text-align:right;">£196.00</td></tr>
+                    <tr><td>Head/tail band</td><td class="text-muted" style="text-align:right;">—</td><td style="text-align:right;">£36.00</td></tr>
+                  </tbody></table>
+                </div>
+                <div style="min-width:180px; font-variant-numeric:tabular-nums; display:flex; flex-direction:column; gap:7px; align-self:flex-end;">
+                  <div style="display:flex; justify-content:space-between; font-size:13px;"><span class="text-muted">Engine cost</span><span>£618.25</span></div>
+                  <div style="display:flex; justify-content:space-between; font-size:13px;"><span class="text-muted">Margin · 35%</span><span style="color:var(--color-accent-700);">+ £216.40</span></div>
+                  <div style="display:flex; justify-content:space-between; padding-top:5px; border-top:1px dashed var(--color-divider); font-family:var(--font-heading); font-weight:700;"><span>Line total</span><span>£834.65</span></div>
+                </div>
+              </div>
+            </sc-if>
+          </div>
+
+          <!-- LINE 2 · Expert + Adjustment + price-changed flag -->
+          <div style="border:1px solid var(--color-divider); background:#fff;">
+            <div style="display:grid; grid-template-columns:34px 96px 1fr 70px 96px 120px 92px; gap:12px; align-items:center; padding:14px 12px;">
+              <div class="text-muted" style="font-variant-numeric:tabular-nums;">2</div>
+              <div><span class="tag tag-outline" style="font-family:var(--font-heading); font-weight:600;">Expert</span></div>
+              <div>
+                <button onClick="{{ toggleL3 }}" style="all:unset; cursor:pointer; display:flex; align-items:center; gap:8px;">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--color-accent)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="transform:{{ caretL3 }}; transition:transform .12s;"><path d="m9 18 6-6-6-6"></path></svg>
+                  <span style="font-weight:600;">Slipcase — cloth-covered board</span>
+                </button>
+                <div style="display:flex; align-items:center; gap:8px; padding-left:22px; margin-top:2px;">
+                  <span class="text-muted" style="font-size:12px;">Spec · manual adjustment</span>
+                  <span style="display:inline-flex; align-items:center; gap:4px; font-size:11px; font-weight:600; color:var(--color-danger,#c0392b);"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path><path d="M3 3v5h5"></path></svg>price changed on reprice</span>
+                </div>
+              </div>
+              <input class="input" value="500" style="text-align:right; font-variant-numeric:tabular-nums;">
+              <div style="text-align:right; font-variant-numeric:tabular-nums;">
+                <div class="text-muted" style="text-decoration:line-through; font-size:12px;">£4.10</div>
+                <div style="font-weight:600;">£3.60</div>
+              </div>
+              <div style="text-align:right; font-variant-numeric:tabular-nums;">
+                <div class="text-muted" style="text-decoration:line-through; font-size:12px;">£2,050.00</div>
+                <div style="font-weight:700;">£1,800.00</div>
+              </div>
+              <div style="display:flex; justify-content:flex-end; gap:4px;">
+                <button class="btn btn-ghost btn-icon" aria-label="Adjustment"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--color-accent)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"></path><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"></path></svg></button>
+                <button class="btn btn-ghost btn-icon" aria-label="Remove"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"></path><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"></path></svg></button>
+              </div>
+            </div>
+            <sc-if value="{{ openL3 }}" hint-placeholder-val="{{ false }}">
+              <div style="border-top:1px solid var(--color-divider); background:var(--color-accent-100); padding:14px 18px 16px 46px; display:flex; gap:40px; flex-wrap:wrap;">
+                <div style="flex:1; min-width:260px;">
+                  <div style="font-family:var(--font-heading); font-weight:600; font-size:11px; letter-spacing:0.08em; text-transform:uppercase; color:var(--color-accent-700); margin-bottom:6px;">Breakdown snapshot</div>
+                  <table class="table" style="font-variant-numeric:tabular-nums;"><tbody>
+                    <tr><td>Board · —</td><td class="text-muted" style="text-align:right;">1,000 sheets</td><td style="text-align:right;">£1,540.00</td></tr>
+                    <tr><td>Cloth wrap · per_m2</td><td class="text-muted" style="text-align:right;">—</td><td style="text-align:right;">£510.00</td></tr>
+                  </tbody></table>
+                </div>
+                <div style="min-width:220px; font-variant-numeric:tabular-nums; display:flex; flex-direction:column; gap:7px; align-self:flex-end;">
+                  <div style="display:flex; justify-content:space-between; font-size:13px;"><span class="text-muted">Engine price</span><span style="text-decoration:line-through;">£2,050.00</span></div>
+                  <div style="display:flex; justify-content:space-between; font-size:13px; color:var(--color-accent-700);"><span>Adjustment</span><span>− £250.00</span></div>
+                  <div style="display:flex; align-items:center; gap:6px; font-size:12px; color:var(--color-text-muted,#6b7280); background:#fff; border:1px solid var(--color-divider); padding:6px 8px;"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z"></path></svg>Reason: repeat-customer goodwill (A. Okafor)</div>
+                  <div style="display:flex; justify-content:space-between; padding-top:5px; border-top:1px dashed var(--color-divider); font-family:var(--font-heading); font-weight:700;"><span>Final</span><span>£1,800.00</span></div>
+                </div>
+              </div>
+            </sc-if>
+          </div>
+
+          <!-- LINE 3 · Manual (flat, no breakdown) -->
+          <div style="border:1px solid var(--color-divider); background:#fff;">
+            <div style="display:grid; grid-template-columns:34px 96px 1fr 70px 96px 120px 92px; gap:12px; align-items:center; padding:14px 12px;">
+              <div class="text-muted" style="font-variant-numeric:tabular-nums;">3</div>
+              <div><span class="tag tag-neutral" style="font-family:var(--font-heading); font-weight:600;">Manual</span></div>
+              <div style="padding-left:22px;"><input class="input" value="Delivery — pallet courier, tail-lift" style="font-weight:600;"></div>
+              <input class="input" value="1" style="text-align:right; font-variant-numeric:tabular-nums;">
+              <input class="input" value="185.00" style="text-align:right; font-variant-numeric:tabular-nums;">
+              <div style="text-align:right; font-variant-numeric:tabular-nums; font-weight:600;">£185.00</div>
+              <div style="display:flex; justify-content:flex-end; gap:4px;">
+                <button class="btn btn-ghost btn-icon" aria-label="Duplicate"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg></button>
+                <button class="btn btn-ghost btn-icon" aria-label="Remove"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"></path><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"></path></svg></button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Product/Template target — not yet buildable (Step 4) -->
+          <div style="border:1px dashed var(--color-divider); background:transparent; display:flex; align-items:center; gap:12px; padding:14px 16px;">
+            <span class="tag tag-outline" style="font-family:var(--font-heading); font-weight:600; opacity:0.7;">Product</span>
+            <div style="min-width:0;">
+              <div style="font-weight:600; color:var(--color-text-muted,#6b7280);">Template lines — tier-1 catalog products</div>
+              <div class="text-muted" style="font-size:12px;">Lands in Step 4 · pick a template, engine prices it like an Expert line</div>
+            </div>
+            <span class="tag tag-neutral" style="margin-left:auto; font-size:11px; letter-spacing:0.04em; text-transform:uppercase;">Coming soon</span>
+          </div>
+        </div>
+        <div style="display:flex; gap:32px; flex-wrap:wrap; padding:4px 26px 24px;">
+          <div style="flex:1; min-width:280px;" class="field">
+            <label>Notes <span class="text-muted" style="text-transform:none; letter-spacing:0;">· shown on quote</span></label>
+            <textarea class="input" rows="4" style="resize:vertical; font-family:var(--font-body);">Lead time 15 working days from proof approval. Prices exclude VAT. Text stock subject to mill availability.</textarea>
+          </div>
+          <div style="width:340px; font-variant-numeric:tabular-nums; display:flex; flex-direction:column; gap:9px;">
+            <div style="display:flex; justify-content:space-between; font-size:14px;"><span class="text-muted">Engine lines (2)</span><span>£2,634.65</span></div>
+            <div style="display:flex; justify-content:space-between; font-size:14px;"><span class="text-muted">Manual lines (1)</span><span>£185.00</span></div>
+            <div class="blueprint" style="background:var(--color-accent-900); color:#fff; padding:14px 16px; display:flex; justify-content:space-between; align-items:baseline; margin-top:4px;">
+              <i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i>
+              <span style="font-family:var(--font-heading); font-weight:600; font-size:14px;">Quote total</span>
+              <span style="font-family:var(--font-heading); font-weight:700; font-size:26px;">£2,819.65</span>
+            </div>
+            <div class="text-muted" style="font-size:11.5px; text-align:right;">Authoritative — carried to order on convert</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ 14b — Quote detail · RECORD mode (frozen · accepted) ============ -->
+  <section id="14b" style="display:flex; flex-direction:column; gap:16px; width:1580px; flex:none;">
+    <div style="display:flex; align-items:center; gap:8px;">
+      <span class="opt-badge">14b</span>
+      <span class="tagline" style="font-size:10px;">quote detail — record mode · accepted, not yet converted</span>
+    </div>
+
+    <div class="blueprint" style="background:var(--color-bg); display:flex; overflow:hidden;">
+      <i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i>
+      <aside style="width:60px; flex:none; background:var(--color-accent-900); display:flex; flex-direction:column; align-items:center; gap:6px; padding:18px 0;">
+        <svg width="30" height="30" viewBox="0 0 120 120" style="margin-bottom:12px;"><rect x="8" y="8" width="48" height="48" rx="15" fill="#94bce3"></rect><rect x="64" y="8" width="48" height="48" rx="15" fill="#cfe4fa"></rect><rect x="8" y="64" width="48" height="48" rx="15" fill="#7e9cb8"></rect><rect x="64" y="64" width="48" height="48" rx="15" fill="#b5d9fd"></rect></svg>
+        <a href="#" aria-current="page" style="width:38px; height:38px; display:flex; align-items:center; justify-content:center; color:#fff; background:rgba(148,188,227,0.18); box-shadow:inset 2px 0 0 #94bce3;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><path d="M14 2v6h6"></path></svg></a>
+      </aside>
+
+      <div style="flex:1; display:flex; flex-direction:column; min-width:0;">
+        <header style="display:flex; align-items:center; gap:16px; padding:16px 26px; border-bottom:1px solid var(--color-divider);">
+          <div style="min-width:0;">
+            <div class="text-muted" style="font-size:11px; letter-spacing:0.08em; text-transform:uppercase;">Quotes <span style="opacity:0.5;">/</span> Q-2041</div>
+            <div style="display:flex; align-items:center; gap:12px; margin-top:2px;"><h3 style="margin:0; font-size:24px;">Q-2041</h3><span class="tag tag-accent" style="font-family:var(--font-heading); font-weight:600; display:inline-flex; align-items:center; gap:5px;"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"></path></svg>Accepted</span></div>
+          </div>
+          <div style="margin-left:auto; display:flex; gap:10px; align-items:center;">
+            <button class="btn btn-ghost" style="padding-inline:14px;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>Clone</button>
+            <button class="btn btn-primary blueprint" style="padding-inline:18px;"><i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"></path><path d="m12 5 7 7-7 7"></path></svg>Convert to order</button>
+          </div>
+        </header>
+
+        <!-- frozen party band -->
+        <div style="display:flex; align-items:center; gap:40px; flex-wrap:wrap; padding:16px 26px; background:var(--color-surface); border-bottom:1px solid var(--color-divider); font-size:13.5px;">
+          <div><div class="text-muted" style="font-size:11px; letter-spacing:0.06em; text-transform:uppercase;">Customer</div><div style="font-weight:600;">Faber &amp; Faber</div></div>
+          <div><div class="text-muted" style="font-size:11px; letter-spacing:0.06em; text-transform:uppercase;">Currency</div><div style="font-weight:600;">GBP £</div></div>
+          <div><div class="text-muted" style="font-size:11px; letter-spacing:0.06em; text-transform:uppercase;">Valid until</div><div style="font-weight:600;">14 Aug 2026</div></div>
+          <div><div class="text-muted" style="font-size:11px; letter-spacing:0.06em; text-transform:uppercase;">Pricelist</div><div style="font-weight:600;">v2026.3</div></div>
+          <div class="text-muted" style="font-size:11.5px; margin-left:auto; display:flex; align-items:center; gap:6px;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>Frozen record — accepted 21 Jul 2026</div>
+        </div>
+
+        <!-- frozen line list -->
+        <div style="padding:18px 26px; display:flex; flex-direction:column; gap:10px;">
+          <div style="display:grid; grid-template-columns:34px 96px 1fr 70px 96px 120px 40px; gap:12px; align-items:center; padding:0 12px; font-family:var(--font-heading); font-weight:600; font-size:11px; letter-spacing:0.06em; text-transform:uppercase; color:var(--color-text-muted,#6b7280);">
+            <div>#</div><div>Type</div><div>Description</div><div style="text-align:right;">Qty</div><div style="text-align:right;">Unit</div><div style="text-align:right;">Line total</div><div></div>
+          </div>
+
+          <div style="border:1px solid var(--color-divider); background:#fff;">
+            <div style="display:grid; grid-template-columns:34px 96px 1fr 70px 96px 120px 40px; gap:12px; align-items:center; padding:14px 12px;">
+              <div class="text-muted" style="font-variant-numeric:tabular-nums;">1</div>
+              <div><span class="tag tag-outline" style="font-family:var(--font-heading); font-weight:600;">Expert</span></div>
+              <div>
+                <button onClick="{{ toggleR1 }}" style="all:unset; cursor:pointer; display:flex; align-items:center; gap:8px;">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--color-accent)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="transform:{{ caretR1 }}; transition:transform .12s;"><path d="m9 18 6-6-6-6"></path></svg>
+                  <span style="font-weight:600;">Case-bound novel — 320pp</span>
+                </button>
+                <div class="text-muted" style="font-size:12px; padding-left:22px;">Spec · snapshot at acceptance</div>
+              </div>
+              <div style="text-align:right; font-variant-numeric:tabular-nums;">2,000</div>
+              <div style="text-align:right; font-variant-numeric:tabular-nums;" class="text-muted">£2.14</div>
+              <div style="text-align:right; font-variant-numeric:tabular-nums; font-weight:600;">£4,280.00</div>
+              <div></div>
+            </div>
+            <sc-if value="{{ openR1 }}" hint-placeholder-val="{{ true }}">
+              <div style="border-top:1px solid var(--color-divider); background:var(--color-accent-100); padding:14px 18px 16px 46px; display:flex; gap:40px; flex-wrap:wrap;">
+                <div style="flex:1; min-width:260px;">
+                  <div style="font-family:var(--font-heading); font-weight:600; font-size:11px; letter-spacing:0.08em; text-transform:uppercase; color:var(--color-accent-700); margin-bottom:6px;">Breakdown snapshot <span class="text-muted" style="text-transform:none; letter-spacing:0; font-weight:400;">· read-only</span></div>
+                  <table class="table" style="font-variant-numeric:tabular-nums;"><tbody>
+                    <tr><td>Text · Komori Lithrone 40</td><td class="text-muted" style="text-align:right;">20,000 sheets</td><td style="text-align:right;">£2,180.00</td></tr>
+                    <tr><td>Case · HP Indigo 12000</td><td class="text-muted" style="text-align:right;">500 sheets</td><td style="text-align:right;">£385.00</td></tr>
+                    <tr><td>Section sewing + casing-in</td><td class="text-muted" style="text-align:right;">—</td><td style="text-align:right;">£604.00</td></tr>
+                  </tbody></table>
+                </div>
+                <div style="min-width:180px; font-variant-numeric:tabular-nums; display:flex; flex-direction:column; gap:7px; align-self:flex-end;">
+                  <div style="display:flex; justify-content:space-between; font-size:13px;"><span class="text-muted">Engine cost</span><span>£3,169.00</span></div>
+                  <div style="display:flex; justify-content:space-between; font-size:13px;"><span class="text-muted">Margin · 35%</span><span style="color:var(--color-accent-700);">+ £1,111.00</span></div>
+                  <div style="display:flex; justify-content:space-between; padding-top:5px; border-top:1px dashed var(--color-divider); font-family:var(--font-heading); font-weight:700;"><span>Line total</span><span>£4,280.00</span></div>
+                </div>
+              </div>
+            </sc-if>
+          </div>
+
+          <div style="border:1px solid var(--color-divider); background:#fff;">
+            <div style="display:grid; grid-template-columns:34px 96px 1fr 70px 96px 120px 40px; gap:12px; align-items:center; padding:14px 12px;">
+              <div class="text-muted" style="font-variant-numeric:tabular-nums;">2</div>
+              <div><span class="tag tag-neutral" style="font-family:var(--font-heading); font-weight:600;">Manual</span></div>
+              <div style="padding-left:22px; font-weight:600;">Delivery — two drops, central London</div>
+              <div style="text-align:right; font-variant-numeric:tabular-nums;">1</div>
+              <div style="text-align:right; font-variant-numeric:tabular-nums;" class="text-muted">£240.00</div>
+              <div style="text-align:right; font-variant-numeric:tabular-nums; font-weight:600;">£240.00</div>
+              <div></div>
+            </div>
+          </div>
+        </div>
+
+        <div style="display:flex; justify-content:flex-end; padding:0 26px 24px;">
+          <div style="width:340px; font-variant-numeric:tabular-nums; display:flex; flex-direction:column; gap:9px;">
+            <div style="display:flex; justify-content:space-between; font-size:14px;"><span class="text-muted">Engine lines (1)</span><span>£4,280.00</span></div>
+            <div style="display:flex; justify-content:space-between; font-size:14px;"><span class="text-muted">Manual lines (1)</span><span>£240.00</span></div>
+            <div class="blueprint" style="background:var(--color-accent-900); color:#fff; padding:14px 16px; display:flex; justify-content:space-between; align-items:baseline; margin-top:4px;">
+              <i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i>
+              <span style="font-family:var(--font-heading); font-weight:600; font-size:14px;">Quote total</span>
+              <span style="font-family:var(--font-heading); font-weight:700; font-size:26px;">£4,520.00</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ 14c — Quote detail · RECORD mode (converted → linked order) ============ -->
+  <section id="14c" style="display:flex; flex-direction:column; gap:16px; width:1580px; flex:none;">
+    <div style="display:flex; align-items:center; gap:8px;">
+      <span class="opt-badge">14c</span>
+      <span class="tagline" style="font-size:10px;">quote detail — record mode · converted · banner replaces Convert</span>
+    </div>
+
+    <div class="blueprint" style="background:var(--color-bg); display:flex; overflow:hidden;">
+      <i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i>
+      <aside style="width:60px; flex:none; background:var(--color-accent-900); display:flex; flex-direction:column; align-items:center; gap:6px; padding:18px 0;">
+        <svg width="30" height="30" viewBox="0 0 120 120" style="margin-bottom:12px;"><rect x="8" y="8" width="48" height="48" rx="15" fill="#94bce3"></rect><rect x="64" y="8" width="48" height="48" rx="15" fill="#cfe4fa"></rect><rect x="8" y="64" width="48" height="48" rx="15" fill="#7e9cb8"></rect><rect x="64" y="64" width="48" height="48" rx="15" fill="#b5d9fd"></rect></svg>
+        <a href="#" aria-current="page" style="width:38px; height:38px; display:flex; align-items:center; justify-content:center; color:#fff; background:rgba(148,188,227,0.18); box-shadow:inset 2px 0 0 #94bce3;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><path d="M14 2v6h6"></path></svg></a>
+      </aside>
+
+      <div style="flex:1; display:flex; flex-direction:column; min-width:0;">
+        <header style="display:flex; align-items:center; gap:16px; padding:16px 26px; border-bottom:1px solid var(--color-divider);">
+          <div style="min-width:0;">
+            <div class="text-muted" style="font-size:11px; letter-spacing:0.08em; text-transform:uppercase;">Quotes <span style="opacity:0.5;">/</span> Q-2041</div>
+            <div style="display:flex; align-items:center; gap:12px; margin-top:2px;"><h3 style="margin:0; font-size:24px;">Q-2041</h3><span class="tag tag-accent" style="font-family:var(--font-heading); font-weight:600; display:inline-flex; align-items:center; gap:5px;"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"></path></svg>Accepted</span></div>
+          </div>
+          <div style="margin-left:auto; display:flex; gap:10px; align-items:center;">
+            <button class="btn btn-ghost" style="padding-inline:14px;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>Clone</button>
+            <a href="#" class="btn btn-primary blueprint" style="padding-inline:18px;"><i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="1"></rect><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"></path></svg>View order</a>
+          </div>
+        </header>
+
+        <!-- linked-order banner (replaces Convert action once converted) -->
+        <div style="display:flex; align-items:center; gap:12px; margin:16px 26px 0; padding:12px 16px; background:var(--color-accent-100); box-shadow:inset 3px 0 0 var(--color-accent);">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--color-accent-700)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="1"></rect><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"></path></svg>
+          <span style="font-size:13.5px;">Converted to <a href="#" style="font-weight:600;">Order O-1183</a> on 21 Jul 2026 · in production</span>
+          <a href="#" class="btn btn-ghost" style="margin-left:auto; padding-inline:14px;">View order</a>
+        </div>
+
+        <!-- frozen party band -->
+        <div style="display:flex; align-items:center; gap:40px; flex-wrap:wrap; padding:16px 26px; font-size:13.5px;">
+          <div><div class="text-muted" style="font-size:11px; letter-spacing:0.06em; text-transform:uppercase;">Customer</div><div style="font-weight:600;">Faber &amp; Faber</div></div>
+          <div><div class="text-muted" style="font-size:11px; letter-spacing:0.06em; text-transform:uppercase;">Currency</div><div style="font-weight:600;">GBP £</div></div>
+          <div><div class="text-muted" style="font-size:11px; letter-spacing:0.06em; text-transform:uppercase;">Valid until</div><div style="font-weight:600;">14 Aug 2026</div></div>
+          <div><div class="text-muted" style="font-size:11px; letter-spacing:0.06em; text-transform:uppercase;">Pricelist</div><div style="font-weight:600;">v2026.3</div></div>
+          <div class="text-muted" style="font-size:11.5px; margin-left:auto; display:flex; align-items:center; gap:6px;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>Frozen record — converted, no further edits</div>
+        </div>
+
+        <!-- frozen line list (identical snapshot) -->
+        <div style="padding:4px 26px 18px; display:flex; flex-direction:column; gap:10px;">
+          <div style="display:grid; grid-template-columns:34px 96px 1fr 70px 96px 120px 40px; gap:12px; align-items:center; padding:0 12px; font-family:var(--font-heading); font-weight:600; font-size:11px; letter-spacing:0.06em; text-transform:uppercase; color:var(--color-text-muted,#6b7280);">
+            <div>#</div><div>Type</div><div>Description</div><div style="text-align:right;">Qty</div><div style="text-align:right;">Unit</div><div style="text-align:right;">Line total</div><div></div>
+          </div>
+          <div style="border:1px solid var(--color-divider); background:#fff; display:grid; grid-template-columns:34px 96px 1fr 70px 96px 120px 40px; gap:12px; align-items:center; padding:14px 12px;">
+            <div class="text-muted" style="font-variant-numeric:tabular-nums;">1</div>
+            <div><span class="tag tag-outline" style="font-family:var(--font-heading); font-weight:600;">Expert</span></div>
+            <div style="padding-left:2px;"><span style="font-weight:600;">Case-bound novel — 320pp</span> <span class="text-muted" style="font-size:12px;">· snapshot at acceptance</span></div>
+            <div style="text-align:right; font-variant-numeric:tabular-nums;">2,000</div>
+            <div style="text-align:right; font-variant-numeric:tabular-nums;" class="text-muted">£2.14</div>
+            <div style="text-align:right; font-variant-numeric:tabular-nums; font-weight:600;">£4,280.00</div>
+            <div></div>
+          </div>
+          <div style="border:1px solid var(--color-divider); background:#fff; display:grid; grid-template-columns:34px 96px 1fr 70px 96px 120px 40px; gap:12px; align-items:center; padding:14px 12px;">
+            <div class="text-muted" style="font-variant-numeric:tabular-nums;">2</div>
+            <div><span class="tag tag-neutral" style="font-family:var(--font-heading); font-weight:600;">Manual</span></div>
+            <div style="padding-left:2px; font-weight:600;">Delivery — two drops, central London</div>
+            <div style="text-align:right; font-variant-numeric:tabular-nums;">1</div>
+            <div style="text-align:right; font-variant-numeric:tabular-nums;" class="text-muted">£240.00</div>
+            <div style="text-align:right; font-variant-numeric:tabular-nums; font-weight:600;">£240.00</div>
+            <div></div>
+          </div>
+        </div>
+
+        <div style="display:flex; justify-content:flex-end; padding:0 26px 24px;">
+          <div class="blueprint" style="background:var(--color-accent-900); color:#fff; padding:14px 16px; width:340px; display:flex; justify-content:space-between; align-items:baseline;">
+            <i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i>
+            <span style="font-family:var(--font-heading); font-weight:600; font-size:14px;">Quote total</span>
+            <span style="font-family:var(--font-heading); font-weight:700; font-size:26px; font-variant-numeric:tabular-nums;">£4,520.00</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+  <section id="13a" style="display:flex; flex-direction:column; gap:16px; width:1580px; flex:none;">
+    <div style="display:flex; align-items:center; gap:8px;">
+      <span class="opt-badge">13a</span>
+      <span class="tagline" style="font-size:10px;">line composer — expert mode · JobSpec + live breakdown</span>
+    </div>
+
+    <div class="blueprint" style="background:var(--color-bg); display:flex; height:1000px; overflow:hidden;">
+      <i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i>
+
+      <!-- app rail -->
+      <aside style="width:60px; flex:none; background:var(--color-accent-900); display:flex; flex-direction:column; align-items:center; gap:6px; padding:18px 0;">
+        <svg width="30" height="30" viewBox="0 0 120 120" aria-label="PolyMix" style="margin-bottom:12px;">
+          <rect x="8" y="8" width="48" height="48" rx="15" fill="#94bce3"></rect><rect x="64" y="8" width="48" height="48" rx="15" fill="#cfe4fa"></rect><rect x="8" y="64" width="48" height="48" rx="15" fill="#7e9cb8"></rect><rect x="64" y="64" width="48" height="48" rx="15" fill="#b5d9fd"></rect>
+        </svg>
+        <a href="#" aria-current="page" style="width:38px; height:38px; display:flex; align-items:center; justify-content:center; color:#ffffff; background:rgba(148,188,227,0.18); box-shadow:inset 2px 0 0 #94bce3;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><path d="M14 2v6h6"></path></svg></a>
+        <a href="#" style="width:38px; height:38px; display:flex; align-items:center; justify-content:center; color:#c4d2e0;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="1"></rect><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"></path></svg></a>
+        <a href="#" style="width:38px; height:38px; display:flex; align-items:center; justify-content:center; color:#c4d2e0;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle></svg></a>
+        <a href="#" style="margin-top:auto; width:38px; height:38px; display:flex; align-items:center; justify-content:center; color:#c4d2e0;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg></a>
+      </aside>
+
+      <!-- main -->
+      <div style="flex:1; display:flex; flex-direction:column; min-width:0;">
+        <header style="display:flex; align-items:center; gap:16px; padding:16px 26px; border-bottom:1px solid var(--color-divider);">
+          <div style="min-width:0;">
+            <div class="text-muted" style="font-size:11px; letter-spacing:0.08em; text-transform:uppercase;">Quote Q-2048 <span style="opacity:0.5;">/</span> Line 3 <span style="opacity:0.5;">/</span> <span style="color:var(--color-accent-700);">Expert composer</span></div>
+            <h3 style="margin:2px 0 0; font-size:24px;">Spec line</h3>
+          </div>
+          <span class="tag tag-outline" style="align-self:center;">Staff only</span>
+          <div style="margin-left:auto; display:flex; gap:10px;">
+            <button class="btn btn-ghost" style="padding-inline:16px;">Cancel</button>
+            <button class="btn btn-primary blueprint" style="padding-inline:18px;"><i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i>
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"></path></svg>
+              Save spec line
+            </button>
+          </div>
+        </header>
+
+        <!-- two panes -->
+        <div style="flex:1; display:flex; min-height:0;">
+
+          <!-- ========== composer pane (left, ~60%) ========== -->
+          <div style="flex:1.5; min-width:0; overflow:auto; padding:24px 26px 40px; display:flex; flex-direction:column; gap:26px;">
+
+            <!-- 1 · Job header -->
+            <div style="display:flex; flex-direction:column; gap:14px;">
+              <div style="display:grid; grid-template-columns:1.4fr 0.7fr; gap:16px;">
+                <div class="field">
+                  <label>Format <span class="text-muted" style="text-transform:none; letter-spacing:0;">· catalog</span></label>
+                  <div style="position:relative; display:flex; align-items:center;">
+                    <svg style="position:absolute; left:10px; pointer-events:none;" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--color-accent)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><path d="m21 21-4.3-4.3"></path></svg>
+                    <select class="input" value="{{ jobFormat }}" onChange="{{ setFormat }}" style="width:100%; padding-left:30px;">
+                      <sc-for list="{{ formatOpts }}" as="f" hint-placeholder-count="5"><option value="{{ f }}">{{ f }}</option></sc-for>
+                    </select>
+                  </div>
+                </div>
+                <div class="field">
+                  <label>Quantity <span class="text-muted" style="text-transform:none; letter-spacing:0;">· primary</span></label>
+                  <input class="input" type="number" min="1" value="{{ primaryQty }}" onChange="{{ setQtyInput }}" style="font-variant-numeric:tabular-nums; font-family:var(--font-heading); font-weight:600;">
+                </div>
+              </div>
+
+              <div style="display:grid; grid-template-columns:auto 1fr; gap:16px; align-items:end;">
+                <div class="field">
+                  <label>Technology constraint</label>
+                  <div style="display:inline-flex; align-self:flex-start; border:1px solid var(--color-divider); background:var(--color-surface); padding:3px; gap:3px; font-family:var(--font-heading); font-weight:600; font-size:13px;">
+                    <button onClick="{{ setTechAllow }}" data-t="any" style="all:unset; cursor:pointer; padding:7px 15px; background:{{ techAnyBg }}; color:{{ techAnyFg }};">Any</button>
+                    <button onClick="{{ setTechAllow }}" data-t="digital" style="all:unset; cursor:pointer; padding:7px 15px; background:{{ techDigBg }}; color:{{ techDigFg }};">Digital</button>
+                    <button onClick="{{ setTechAllow }}" data-t="offset" style="all:unset; cursor:pointer; padding:7px 15px; background:{{ techOffBg }}; color:{{ techOffFg }};">Offset</button>
+                  </div>
+                </div>
+                <div class="field">
+                  <label>Description <span class="text-muted" style="text-transform:none; letter-spacing:0;">· shown on quote</span></label>
+                  <input class="input" value="Hardcover monograph — 160pp text, printed case">
+                </div>
+              </div>
+            </div>
+
+            <!-- 2 · Components -->
+            <div style="display:flex; flex-direction:column; gap:12px;">
+              <div style="display:flex; align-items:center; gap:10px;">
+                <span style="font-family:var(--font-heading); font-weight:600; font-size:13px; letter-spacing:0.06em; text-transform:uppercase; color:var(--color-accent-700);">Components</span>
+                <span class="text-muted" style="font-size:12px;">at least one required</span>
+                <button class="btn btn-secondary" style="margin-left:auto;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14"></path><path d="M5 12h14"></path></svg>Add component</button>
+              </div>
+
+              <!-- component: Cover (printed 4/4) -->
+              <div style="border:1px solid var(--color-divider); background:var(--color-surface); padding:16px; display:flex; flex-direction:column; gap:14px;">
+                <div style="display:grid; grid-template-columns:1.3fr 0.7fr auto 40px; gap:14px; align-items:end;">
+                  <div class="field"><label>Role</label><input class="input" value="Cover" style="background:#fff;"></div>
+                  <div class="field"><label>Pages</label><input class="input" type="number" min="0" value="4" style="background:#fff; font-variant-numeric:tabular-nums;"></div>
+                  <div class="field">
+                    <label>Colors <span class="text-muted" style="text-transform:none; letter-spacing:0;">F / B</span></label>
+                    <div style="display:flex; align-items:center; gap:6px;">
+                      <input class="input" value="4" style="width:46px; background:#fff; text-align:center; font-variant-numeric:tabular-nums;">
+                      <span class="text-muted" style="font-weight:600;">/</span>
+                      <input class="input" value="4" style="width:46px; background:#fff; text-align:center; font-variant-numeric:tabular-nums;">
+                    </div>
+                  </div>
+                  <button class="btn btn-ghost btn-icon" aria-label="Remove component" style="margin-bottom:2px;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"></path><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"></path></svg></button>
+                </div>
+                <div style="display:grid; grid-template-columns:1.4fr 1fr; gap:14px;">
+                  <div class="field"><label>Material <span class="text-muted" style="text-transform:none; letter-spacing:0;">· per_sheet only</span></label>
+                    <select class="input" style="background:#fff;"><option>GF Smith Colorplan 270</option><option>Munken Cream 90gsm</option><option>Symbol Freelife 100gsm</option><option disabled title="per_m2 — no sheet size for imposition">Buckram cloth (per_m2 — unavailable)</option></select>
+                  </div>
+                  <div class="field"><label>Machine pin</label>
+                    <select class="input" style="background:#fff;"><option>Auto</option><option>HP Indigo 12000</option><option>Xerox Iridesse</option><option>Heidelberg SM 74</option></select>
+                  </div>
+                </div>
+              </div>
+
+              <!-- component: Text (printed 1/1) -->
+              <div style="border:1px solid var(--color-divider); background:var(--color-surface); padding:16px; display:flex; flex-direction:column; gap:14px;">
+                <div style="display:grid; grid-template-columns:1.3fr 0.7fr auto 40px; gap:14px; align-items:end;">
+                  <div class="field"><label>Role</label><input class="input" value="Text" style="background:#fff;"></div>
+                  <div class="field"><label>Pages</label><input class="input" type="number" min="0" value="160" style="background:#fff; font-variant-numeric:tabular-nums;"></div>
+                  <div class="field">
+                    <label>Colors <span class="text-muted" style="text-transform:none; letter-spacing:0;">F / B</span></label>
+                    <div style="display:flex; align-items:center; gap:6px;">
+                      <input class="input" value="1" style="width:46px; background:#fff; text-align:center; font-variant-numeric:tabular-nums;">
+                      <span class="text-muted" style="font-weight:600;">/</span>
+                      <input class="input" value="1" style="width:46px; background:#fff; text-align:center; font-variant-numeric:tabular-nums;">
+                    </div>
+                  </div>
+                  <button class="btn btn-ghost btn-icon" aria-label="Remove component" style="margin-bottom:2px;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"></path><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"></path></svg></button>
+                </div>
+                <div style="display:grid; grid-template-columns:1.4fr 1fr; gap:14px;">
+                  <div class="field"><label>Material <span class="text-muted" style="text-transform:none; letter-spacing:0;">· per_sheet only</span></label>
+                    <select class="input" style="background:#fff;"><option>Munken Cream 90gsm</option><option>Munken Lynx 120gsm</option><option>Symbol Freelife 100gsm</option></select>
+                  </div>
+                  <div class="field"><label>Machine pin</label>
+                    <select class="input" style="background:#fff;"><option>Auto</option><option>Komori Lithrone 40</option><option>Heidelberg SM 74</option></select>
+                  </div>
+                </div>
+              </div>
+
+              <!-- component: Endpapers (unprinted 0/0) -->
+              <div style="border:1px solid var(--color-divider); background:var(--color-surface); padding:16px; display:flex; flex-direction:column; gap:14px;">
+                <div style="display:grid; grid-template-columns:1.3fr 0.7fr auto 40px; gap:14px; align-items:end;">
+                  <div class="field"><label>Role</label><input class="input" value="Endpapers" style="background:#fff;"></div>
+                  <div class="field"><label>Pages</label><input class="input" type="number" min="0" value="4" style="background:#fff; font-variant-numeric:tabular-nums;"></div>
+                  <div class="field">
+                    <label>Colors <span class="text-muted" style="text-transform:none; letter-spacing:0;">F / B</span></label>
+                    <div style="display:flex; align-items:center; gap:6px;">
+                      <input class="input" value="0" style="width:46px; background:#fff; text-align:center; font-variant-numeric:tabular-nums; color:var(--color-text-muted,#6b7280);">
+                      <span class="text-muted" style="font-weight:600;">/</span>
+                      <input class="input" value="0" style="width:46px; background:#fff; text-align:center; font-variant-numeric:tabular-nums; color:var(--color-text-muted,#6b7280);">
+                    </div>
+                  </div>
+                  <button class="btn btn-ghost btn-icon" aria-label="Remove component" style="margin-bottom:2px;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"></path><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"></path></svg></button>
+                </div>
+                <div style="display:grid; grid-template-columns:1.4fr 1fr; gap:14px; align-items:center;">
+                  <div class="field"><label>Material <span class="text-muted" style="text-transform:none; letter-spacing:0;">· per_sheet only</span></label>
+                    <select class="input" style="background:#fff;"><option>Colorplan Ebony 135</option><option>Munken Cream 90gsm</option></select>
+                  </div>
+                  <div style="display:flex; align-items:center; gap:8px; padding-top:14px; color:var(--color-text-muted,#6b7280); font-size:12.5px;">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M12 16v-4"></path><path d="M12 8h.01"></path></svg>
+                    Unprinted — no machine, no waste
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- 3 · Operations -->
+            <div style="display:flex; flex-direction:column; gap:12px;">
+              <div style="display:flex; align-items:center; gap:10px;">
+                <span style="font-family:var(--font-heading); font-weight:600; font-size:13px; letter-spacing:0.06em; text-transform:uppercase; color:var(--color-accent-700);">Finishing / operations</span>
+                <span class="text-muted" style="font-size:12px;">optional</span>
+                <button onClick="{{ addOp }}" class="btn btn-secondary" style="margin-left:auto;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14"></path><path d="M5 12h14"></path></svg>Add operation</button>
+              </div>
+
+              <sc-for list="{{ ops }}" as="op" hint-placeholder-count="2">
+                <div style="border:1px solid var(--color-divider); background:var(--color-surface); padding:16px; display:flex; flex-direction:column; gap:14px;">
+                  <div style="display:grid; grid-template-columns:1.4fr auto 1fr 40px; gap:14px; align-items:end;">
+                    <div class="field"><label>Operation</label>
+                      <select class="input" value="{{ op.name }}" onChange="{{ op.onName }}" style="background:#fff;">
+                        <sc-for list="{{ opNameOpts }}" as="n" hint-placeholder-count="6"><option value="{{ n }}">{{ n }}</option></sc-for>
+                      </select>
+                    </div>
+                    <div class="field"><label>Unit basis</label><span class="tag tag-outline" style="align-self:flex-start; min-height:36px; display:inline-flex; align-items:center;">{{ op.basis }}</span></div>
+                    <div class="field"><label>Material <span class="text-muted" style="text-transform:none; letter-spacing:0;">· param</span></label>
+                      <select class="input" value="{{ op.material }}" onChange="{{ op.onMaterial }}" style="background:#fff;">
+                        <sc-for list="{{ op.matOpts }}" as="m" hint-placeholder-count="2"><option value="{{ m }}">{{ m }}</option></sc-for>
+                      </select>
+                    </div>
+                    <button onClick="{{ op.onRemove }}" class="btn btn-ghost btn-icon" aria-label="Remove operation" style="margin-bottom:2px;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"></path><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"></path></svg></button>
+                  </div>
+
+                  <sc-if value="{{ op.showEdge }}" hint-placeholder-val="{{ false }}">
+                    <div class="field" style="max-width:220px;"><label>Edge (mm) <span class="text-muted" style="text-transform:none; letter-spacing:0;">· per_cm</span></label><input class="input" value="{{ op.edge }}" placeholder="format trim height" style="background:#fff; font-variant-numeric:tabular-nums;"></div>
+                  </sc-if>
+
+                  <div>
+                    <button onClick="{{ op.onToggleAdv }}" style="all:unset; cursor:pointer; display:inline-flex; align-items:center; gap:6px; font-family:var(--font-heading); font-weight:600; font-size:12.5px; color:var(--color-text-muted,#6b7280);">
+                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="transform:{{ op.advCaret }}; transition:transform .12s;"><path d="m9 18 6-6-6-6"></path></svg>
+                      Advanced
+                    </button>
+                    <sc-if value="{{ op.adv }}" hint-placeholder-val="{{ false }}">
+                      <div class="field" style="max-width:220px; margin-top:12px;"><label>Units multiplier</label><input class="input" type="number" min="1" value="{{ op.units }}" style="background:#fff; font-variant-numeric:tabular-nums;"></div>
+                    </sc-if>
+                  </div>
+                </div>
+              </sc-for>
+            </div>
+          </div>
+
+          <!-- ========== live breakdown pane (right, ~40%) ========== -->
+          <div style="flex:1; min-width:340px; max-width:520px; border-left:1px solid var(--color-divider); background:var(--color-accent-100); display:flex; flex-direction:column; overflow:auto;">
+
+            <!-- price summary -->
+            <div style="background:var(--color-accent-900); color:#fff; padding:22px 24px; display:flex; flex-direction:column; gap:4px;">
+              <div style="display:flex; align-items:center; gap:8px; color:#b5d9fd; font-size:11px; letter-spacing:0.14em; text-transform:uppercase; font-family:var(--font-heading); font-weight:600;">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12A10 10 0 1 1 12 2"></path><path d="M12 2a10 10 0 0 1 10 10"></path></svg>
+                Estimate · {{ primaryQty }} copies
+              </div>
+              <div style="font-family:var(--font-heading); font-weight:700; font-size:44px; line-height:1.02; letter-spacing:-0.02em; font-variant-numeric:tabular-nums;">{{ sumTotal }}</div>
+              <div style="color:#cfe4fa; font-size:14px; font-variant-numeric:tabular-nums;">{{ sumUnit }} / copy · Trade — books (GBP)</div>
+            </div>
+
+            <div style="padding:20px 24px; display:flex; flex-direction:column; gap:22px;">
+
+              <!-- quantity ladder -->
+              <div style="display:flex; flex-direction:column; gap:10px;">
+                <div style="font-family:var(--font-heading); font-weight:600; font-size:12px; letter-spacing:0.08em; text-transform:uppercase; color:var(--color-accent-700);">Quantity ladder</div>
+                <div style="display:flex; flex-wrap:wrap; gap:8px;">
+                  <sc-for list="{{ ladder }}" as="row" hint-placeholder-count="3">
+                    <button onClick="{{ row.select }}" style="all:unset; cursor:pointer; padding:6px 12px; background:{{ row.chipBg }}; color:{{ row.chipFg }}; border:1px solid {{ row.chipBorder }}; font-family:var(--font-heading); font-weight:600; font-size:13px; font-variant-numeric:tabular-nums;">{{ row.qty }}</button>
+                  </sc-for>
+                  <button class="btn btn-ghost" style="padding:4px 10px; font-size:13px;"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14"></path><path d="M5 12h14"></path></svg>qty</button>
+                </div>
+                <table class="table" style="font-variant-numeric:tabular-nums;">
+                  <thead><tr><th>Qty</th><th style="text-align:right;">Unit</th><th style="text-align:right;">Total</th></tr></thead>
+                  <tbody>
+                    <sc-for list="{{ ladder }}" as="row" hint-placeholder-count="3">
+                      <tr style="background:{{ row.rowBg }};"><td style="font-weight:{{ row.rowWeight }};">{{ row.qty }}</td><td style="text-align:right;" class="text-muted">{{ row.unit }}</td><td style="text-align:right; font-weight:{{ row.rowWeight }};">{{ row.total }}</td></tr>
+                    </sc-for>
+                  </tbody>
+                </table>
+              </div>
+
+              <!-- component costs -->
+              <div style="display:flex; flex-direction:column; gap:8px;">
+                <div style="font-family:var(--font-heading); font-weight:600; font-size:12px; letter-spacing:0.08em; text-transform:uppercase; color:var(--color-accent-700);">Components</div>
+                <table class="table" style="font-variant-numeric:tabular-nums;">
+                  <thead><tr><th>Role</th><th>Machine</th><th style="text-align:right; width:66px;">Sheets</th><th style="text-align:right; width:80px;">Cost</th></tr></thead>
+                  <tbody>
+                    <sc-for list="{{ compRows }}" as="c" hint-placeholder-count="3">
+                      <tr><td>{{ c.role }}</td><td class="text-muted" style="font-size:12.5px;">{{ c.machine }}</td><td style="text-align:right;" class="text-muted">{{ c.sheets }}</td><td style="text-align:right;">{{ c.cost }}</td></tr>
+                    </sc-for>
+                  </tbody>
+                </table>
+              </div>
+
+              <!-- operation costs -->
+              <div style="display:flex; flex-direction:column; gap:8px;">
+                <div style="font-family:var(--font-heading); font-weight:600; font-size:12px; letter-spacing:0.08em; text-transform:uppercase; color:var(--color-accent-700);">Operations</div>
+                <table class="table" style="font-variant-numeric:tabular-nums;">
+                  <tbody>
+                    <sc-for list="{{ opRows }}" as="o" hint-placeholder-count="2">
+                      <tr><td>{{ o.name }}</td><td style="text-align:right;">{{ o.cost }}</td></tr>
+                    </sc-for>
+                  </tbody>
+                </table>
+              </div>
+
+              <!-- cost vs price subtotal -->
+              <div style="border-top:1px solid var(--color-divider); padding-top:14px; display:flex; flex-direction:column; gap:9px; font-variant-numeric:tabular-nums;">
+                <div style="display:flex; justify-content:space-between; font-size:13.5px;"><span class="text-muted">Engine cost <span style="font-size:11px;">(pre-margin)</span></span><span style="font-weight:600;">{{ sumCost }}</span></div>
+                <div style="display:flex; justify-content:space-between; font-size:13.5px;"><span class="text-muted">Margin · {{ sumMargin }}</span><span style="font-weight:600; color:var(--color-accent-700);">+ {{ sumMarginAmt }}</span></div>
+                <div style="display:flex; justify-content:space-between; align-items:baseline; padding-top:6px; border-top:1px dashed var(--color-divider);"><span style="font-family:var(--font-heading); font-weight:600; font-size:14px;">Total</span><span style="font-family:var(--font-heading); font-weight:700; font-size:20px;">{{ sumTotal }}</span></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ 13b — Breakdown pane states + engine-error mapping ============ -->
+  <section id="13b" style="display:flex; flex-direction:column; gap:16px; width:1100px; flex:none;">
+    <div style="display:flex; align-items:center; gap:8px;">
+      <span class="opt-badge">13b</span>
+      <span class="tagline" style="font-size:10px;">breakdown states · idle / stale / engine-error mapping</span>
+    </div>
+    <div style="display:flex; flex-wrap:wrap; gap:20px; align-items:flex-start;">
+
+      <!-- idle -->
+      <div class="blueprint" style="width:320px; background:var(--color-accent-100); display:flex; flex-direction:column; overflow:hidden;">
+        <i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i>
+        <div style="padding:8px 14px; background:var(--color-surface); font-family:var(--font-heading); font-weight:600; font-size:12px; letter-spacing:0.06em; text-transform:uppercase; color:var(--color-text-muted,#6b7280);">Idle / incomplete</div>
+        <div style="flex:1; min-height:300px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:12px; padding:32px 26px; text-align:center;">
+          <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="var(--color-accent)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" style="opacity:0.55;"><path d="M3 3v18h18"></path><path d="m19 9-5 5-4-4-3 3"></path></svg>
+          <div class="text-muted" style="font-size:13.5px; line-height:1.5; max-width:220px;">Add a format and at least one component to see pricing.</div>
+        </div>
+      </div>
+
+      <!-- stale / loading -->
+      <div class="blueprint" style="width:320px; background:var(--color-accent-100); display:flex; flex-direction:column; overflow:hidden; position:relative;">
+        <i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i>
+        <div style="padding:8px 14px; background:var(--color-surface); font-family:var(--font-heading); font-weight:600; font-size:12px; letter-spacing:0.06em; text-transform:uppercase; color:var(--color-text-muted,#6b7280); display:flex; align-items:center; gap:8px;">Loading / stale
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--color-accent)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="margin-left:auto; animation:spin13 .9s linear infinite;"><path d="M21 12a9 9 0 1 1-6.2-8.5"></path></svg>
+        </div>
+        <div style="opacity:0.42; filter:saturate(0.6);">
+          <div style="background:var(--color-accent-900); color:#fff; padding:18px 20px; display:flex; flex-direction:column; gap:3px;">
+            <div style="color:#b5d9fd; font-size:10px; letter-spacing:0.14em; text-transform:uppercase; font-family:var(--font-heading); font-weight:600;">Estimate · 500 copies</div>
+            <div style="font-family:var(--font-heading); font-weight:700; font-size:34px; letter-spacing:-0.02em;">£834.65</div>
+            <div style="color:#cfe4fa; font-size:13px;">£1.67 / copy · keeping last value</div>
+          </div>
+          <div style="padding:16px 20px; display:flex; flex-direction:column; gap:8px; font-size:13px;">
+            <div style="display:flex; justify-content:space-between;"><span class="text-muted">Cover</span><span>£96.25</span></div>
+            <div style="display:flex; justify-content:space-between;"><span class="text-muted">Text</span><span>£245.00</span></div>
+            <div style="display:flex; justify-content:space-between;"><span class="text-muted">Endpapers</span><span>£45.00</span></div>
+          </div>
+        </div>
+        <div class="text-muted" style="padding:6px 20px 14px; font-size:11.5px;">Dimmed while re-estimating — never blanked (no keystroke flicker).</div>
+      </div>
+
+      <!-- engine error mapping -->
+      <div class="blueprint" style="flex:1; min-width:360px; background:var(--color-bg); display:flex; flex-direction:column; overflow:hidden;">
+        <i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i>
+        <div style="padding:8px 14px; background:var(--color-surface); font-family:var(--font-heading); font-weight:600; font-size:12px; letter-spacing:0.06em; text-transform:uppercase; color:var(--color-text-muted,#6b7280);">Engine validation errors — surfaced inline, per region</div>
+
+        <div style="padding:16px 18px; display:flex; flex-direction:column; gap:10px;">
+          <!-- E201 example rendered against a machine pin -->
+          <div class="field" style="max-width:280px;">
+            <label>Machine pin <span class="text-muted" style="text-transform:none; letter-spacing:0;">· Cover</span></label>
+            <select class="input" style="background:#fff; border-color:var(--color-danger,#c0392b); box-shadow:inset 0 0 0 1px var(--color-danger,#c0392b);"><option>HP Indigo 12000</option></select>
+            <div style="display:flex; align-items:center; gap:6px; margin-top:6px; color:var(--color-danger,#c0392b); font-size:12.5px; font-weight:600;">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><path d="M12 9v4"></path><path d="M12 17h.01"></path></svg>
+              E201 — no machine can run 4/4 on this stock
+            </div>
+          </div>
+
+          <table class="table" style="margin-top:6px;">
+            <thead><tr><th style="width:120px;">Code</th><th>Meaning</th><th>Anchored to</th></tr></thead>
+            <tbody>
+              <tr><td><span class="tag tag-outline" style="color:var(--color-danger,#c0392b);">E106</span></td><td class="text-muted">Incomplete spec</td><td>Job header / component highlight</td></tr>
+              <tr><td><span class="tag tag-outline" style="color:var(--color-danger,#c0392b);">E107</span></td><td class="text-muted">Dangling reference</td><td>The offending select</td></tr>
+              <tr><td><span class="tag tag-outline" style="color:var(--color-danger,#c0392b);">E201</span></td><td class="text-muted">No capable machine</td><td>Component machine pin</td></tr>
+              <tr><td><span class="tag tag-outline" style="color:var(--color-danger,#c0392b);">E202</span></td><td class="text-muted">Item larger than sheet</td><td>Component material / format</td></tr>
+              <tr><td><span class="tag tag-outline" style="color:var(--color-danger,#c0392b);">E204</span></td><td class="text-muted">Material basis mismatch</td><td>Operation material param</td></tr>
+              <tr><td><span class="tag tag-outline" style="color:var(--color-danger,#c0392b);">E205</span></td><td class="text-muted">Invalid reserved param</td><td>edge_mm / units_multiplier</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ 13c — Mobile: composer with collapsed sticky summary bar ============ -->
+  <section id="13c" style="display:flex; flex-direction:column; gap:16px; width:400px; flex:none;">
+    <div style="display:flex; align-items:center; gap:8px;">
+      <span class="opt-badge">13c</span>
+      <span class="tagline" style="font-size:10px;">below sm — breakdown collapses to sticky summary</span>
+    </div>
+    <div class="blueprint" style="width:390px; height:720px; background:var(--color-bg); display:flex; flex-direction:column; overflow:hidden; position:relative;">
+      <i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i>
+      <header style="display:flex; align-items:center; gap:12px; padding:14px 16px; border-bottom:1px solid var(--color-divider);">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--color-text)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"></path></svg>
+        <div style="min-width:0;"><div class="text-muted" style="font-size:10px; letter-spacing:0.08em; text-transform:uppercase;">Q-2048 · Expert</div><h3 style="margin:1px 0 0; font-size:18px;">Spec line</h3></div>
+      </header>
+      <div style="flex:1; overflow:auto; padding:16px; display:flex; flex-direction:column; gap:16px;">
+        <div class="field"><label>Format</label><select class="input"><option>A5 portrait</option></select></div>
+        <div class="field"><label>Quantity</label><input class="input" type="number" value="500" style="font-variant-numeric:tabular-nums;"></div>
+        <div style="display:flex; align-items:center; gap:8px;"><span style="font-family:var(--font-heading); font-weight:600; font-size:12px; letter-spacing:0.06em; text-transform:uppercase; color:var(--color-accent-700);">Components</span><span class="text-muted" style="font-size:11.5px;">3</span><button class="btn btn-secondary" style="margin-left:auto; padding:5px 10px; font-size:12px;">Add</button></div>
+        <div style="border:1px solid var(--color-divider); background:var(--color-surface); padding:12px; display:flex; flex-direction:column; gap:8px;">
+          <input class="input" value="Cover" style="background:#fff;">
+          <div style="display:flex; gap:8px;"><input class="input" value="4" style="background:#fff; width:60px; text-align:center;"><span style="align-self:center;" class="text-muted">/</span><input class="input" value="4" style="background:#fff; width:60px; text-align:center;"><select class="input" style="background:#fff; flex:1;"><option>Colorplan 270</option></select></div>
+        </div>
+        <div style="border:1px solid var(--color-divider); background:var(--color-surface); padding:12px;"><input class="input" value="Text" style="background:#fff;"></div>
+      </div>
+      <!-- sticky collapsed summary bar -->
+      <div style="border-top:1px solid var(--color-divider); background:var(--color-accent-900); color:#fff; padding:14px 16px; display:flex; align-items:center; gap:12px;">
+        <div style="min-width:0;">
+          <div style="color:#b5d9fd; font-size:10px; letter-spacing:0.1em; text-transform:uppercase; font-family:var(--font-heading); font-weight:600;">500 copies</div>
+          <div style="font-family:var(--font-heading); font-weight:700; font-size:24px; font-variant-numeric:tabular-nums;">£834.65</div>
+        </div>
+        <button class="btn" style="margin-left:auto; background:rgba(255,255,255,0.14); color:#fff; padding:9px 14px; display:flex; align-items:center; gap:7px;">Breakdown
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m18 15-6-6-6 6"></path></svg>
+        </button>
+      </div>
+    </div>
+  </section>
 
   <!-- ============ 12a — Catalog list (entity tabs) ============ -->
   <section id="12a" style="display:flex; flex-direction:column; gap:16px; width:1440px; flex:none;">
@@ -141,11 +1050,11 @@
             <table class="table">
               <thead><tr><th>Name</th><th style="width:170px;">Unit basis</th><th style="width:120px;">Setup</th><th style="width:130px;">Unit price</th><th style="width:80px; text-align:right;"></th></tr></thead>
               <tbody>
-                <tr><td>Perfect binding</td><td class="text-muted">per_book</td><td class="text-muted">£38.00</td><td class="text-muted">£0.21</td><td style="text-align:right;"><span class="text-muted">Edit</span></td></tr>
-                <tr><td>Section sewing</td><td class="text-muted">per_signature</td><td class="text-muted">£45.00</td><td class="text-muted">£0.09</td><td style="text-align:right;"><span class="text-muted">Edit</span></td></tr>
-                <tr><td>Foil stamping</td><td class="text-muted">per_impression</td><td class="text-muted">£120.00</td><td class="text-muted">£0.14</td><td style="text-align:right;"><span class="text-muted">Edit</span></td></tr>
-                <tr><td>Guillotine trim</td><td class="text-muted">per_1000_sheets</td><td class="text-muted">£12.00</td><td class="text-muted">£1.10</td><td style="text-align:right;"><span class="text-muted">Edit</span></td></tr>
-                <tr><td>Shrink wrapping</td><td class="text-muted">per_bundle</td><td class="text-muted">£8.00</td><td class="text-muted">£0.35</td><td style="text-align:right;"><span class="text-muted">Edit</span></td></tr>
+                <tr><td>Perfect binding</td><td class="text-muted">per_item</td><td class="text-muted">£38.00</td><td class="text-muted">£0.21</td><td style="text-align:right;"><span class="text-muted">Edit</span></td></tr>
+                <tr><td>Section sewing</td><td class="text-muted">per_item</td><td class="text-muted">£45.00</td><td class="text-muted">£0.09</td><td style="text-align:right;"><span class="text-muted">Edit</span></td></tr>
+                <tr><td>Foil stamping</td><td class="text-muted">per_item</td><td class="text-muted">£120.00</td><td class="text-muted">£0.14</td><td style="text-align:right;"><span class="text-muted">Edit</span></td></tr>
+                <tr><td>Guillotine trim</td><td class="text-muted">per_sheet</td><td class="text-muted">£12.00</td><td class="text-muted">£1.10</td><td style="text-align:right;"><span class="text-muted">Edit</span></td></tr>
+                <tr><td>Edge gilding</td><td class="text-muted">per_cm</td><td class="text-muted">£8.00</td><td class="text-muted">£0.35</td><td style="text-align:right;"><span class="text-muted">Edit</span></td></tr>
               </tbody>
             </table>
           </sc-if>
@@ -331,7 +1240,7 @@
       <div style="padding:22px; display:flex; flex-direction:column; gap:24px;">
         <div style="display:grid; grid-template-columns:1.6fr 1fr; gap:16px;">
           <div class="field"><label>Name</label><input class="input" value="Perfect binding"></div>
-          <div class="field"><label>Unit basis</label><select class="input"><option>per_book</option><option>per_signature</option><option>per_impression</option><option>per_1000_sheets</option><option>per_bundle</option></select></div>
+          <div class="field"><label>Unit basis</label><select class="input"><option>per_item</option><option>per_sheet</option><option>per_cm</option><option>per_m2</option></select></div>
         </div>
         <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px;">
           <div class="field"><label>Setup cost (£)</label><input class="input" value="38.00"></div>
@@ -2421,7 +3330,78 @@ class Component extends DCLogic {
       { qty: 1000, mult: 0.84 },
       { qty: 5000, mult: 0.78 },
     ],
+    // Adjustment panel
+    adjMode: "discount", adjMult: "1.35", adjPct: "12", adjPrice: "780.00", adjReason: "",
+    // Quote detail
+    quoteParty: "customer",
+    qL1: false, qL2: true, qL3: false, qR1: true,
+    // Tier-2 expert composer
+    jobFormat: "A5 portrait",
+    primaryQty: 500,
+    techAllow: "any",
+    ops: [
+      { name: "Soft-touch lamination", material: "Soft-touch laminate", edge: "", units: 1, adv: false },
+      { name: "Head/tail band", material: "Head/tail band", edge: "210", units: 1, adv: false },
+    ],
   };
+
+  // static components (role, pages, colors F/B, per_sheet material, machine, ups, prices in pence)
+  components = [
+    { role: "Cover", pages: 4, cf: 4, cb: 4, machine: "HP Indigo 12000", ups: 8, matP: 32, setupP: 4500, clickP: 9 },
+    { role: "Text", pages: 160, cf: 1, cb: 1, machine: "Komori Lithrone 40", ups: 16, matP: 4, setupP: 4500, clickP: 4 },
+    { role: "Endpapers", pages: 4, cf: 0, cb: 0, machine: "—", ups: 4, matP: 18, setupP: 0, clickP: 0 },
+  ];
+  opCatalog = {
+    "Perfect binding":       { basis: "per_item",  setupP: 3800,  unitP: 21 },
+    "Section sewing":        { basis: "per_item",  setupP: 4500,  unitP: 9 },
+    "Foil stamping":         { basis: "per_item",  setupP: 12000, unitP: 14 },
+    "Guillotine trim":       { basis: "per_sheet", setupP: 1200,  unitP: 1 },
+    "Soft-touch lamination": { basis: "per_m2",    setupP: 2600,  unitP: 34 },
+    "Head/tail band":        { basis: "per_cm",    setupP: 600,   unitP: 6 },
+  };
+  matByBasis = {
+    per_item:  ["None", "Ribbon marker"],
+    per_sheet: ["None", "Munken Cream 90gsm"],
+    per_cm:    ["None", "Head/tail band"],
+    per_m2:    ["None", "Soft-touch laminate", "Gloss laminate", "Buckram cloth"],
+  };
+  formatOpts = ["A4 portrait", "A5 portrait", "Crown octavo", "Royal quarto", "DL landscape"];
+
+  money(p) {
+    const neg = p < 0; p = Math.abs(Math.round(p));
+    const s = "£" + (p / 100).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+    return neg ? "−" + s : s;
+  }
+  compCost(c, q) {
+    const leaves = Math.ceil(c.pages / 2);
+    const printed = !(c.cf === 0 && c.cb === 0);
+    const sheets = Math.ceil((leaves * q) / c.ups);
+    const mat = sheets * c.matP;
+    const mach = printed ? c.setupP + sheets * c.clickP : 0;
+    return { role: c.role, machine: printed ? c.machine : "—", sheetsN: sheets, costP: mat + mach };
+  }
+  estimate(q) {
+    const comps = this.components.map(c => this.compCost(c, q));
+    const opsC = this.state.ops.map(o => {
+      const cat = this.opCatalog[o.name] || { setupP: 0, unitP: 0 };
+      return { name: o.name, costP: cat.setupP + cat.unitP * q };
+    });
+    const costP = comps.reduce((a, c) => a + c.costP, 0) + opsC.reduce((a, o) => a + o.costP, 0);
+    const marginPct = q >= 1000 ? 32 : q >= 500 ? 35 : 38;
+    const rawTotal = costP * (1 + marginPct / 100);
+    const totalP = Math.max(4500, Math.round(rawTotal / 5) * 5); // 5p rounding, £45 floor
+    return { comps, opsC, costP, marginPct, marginAmtP: totalP - costP, totalP, unitP: totalP / q };
+  }
+
+  addOp = () => this.setState(s => ({ ops: [...s.ops, { name: "Perfect binding", material: "None", edge: "", units: 1, adv: false }] }));
+  removeOp = (i) => this.setState(s => ({ ops: s.ops.filter((_, k) => k !== i) }));
+  setOpName = (i, name) => this.setState(s => {
+    const basis = (this.opCatalog[name] || {}).basis;
+    const ops = s.ops.map((o, k) => k === i ? { ...o, name, material: "None", edge: basis === "per_cm" ? (o.edge || "210") : "" } : o);
+    return { ops };
+  });
+  setOpMaterial = (i, m) => this.setState(s => ({ ops: s.ops.map((o, k) => k === i ? { ...o, material: m } : o) }));
+  toggleAdv = (i) => this.setState(s => ({ ops: s.ops.map((o, k) => k === i ? { ...o, adv: !o.adv } : o) }));
 
   addBand = () => this.setState(s => {
     const last = s.bands[s.bands.length - 1];
@@ -2586,6 +3566,127 @@ class Component extends DCLogic {
         remove: () => this.removeBand(i),
       })),
       addBand: this.addBand,
+
+      // ===== Adjustment panel =====
+      ...(() => {
+        const cost = 61825, engine = 83465, qty = 500; // pence
+        const mode = this.state.adjMode;
+        const seg = (on) => on ? "var(--color-accent)" : "transparent";
+        const segF = (on) => on ? "#fff" : "var(--color-text-muted,#6b7280)";
+        const mult = parseFloat(this.state.adjMult);
+        const pct = parseFloat(this.state.adjPct);
+        const price = parseFloat(this.state.adjPrice);
+        let err = "", finalP = engine, pending = false;
+        if (mode === "margin") {
+          if (!(mult > 0)) err = "Multiplier must be greater than 0";
+          else { finalP = Math.max(4500, Math.round(cost * mult / 5) * 5); pending = true; }
+        } else if (mode === "discount") {
+          if (!(pct >= 0 && pct <= 100)) err = "Discount must be 0–100%";
+          else finalP = Math.round(engine * (1 - pct / 100));
+        } else {
+          if (!(price >= 0)) err = "Price cannot be negative";
+          else finalP = Math.round(price * 100);
+        }
+        const valid = !err;
+        return {
+          adjMode: mode,
+          setAdjMode: (ev) => this.setState({ adjMode: ev.currentTarget.dataset.m }),
+          isAdjMargin: mode === "margin", isAdjDiscount: mode === "discount", isAdjPrice: mode === "price",
+          adjMarginBg: seg(mode === "margin"), adjMarginFg: segF(mode === "margin"),
+          adjDiscBg: seg(mode === "discount"), adjDiscFg: segF(mode === "discount"),
+          adjPriceBg: seg(mode === "price"), adjPriceFg: segF(mode === "price"),
+          adjMult: this.state.adjMult, onAdjMult: (ev) => this.setState({ adjMult: ev.currentTarget.value }),
+          adjPct: this.state.adjPct, onAdjPct: (ev) => this.setState({ adjPct: ev.currentTarget.value }),
+          adjPrice: this.state.adjPrice, onAdjPrice: (ev) => this.setState({ adjPrice: ev.currentTarget.value }),
+          adjReason: this.state.adjReason, onAdjReason: (ev) => this.setState({ adjReason: ev.currentTarget.value }),
+          removeAdj: () => this.setState({ adjMode: "discount", adjPct: "0", adjReason: "" }),
+          adjInvalid: !valid, adjError: err,
+          adjPending: valid && pending,
+          adjActive: valid && finalP !== engine,
+          engineStrike: valid && finalP !== engine ? "line-through" : "none",
+          finalColor: !valid ? "var(--color-danger,#c0392b)" : (finalP < engine ? "var(--color-accent-700)" : "var(--color-text)"),
+          engineTotalStr: this.money(engine),
+          engineCostStr: this.money(cost),
+          engineUnitStr: this.money(engine / qty),
+          finalStr: valid ? this.money(finalP) : "—",
+          finalUnitStr: valid ? this.money(finalP / qty) : "—",
+          showReasonHint: valid && finalP !== engine && !this.state.adjReason.trim(),
+        };
+      })(),
+
+      // ===== Quote detail =====
+      setParty: (ev) => this.setState({ quoteParty: ev.currentTarget.dataset.p }),
+      partyLabel: this.state.quoteParty === "customer" ? "Customer account" : "Prospect",
+      partyCustBg: this.state.quoteParty === "customer" ? "var(--color-accent)" : "transparent",
+      partyCustFg: this.state.quoteParty === "customer" ? "#fff" : "var(--color-text-muted,#6b7280)",
+      partyProsBg: this.state.quoteParty === "prospect" ? "var(--color-accent)" : "transparent",
+      partyProsFg: this.state.quoteParty === "prospect" ? "#fff" : "var(--color-text-muted,#6b7280)",
+      openL1: this.state.qL1, toggleL1: () => this.setState(s => ({ qL1: !s.qL1 })), caretL1: this.state.qL1 ? "rotate(90deg)" : "rotate(0deg)",
+      openL2: this.state.qL2, toggleL2: () => this.setState(s => ({ qL2: !s.qL2 })), caretL2: this.state.qL2 ? "rotate(90deg)" : "rotate(0deg)",
+      openL3: this.state.qL3, toggleL3: () => this.setState(s => ({ qL3: !s.qL3 })), caretL3: this.state.qL3 ? "rotate(90deg)" : "rotate(0deg)",
+      openR1: this.state.qR1, toggleR1: () => this.setState(s => ({ qR1: !s.qR1 })), caretR1: this.state.qR1 ? "rotate(90deg)" : "rotate(0deg)",
+
+      // ===== Tier-2 expert composer =====
+      jobFormat: this.state.jobFormat,
+      setFormat: (ev) => this.setState({ jobFormat: ev.currentTarget.value }),
+      formatOpts: this.formatOpts,
+      primaryQty: this.state.primaryQty,
+      setQtyInput: (ev) => { const v = Math.max(1, parseInt(ev.currentTarget.value) || 1); this.setState({ primaryQty: v }); },
+      opNameOpts: Object.keys(this.opCatalog),
+
+      techAllow: this.state.techAllow,
+      setTechAllow: (ev) => this.setState({ techAllow: ev.currentTarget.dataset.t }),
+      techAnyBg: this.state.techAllow === "any" ? "var(--color-accent)" : "transparent",
+      techAnyFg: this.state.techAllow === "any" ? "#fff" : "var(--color-text-muted,#6b7280)",
+      techDigBg: this.state.techAllow === "digital" ? "var(--color-accent)" : "transparent",
+      techDigFg: this.state.techAllow === "digital" ? "#fff" : "var(--color-text-muted,#6b7280)",
+      techOffBg: this.state.techAllow === "offset" ? "var(--color-accent)" : "transparent",
+      techOffFg: this.state.techAllow === "offset" ? "#fff" : "var(--color-text-muted,#6b7280)",
+
+      ops: this.state.ops.map((o, i) => {
+        const basis = (this.opCatalog[o.name] || {}).basis || "per_item";
+        return {
+          name: o.name, basis, material: o.material, edge: o.edge, units: o.units, adv: o.adv,
+          matOpts: this.matByBasis[basis] || ["None"],
+          showEdge: basis === "per_cm",
+          advCaret: o.adv ? "rotate(90deg)" : "rotate(0deg)",
+          onName: (ev) => this.setOpName(i, ev.currentTarget.value),
+          onMaterial: (ev) => this.setOpMaterial(i, ev.currentTarget.value),
+          onRemove: () => this.removeOp(i),
+          onToggleAdv: () => this.toggleAdv(i),
+        };
+      }),
+      addOp: this.addOp,
+
+      // breakdown (from estimate for the primary qty)
+      ...(() => {
+        const q = this.state.primaryQty;
+        const est = this.estimate(q);
+        const ladderQtys = [250, 500, 1000];
+        return {
+          sumTotal: this.money(est.totalP),
+          sumUnit: this.money(est.unitP),
+          sumCost: this.money(est.costP),
+          sumMargin: est.marginPct + "% · Trade — books",
+          sumMarginAmt: this.money(est.marginAmtP),
+          compRows: est.comps.map(c => ({ role: c.role, machine: c.machine, sheets: c.sheetsN.toLocaleString(), cost: this.money(c.costP) })),
+          opRows: est.opsC.map(o => ({ name: o.name, cost: this.money(o.costP) })),
+          ladder: ladderQtys.map(lq => {
+            const e = this.estimate(lq);
+            const active = lq === q;
+            return {
+              qty: lq.toLocaleString(),
+              unit: this.money(e.unitP), total: this.money(e.totalP),
+              select: () => this.setState({ primaryQty: lq }),
+              chipBg: active ? "var(--color-accent)" : "transparent",
+              chipFg: active ? "#fff" : "var(--color-text)",
+              chipBorder: active ? "var(--color-accent)" : "var(--color-divider)",
+              rowBg: active ? "var(--color-accent-100)" : "transparent",
+              rowWeight: active ? "700" : "400",
+            };
+          }),
+        };
+      })(),
     };
   }
 }

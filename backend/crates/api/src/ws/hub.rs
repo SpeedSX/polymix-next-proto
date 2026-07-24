@@ -70,6 +70,7 @@ fn to_server_event(change: LiveChange) -> ServerEvent {
         LiveChange::Customer(event) => envelope("customer", *event),
         LiveChange::Order(event) => envelope("order", *event),
         LiveChange::Invoice(event) => envelope("invoice", *event),
+        LiveChange::Quote(event) => envelope("quote", *event),
     }
 }
 

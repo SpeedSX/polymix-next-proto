@@ -108,7 +108,7 @@ then:
    `fly secrets set` line above).
 3. `fly deploy --config backend/fly.toml backend` to pick up the new URL.
 
-1GB comfortably fits the small `ua` demo tenant (`just seed-ua` — 100
+1GB comfortably fits the small `ua` demo tenant (`just seed-uk` — 100
 customers/1,000 orders) but not the 10k/100k perf-seed tenant (`just
 seed`) — that needs the self-hosted Fly fallback in
 `deploy/fly.surrealdb.toml` (kept, not deleted — see its header comment)

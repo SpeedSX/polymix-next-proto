@@ -3,6 +3,7 @@ resolver = "3"
 members = [
     "crates/api",
     "crates/domain",
+    "crates/quote-engine",
     "crates/seeder",
     "crates/surreal-store",
 ]
@@ -14,6 +15,7 @@ publish = false
 
 [workspace.dependencies]
 domain = { path = "crates/domain" }
+quote-engine = { path = "crates/quote-engine" }
 surreal-store = { path = "crates/surreal-store" }
 
 axum = "0.8"

@@ -1,6 +1,15 @@
 use domain::customer::{CustomerKind, CustomerStatus};
 use domain::error::DomainError;
 use domain::order::OrderStatus;
+use domain::quote::QuoteStatus;
+
+pub(crate) fn quote_status_from_db(value: i64) -> Result<QuoteStatus, DomainError> {
+    let code: u8 = value.try_into().map_err(|_| {
+        DomainError::Store(format!("invalid quote status code (out of range): {value}"))
+    })?;
+    QuoteStatus::from_code(code)
+        .ok_or_else(|| DomainError::Store(format!("unknown quote status code: {value}")))
+}
 
 pub(crate) fn order_status_from_db(value: i64) -> Result<OrderStatus, DomainError> {
     let code: u8 = value.try_into().map_err(|_| {

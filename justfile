@@ -2,16 +2,27 @@
 # machine) — CI runners have docker, so this is a no-op there.
 container_runtime := `command -v docker >/dev/null 2>&1 && echo docker || echo podman`
 
+# Build the api and seeder binaries in a single cargo invocation. This is a
+# dependency of every run/seed recipe below, which then execute the prebuilt
+# `target/debug/{api,seeder}` rather than `cargo run -p <one>`. Building both
+# together resolves their features once, so the shared `surrealdb-core` (and
+# its rustls/aws-lc-rs subtree) compiles a single variant; a bare `cargo run
+# -p seeder` after `cargo run -p api` would re-resolve to a narrower feature
+# union and rebuild that whole subtree. Running the prebuilt binary skips
+# feature resolution entirely, so seeding and the API never evict each other.
+warm:
+    cd backend && cargo build -p api -p seeder
+
 # Bring up SurrealDB + the API (dev auth mode) + the Vite dev server.
 #
 # Kills only the two background jobs, not the whole process group: `kill 0`
 # signals the group leader (this sh) too, and each subshell inherits the trap
 # and re-fires it — the resulting self-signal re-entrancy is what crashes
 # MSYS2's runtime into a stackdump on Windows.
-dev:
+dev: warm
     {{container_runtime}} compose -f deploy/compose.rocksdb.yaml up -d --wait
     trap 'kill $(jobs -p) 2>/dev/null' EXIT INT TERM; \
-    (cd backend && AUTH_DEV_MODE=true PORT=8080 SURREALDB_URL=ws://localhost:8001 cargo run -p api) & \
+    (cd backend && AUTH_DEV_MODE=true PORT=8080 SURREALDB_URL=ws://localhost:8001 ./target/debug/api) & \
     (cd frontend && npm run dev) & \
     wait
 
@@ -21,12 +32,12 @@ dev:
 # backend/.env.cloud.local.example and fill in your instance's
 # SURREALDB_USER/SURREALDB_PASS first). See
 # docs/adr/0011-surrealdb-hosting-cloud-free-tier-instead-of-fly.md.
-dev-cloud:
+dev-cloud: warm
     test -f backend/.env.cloud.local || { echo "Missing backend/.env.cloud.local — copy backend/.env.cloud.local.example and fill in your SurrealDB Cloud credentials first."; exit 1; }
     set -a; . ./backend/.env.cloud.local; status=$?; set +a; \
     test "$status" -eq 0 || { echo "Failed to load backend/.env.cloud.local"; exit "$status"; }; \
     trap 'kill $(jobs -p) 2>/dev/null' EXIT INT TERM; \
-    (cd backend && PORT=8080 cargo run -p api) & \
+    (cd backend && PORT=8080 ./target/debug/api) & \
     (cd frontend && npm run dev) & \
     wait
 
@@ -53,13 +64,13 @@ test-int:
     exit $code
 
 # Seeder against the local dev tenant.
-seed:
-    cd backend && SURREALDB_URL=ws://localhost:8001 cargo run -p seeder
+seed: warm
+    cd backend && SURREALDB_URL=ws://localhost:8001 ./target/debug/seeder
 
 # Seeder against the Ukrainian demo tenant
 # (default language `uk`, default currency UAH).
-seed-uk:
-    cd backend && SURREALDB_URL=ws://localhost:8001 SEED_LOCALE=uk cargo run -p seeder
+seed-uk: warm
+    cd backend && SURREALDB_URL=ws://localhost:8001 SEED_LOCALE=uk ./target/debug/seeder
 
 # Build the api docker image. Frontend is static — deployed to Vercel, not
 # a docker image (see docs/adr/0010-frontend-hosting-vercel-instead-of-fly.md).

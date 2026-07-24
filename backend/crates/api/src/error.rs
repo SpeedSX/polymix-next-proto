@@ -2,8 +2,9 @@ use axum::Json;
 use axum::http::StatusCode;
 use axum::response::{IntoResponse, Response};
 use domain::error::DomainError;
+use quote_engine::EngineError;
 use serde::Serialize;
-use serde_json::Value;
+use serde_json::{Value, json};
 
 use crate::jwks::JwksError;
 
@@ -90,6 +91,40 @@ impl From<DomainError> for ApiError {
                 ApiError::internal("internal server error")
             }
         }
+    }
+}
+
+impl From<EngineError> for ApiError {
+    /// Engine errors from staff estimating (tier 2) are the caller's spec being
+    /// unpriceable, not a server fault — surface them as 422 with the spec's
+    /// `E1xx`/`E2xx` code in `details.engine_code` so the composer can anchor
+    /// the message to the offending field (design 13b). Rule violations are a
+    /// 409.
+    fn from(err: EngineError) -> Self {
+        let (status, code, engine_code) = match &err {
+            EngineError::InvalidSelection { .. } => {
+                (StatusCode::UNPROCESSABLE_ENTITY, "invalid_selection", None)
+            }
+            EngineError::InvalidQuantity { .. } => {
+                (StatusCode::UNPROCESSABLE_ENTITY, "invalid_quantity", None)
+            }
+            EngineError::Resolve(e) => (
+                StatusCode::UNPROCESSABLE_ENTITY,
+                "engine_error",
+                Some(e.code()),
+            ),
+            EngineError::Price(e) => (
+                StatusCode::UNPROCESSABLE_ENTITY,
+                "engine_error",
+                Some(e.code()),
+            ),
+            EngineError::RuleViolation(_) => (StatusCode::CONFLICT, "rule_violation", None),
+        };
+        let mut api_err = ApiError::new(status, code, err.to_string());
+        if let Some(engine_code) = engine_code {
+            api_err.details = Some(json!({ "engine_code": engine_code }));
+        }
+        api_err
     }
 }
 

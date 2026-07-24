@@ -12,7 +12,10 @@ Related docs: `docs/instant-quote.md` (portal narrative),
 `docs/product-configuration.md` (template/effects layer),
 `docs/quote-engine-spec.md` (normative engine spec — this design adds a
 small set of deltas to it, listed in §"Spec deltas"),
-`docs/rbac-design.md` (permission catalog this design extends).
+`docs/rbac-design.md` (permission catalog this design extends),
+`docs/order-production-design.md` (target Order + `production_job` model that
+consumes the quote→order output; supersedes the conversion snapshot rule
+below — see `docs/adr/0015-production-plan-snapshots-onto-job.md`).
 
 ## Context
 
@@ -153,7 +156,10 @@ first (orders require `customer_id`); the UI offers that as one step.
 
 ### QuoteLine
 
-Tagged union mirroring the three tiers:
+Tagged union mirroring the three tiers. Every variant carries a stable
+`line_id` (uuid, assigned on create, preserved across edits and clone) so an
+order line and its `production_job` can reference the exact source line — see
+`docs/order-production-design.md`:
 
 ```
 QuoteLine =
@@ -240,10 +246,18 @@ already converted; the transactional expiry check above always runs):
   conversion fails rather than creating an order if that invariant does
   not hold.
 - Order gains `quote: option<record<quote>>`; quote gains `order:
-  option<record<order>>`. One order per quote (v1).
-- The engine-priced lines' `job_spec` + `breakdown` snapshots stay on
-  the quote — they are the production plan A6 will consume; v1 does not
-  copy them onto the order, it follows the link.
+  option<record<order>>`. One order per quote (v1). Each order line also
+  carries `source: option<{ quote, line_id }>` pointing at the quote line it
+  was priced from (`None` for manual lines); the two order lines produced by
+  the residual-minor split share one `line_id`.
+- The engine-priced lines' `job_spec` + `breakdown` are the production plan.
+  A6 does **not** read them live off the quote: at Order confirm they are
+  snapshotted onto a dedicated `production_job` (one per engine-priced quote
+  line), which owns the mutable shop-floor plan production executes. The quote
+  keeps its own copies as the immutable commercial record; the job's
+  `quote_line_ref` links back for traceability. Full model and rationale:
+  `docs/order-production-design.md` and
+  `docs/adr/0015-production-plan-snapshots-onto-job.md`.
 
 ## Spec deltas (quote-engine-spec.md)
 
@@ -374,6 +388,42 @@ conversion (here) subsumes half of A4 (the other half — portal quote
   spec (same shape as the machine pin) once the need is proven.
 - **Waste override** for a known-clean job: not in v1; the waste model
   is per machine and quotes err conservative.
+- **Per-component operation scoping**: v1 operations are job-level — they
+  bind to a whole-job dimension by `unit_basis` (`per_item`/`per_m2` → finished
+  items, `per_sheet` → the sum of *all* components' sheets, `per_cm` → the job
+  format edge). Qty- and area-based finishing already scopes correctly to
+  finished items, so the gap is specifically a **`per_sheet` operation that
+  should apply to a subset of components** (e.g. sheet-level coating or spot-UV
+  on the cover's sheets only) — it over-bills against total job sheets and
+  cannot be targeted. v1 answer is a manual line for that charge. The clean
+  later addition is an optional operation `target` scope (a set of component
+  roles), the same shape as the per-component machine pin — an additive engine
+  delta, no re-architecture. Flexibility here is core to the expert composer's
+  purpose, so this is a "when proven", not "never".
+- **Partial-quantity finishing**: applying an operation to only part of the
+  order quantity ("laminate 200 of the 500") is not expressible in v1 — an
+  operation's cost keys off the whole `job.quantity`. Real but occasional; v1
+  answer is a manual line (or splitting into two quote lines). A later
+  per-operation quantity/fraction input is a bounded engine delta once the need
+  recurs.
+- **Staged / post-assembly operations with quantity transformation** — the big
+  one, and a model evolution rather than an additive delta. v1 is single-stage
+  and flat: operations are an unordered set, each billed against a *static*
+  job-level dimension (`qty`, `total_sheets`, format edge/area) computed from the
+  original components. There is no assembly point (components → one unit) and no
+  working count that flows and transforms between operations — so an operation
+  that changes the piece count (each leaf cut into two or more, n-up-then-
+  guillotine, fold, gang) cannot make a downstream operation count the new
+  number. A complete production model needs operations to become an **ordered
+  pipeline** threading a working piece-count, with an assembly stage and
+  per-stage quantity transforms. The production layer already carries half of
+  this — `order-production-design.md`'s `JobOperation` is *sequenced* and notes
+  the engine's operation order "is not guaranteed production-correct (e.g.
+  laminate-before-cut)" — but only for scheduling/execution, not for cost math.
+  This is a future engine version (JDF-style process chain), the likely point
+  where the quote engine and the production routing model converge; not v1, and
+  not a drop-in field. v1 answer remains manual lines / split lines for anything
+  the flat model mis-costs.
 - **Parametric geometry / per-m² roll printing / new unit bases**: the
   engine-boundary items from `product-configuration.md` remain engine
   releases; staff mode changes nothing about them. Manual lines carry

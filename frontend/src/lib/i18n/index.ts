@@ -7,12 +7,16 @@ import enCommon from './locales/en/common.json'
 import enCustomers from './locales/en/customers.json'
 import enInvoices from './locales/en/invoices.json'
 import enOrders from './locales/en/orders.json'
+import enPricing from './locales/en/pricing.json'
+import enQuotes from './locales/en/quotes.json'
 import enSearch from './locales/en/search.json'
 import enSettings from './locales/en/settings.json'
 import ukCommon from './locales/uk/common.json'
 import ukCustomers from './locales/uk/customers.json'
 import ukInvoices from './locales/uk/invoices.json'
 import ukOrders from './locales/uk/orders.json'
+import ukPricing from './locales/uk/pricing.json'
+import ukQuotes from './locales/uk/quotes.json'
 import ukSearch from './locales/uk/search.json'
 import ukSettings from './locales/uk/settings.json'
 import { zodErrorMap } from './zodErrorMap'
@@ -53,7 +57,7 @@ i18n
     lng: restoredLanguage(),
     fallbackLng: 'en',
     defaultNS: 'common',
-    ns: ['common', 'customers', 'orders', 'invoices', 'search', 'settings'],
+    ns: ['common', 'customers', 'orders', 'invoices', 'search', 'settings', 'pricing', 'quotes'],
     resources: {
       en: {
         common: enCommon,
@@ -62,6 +66,8 @@ i18n
         invoices: enInvoices,
         search: enSearch,
         settings: enSettings,
+        pricing: enPricing,
+        quotes: enQuotes,
       },
       uk: {
         common: ukCommon,
@@ -70,6 +76,8 @@ i18n
         invoices: ukInvoices,
         search: ukSearch,
         settings: ukSettings,
+        pricing: ukPricing,
+        quotes: ukQuotes,
       },
     },
     interpolation: {

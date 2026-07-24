@@ -35,6 +35,21 @@ const CUSTOMER_TABLE: &str = "customer";
 const ORDER_TABLE: &str = "order";
 const UK_LOCALE: &str = "uk";
 
+/// The §9.1 golden price model, embedded from the engine's own fixture so the
+/// seeded demo catalog and the golden test share a single source of truth. Only
+/// the five catalog arrays are loaded here; the template/rules it also contains
+/// belong to tables introduced in A2b.
+const DEMO_CATALOG: &str = include_str!("../../quote-engine/fixtures/demo.json");
+
+/// `(dataset array key, SurrealDB table)` for each catalog table.
+const CATALOG_TABLES: &[(&str, &str)] = &[
+    ("formats", "format"),
+    ("materials", "material"),
+    ("machines", "machine"),
+    ("operations", "operation"),
+    ("pricing_policies", "pricing_policy"),
+];
+
 // ~60% legal entity, ~35% ФОП, ~5% private individual (docs/customers-crm.md
 // Step 6) — used for both demo tenants so the perf tenant's FTS index sees
 // the same field-value distribution as the Ukrainian one.
@@ -298,6 +313,8 @@ async fn main() -> anyhow::Result<()> {
 
     tracing::info!(tenant = %tenant.db_name, org_id = %org_id, "seeding tenant");
 
+    seed_catalog(&session).await?;
+
     let started = Instant::now();
     let customers = seed_customers(
         &session,
@@ -320,6 +337,52 @@ async fn main() -> anyhow::Result<()> {
     tracing::info!(count = order_count, elapsed = ?orders_started.elapsed(), "orders seeded");
 
     tracing::info!(elapsed = ?started.elapsed(), "seed complete");
+    Ok(())
+}
+
+/// Load the §9.1 golden price model into the tenant's catalog tables so
+/// staff-quoting development and demos have a working catalog from day one
+/// (A2a-5). Records keep their canonical fixture ids (`format:a5`, …) so the
+/// §9.2 request reproduces the §9.6 ladder. Idempotent: UPSERT by id replaces,
+/// and the version is pinned to 1 to match §9.6's `pricelist_version`.
+async fn seed_catalog(session: &Surreal<Any>) -> anyhow::Result<()> {
+    let dataset: serde_json::Value = serde_json::from_str(DEMO_CATALOG)?;
+    let mut seeded = 0usize;
+    for (array_key, table) in CATALOG_TABLES {
+        let rows = dataset
+            .get(array_key)
+            .and_then(|v| v.as_array())
+            .cloned()
+            .unwrap_or_default();
+        for mut row in rows {
+            let id = row
+                .get("id")
+                .and_then(|v| v.as_str())
+                .ok_or_else(|| anyhow::anyhow!("catalog row in {array_key} missing id"))?
+                .to_string();
+            let key = id
+                .strip_prefix(&format!("{table}:"))
+                .unwrap_or(&id)
+                .to_string();
+            // The record key is authoritative; the stored content omits `id`.
+            row.as_object_mut()
+                .ok_or_else(|| anyhow::anyhow!("catalog row in {array_key} is not an object"))?
+                .remove("id");
+            session
+                .query("UPSERT type::record($tb, $key) CONTENT $content")
+                .bind(("tb", *table))
+                .bind(("key", key))
+                .bind(("content", row))
+                .await?
+                .check()?;
+            seeded += 1;
+        }
+    }
+    session
+        .query("UPSERT meta:pricing SET version = 1")
+        .await?
+        .check()?;
+    tracing::info!(records = seeded, "catalog seeded (§9.1 golden dataset)");
     Ok(())
 }
 
