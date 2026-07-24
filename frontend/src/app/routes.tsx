@@ -10,6 +10,10 @@ import { OrderList } from '../features/orders/List'
 import { OrderNew } from '../features/orders/New'
 import { PricingEdit } from '../features/pricing/Edit'
 import { PricingNew } from '../features/pricing/New'
+import { QuoteComposer } from '../features/quotes/Composer'
+import { QuoteDetail } from '../features/quotes/Detail'
+import { QuoteList } from '../features/quotes/List'
+import { QuoteNew } from '../features/quotes/New'
 import { SettingsCatalog } from '../features/settings/Catalog'
 import { SettingsLayout } from '../features/settings/SettingsLayout'
 import { SettingsUsersRoles } from '../features/settings/UsersRoles'
@@ -59,6 +63,33 @@ const orderDetailRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/orders/$id',
   component: OrderDetail,
+})
+
+const quotesListRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/quotes',
+  component: QuoteList,
+})
+
+const quotesNewRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/quotes/new',
+  component: QuoteNew,
+})
+
+const quoteDetailRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/quotes/$id',
+  component: QuoteDetail,
+})
+
+const quoteComposeRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/quotes/$id/compose',
+  component: QuoteComposer,
+  validateSearch: (search: Record<string, unknown>): { lineId?: string } => ({
+    lineId: typeof search.lineId === 'string' ? search.lineId : undefined,
+  }),
 })
 
 const invoicesListRoute = createRoute({
@@ -117,6 +148,10 @@ const routeTree = rootRoute.addChildren([
   ordersListRoute,
   ordersNewRoute,
   orderDetailRoute,
+  quotesListRoute,
+  quotesNewRoute,
+  quoteDetailRoute,
+  quoteComposeRoute,
   invoicesListRoute,
   invoiceDetailRoute,
   settingsLayoutRoute.addChildren([

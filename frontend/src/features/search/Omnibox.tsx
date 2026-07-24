@@ -16,6 +16,7 @@ const SEARCH_DEBOUNCE_MS = 250
 
 const DETAIL_ROUTES: Record<SearchEntity, string> = {
   customers: '/customers/$id',
+  quotes: '/quotes/$id',
   orders: '/orders/$id',
   invoices: '/invoices/$id',
 }

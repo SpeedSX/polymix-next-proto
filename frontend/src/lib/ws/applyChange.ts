@@ -3,6 +3,7 @@ import type { QueryClient } from '@tanstack/react-query'
 import { customersKeys } from '../../features/customers/api'
 import { invoicesKeys } from '../../features/invoices/api'
 import { ordersKeys } from '../../features/orders/api'
+import { quotesKeys } from '../../features/quotes/api'
 import type { ChangeFrame, ServerFrame } from './types'
 
 interface EntityKeys {
@@ -16,6 +17,7 @@ const KEYS_BY_ENTITY: Record<string, EntityKeys> = {
   customer: customersKeys,
   order: ordersKeys,
   invoice: invoicesKeys,
+  quote: quotesKeys,
 }
 
 export function applyChange(queryClient: QueryClient, frame: ChangeFrame): void {

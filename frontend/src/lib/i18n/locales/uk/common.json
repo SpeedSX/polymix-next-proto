@@ -1,6 +1,7 @@
 {
   "app.title": "PolyMix Next",
   "nav.customers": "Клієнти",
+  "nav.quotes": "Пропозиції",
   "nav.orders": "Замовлення",
   "nav.invoices": "Рахунки",
   "nav.settings": "Налаштування",

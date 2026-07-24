@@ -1,6 +1,7 @@
 {
   "app.title": "PolyMix Next",
   "nav.customers": "Customers",
+  "nav.quotes": "Quotes",
   "nav.orders": "Orders",
   "nav.invoices": "Invoices",
   "nav.settings": "Settings",

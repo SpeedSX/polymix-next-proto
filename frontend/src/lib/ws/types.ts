@@ -1,4 +1,4 @@
-export type ChangeEntity = 'customer' | 'order' | 'invoice'
+export type ChangeEntity = 'customer' | 'order' | 'invoice' | 'quote'
 export type ChangeAction = 'create' | 'update' | 'delete'
 
 export interface ChangeFrame {

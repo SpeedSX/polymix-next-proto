@@ -16,6 +16,7 @@ import {
   IconBuilding,
   IconChevronRight,
   IconClipboardList,
+  IconFileDollar,
   IconFileInvoice,
   IconLayoutSidebarLeftCollapse,
   IconLayoutSidebarLeftExpand,
@@ -225,6 +226,7 @@ export function AppShell() {
 
   const navItems: Array<{ to: string; label: string; icon: Icon }> = [
     { to: '/customers', label: t('nav.customers'), icon: IconUsers },
+    { to: '/quotes', label: t('nav.quotes'), icon: IconFileDollar },
     { to: '/orders', label: t('nav.orders'), icon: IconClipboardList },
     { to: '/invoices', label: t('nav.invoices'), icon: IconFileInvoice },
     { to: '/settings', label: t('nav.settings'), icon: IconSettings },
